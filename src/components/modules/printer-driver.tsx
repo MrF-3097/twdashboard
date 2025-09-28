@@ -200,40 +200,44 @@ export function PrinterDriver() {
             {filteredDrivers.map((driver) => (
               <div
                 key={`${driver.os}-${driver.name}`}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
               >
-                <div className="flex items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Printer className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium">{driver.name}</h3>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>Version {driver.version}</span>
-                      <span>•</span>
-                      <span>{driver.fileSize}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+                      <Printer className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{driver.name}</h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-sm text-muted-foreground">
+                        <span>Version {driver.version}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span>{driver.fileSize}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => handleDownload(driver)}
-                    disabled={isDownloading && selectedDriver?.name === driver.name}
-                    className="flex items-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
-                  >
-                    {isDownloading && selectedDriver?.name === driver.name ? (
-                      <>
-                        <div className="h-3 w-3 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                        Se descarcă...
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-3 w-3" />
-                        Descarcă
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex justify-end sm:justify-start">
+                    <Button
+                      size="sm"
+                      onClick={() => handleDownload(driver)}
+                      disabled={isDownloading && selectedDriver?.name === driver.name}
+                      className="flex items-center gap-2 bg-accent hover:bg-accent/90 text-accent-foreground w-full sm:w-auto"
+                    >
+                      {isDownloading && selectedDriver?.name === driver.name ? (
+                        <>
+                          <div className="h-3 w-3 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                          <span className="hidden sm:inline">Se descarcă...</span>
+                          <span className="sm:hidden">Se descarcă...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-3 w-3" />
+                          <span className="hidden sm:inline">Descarcă</span>
+                          <span className="sm:hidden">Descarcă</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
