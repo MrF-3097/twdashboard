@@ -19,9 +19,73 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create the prompt for OpenAI
+    // Create tone-specific system prompts
+    const toneSystemPrompts = {
+      professional: `You are a highly professional real estate copywriter for Tower Imob. Your writing is:
+- Formal and business-oriented
+- Factual and precise with details
+- Emphasizes investment value and ROI
+- Uses industry terminology appropriately
+- Structured and well-organized
+- Highlights measurable features (sq meters, number of rooms, exact amenities)
+- Appeals to serious investors and buyers
+- Maintains professional distance while being informative
+ALWAYS start with "Tower Imob va prezinta..."`,
+
+      persuasive: `You are a persuasive real estate copywriter for Tower Imob. Your writing is:
+- Emotionally engaging and compelling
+- Creates urgency and FOMO (fear of missing out)
+- Highlights unique selling points and exclusivity
+- Uses powerful adjectives: "excepțional", "rar", "unic", "oportunitate de neratat"
+- Paints a vivid picture of lifestyle benefits
+- Emphasizes scarcity and demand ("ultim apartament disponibil", "ofertă limitată")
+- Tells a story that makes readers imagine living there
+- Strong call-to-action that motivates immediate contact
+ALWAYS start with "Tower Imob va prezinta..."`,
+
+      friendly: `You are a warm, friendly real estate copywriter for Tower Imob. Your writing is:
+- Conversational and approachable (like talking to a friend)
+- Uses familiar language and personal touches
+- Warm and welcoming tone
+- Tells a relatable story about the property
+- Focuses on comfort, home, and lifestyle
+- Uses phrases like "vă așteaptă", "veți adora", "visul dumneavoastră"
+- Creates an emotional connection
+- Inviting and enthusiastic without being pushy
+- Makes readers feel excited about viewing the property
+ALWAYS start with "Tower Imob va prezinta..."`
+    };
+
+    // Create tone-specific writing guidelines
+    const toneGuidelines = {
+      professional: `
+- Use formal language and complete sentences
+- Focus on: square meters, exact specifications, ROI potential, location advantages
+- Mention: nearby infrastructure, transportation, investment value appreciation
+- Structure: Start with key facts, then detailed features, end with investment potential
+- Example phrases: "investiție excelentă", "potențial ridicat de apreciere", "locație premium"`,
+
+      persuasive: `
+- Create urgency with phrases like: "oportunitate rară", "nu ratați", "disponibil pentru scurt timp"
+- Use superlatives: "excepțional", "spectaculos", "incomparabil", "de neuitat"
+- Emphasize uniqueness: "singura proprietate de acest tip", "ofertă exclusivă"
+- Paint lifestyle: "imaginați-vă dimineți însorite pe terasa dvs.", "simțiți confortul"
+- Strong CTA: "Contactați-ne astăzi", "Programați o vizionare urgentă"
+- Show competition: "cerere mare", "interes crescut"`,
+
+      friendly: `
+- Write like talking to a friend over coffee
+- Use warm expressions: "Bună!", "vă invităm", "cu drag"
+- Tell a story: Describe a typical day living there
+- Personal touches: "veți simți imediat căldura casei", "un loc unde veți crea amintiri"
+- Enthusiastic but genuine: "nu putem să nu vă arătăm", "trebuie să vedeți"
+- Conversational CTA: "Hai să vă arătăm!", "Ne-ar plăcea să vă cunoaștem"
+- Friendly closing: "Vă așteptăm cu nerăbdare!"`
+    };
+
+    // Create the tone-specific prompt
     const prompt = `
-Generate a professional Romanian real estate advertisement with the following requirements:
+Generate a Romanian real estate advertisement with the following:
 
 Property Information:
 - Type: ${property.propertyType}
@@ -29,32 +93,31 @@ Property Information:
 - Price: ${property.price}
 - Details: ${property.details}
 
-Tone: ${tone}
+TONE: ${tone.toUpperCase()}
+${toneGuidelines[tone]}
 
 AI Rules and Instructions:
 ${aiRules}
 
 Requirements:
 1. Write in Romanian language
-2. Use a ${tone} tone
+2. Use DISTINCTLY ${tone.toUpperCase()} tone - make it very different from other tones
 3. Follow ALL the AI rules and instructions provided above
-4. ALWAYS start the ad with "Tower Imob va prezinta..." (this is mandatory)
-5. Include all the provided details naturally in the text
-6. Make it persuasive and professional
-7. Include a call-to-action for contact
-8. Keep it between 100-200 words
-9. Format it nicely with line breaks
+4. MANDATORY: Start with "Tower Imob va prezinta..."
+5. Include all provided details naturally
+6. Keep it between 100-200 words
+7. Format with line breaks for readability
 
-Generate a compelling real estate ad that will attract potential buyers or renters.
+Generate the ad now using a DISTINCTLY ${tone} voice.
 `
 
-      // Call OpenAI API
+      // Call OpenAI API with tone-specific system prompt
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: "You are a professional real estate copywriter for Tower Imob, specializing in Romanian property advertisements. Create compelling, persuasive ads that highlight property features and attract potential buyers or renters. ALWAYS start your ads with 'Tower Imob va prezinta...'"
+            content: toneSystemPrompts[tone]
           },
           {
             role: "user",
@@ -62,7 +125,7 @@ Generate a compelling real estate ad that will attract potential buyers or rente
           }
         ],
         max_tokens: 500,
-        temperature: 0.7,
+        temperature: tone === 'friendly' ? 0.8 : tone === 'persuasive' ? 0.75 : 0.6,
       })
 
     const adText = completion.choices[0]?.message?.content || ''
