@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/components/ui/use-toast'
+import { useDropzone } from 'react-dropzone'
+import Image from 'next/image'
 import { 
   Building2, 
   MapPin, 
@@ -18,9 +20,28 @@ import {
   Download,
   Loader2,
   CheckCircle,
-  FileText
+  FileText,
+  Upload,
+  ImageIcon,
+  Maximize2,
+  X
 } from 'lucide-react'
 import { AdGenerationRequest, AdGenerationResponse } from '@/types'
+
+/**
+ * Interface for the expanded image response from the Bria AI API
+ */
+interface ExpandedImageResult {
+  extendedImage: string
+  originalImage: string
+  originalSize: { width: number; height: number }
+  extendedSize: { width: number; height: number }
+  fileSize: number
+  seed: number
+  method: string
+  requestId: string
+  expansionPercent: number
+}
 
 export function RealEstateGenerator() {
   const [propertyType, setPropertyType] = useState<'apartment' | 'house' | 'commercial' | 'land'>('apartment')
@@ -41,6 +62,14 @@ export function RealEstateGenerator() {
 9. IMPORTANT: Începeți întotdeauna cu "Tower Imob va prezinta..."`)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedAds, setGeneratedAds] = useState<AdGenerationResponse[]>([])
+  
+  // Image expansion states
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imagePrompt, setImagePrompt] = useState('')
+  const [isExpandingImage, setIsExpandingImage] = useState(false)
+  const [expandedImageResult, setExpandedImageResult] = useState<ExpandedImageResult | null>(null)
+  
   const { toast } = useToast()
 
 
@@ -128,10 +157,218 @@ export function RealEstateGenerator() {
     URL.revokeObjectURL(url)
   }
 
+  /**
+   * Handle image file drop or selection
+   */
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0]
+      setUploadedImage(file)
+      
+      // Create preview URL
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+
+      toast({
+        title: "Image uploaded",
+        description: `${file.name} ready for expansion`,
+      })
+    }
+  }, [toast])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.png', '.jpg', '.jpeg', '.webp']
+    },
+    maxFiles: 1,
+    multiple: false
+  })
+
+  /**
+   * Clear uploaded image and reset preview
+   */
+  const handleClearImage = () => {
+    setUploadedImage(null)
+    setImagePreview(null)
+    setExpandedImageResult(null)
+  }
+
+  /**
+   * Expand the uploaded image using Bria AI
+   */
+  const handleExpandImage = async () => {
+    if (!uploadedImage) {
+      toast({
+        title: "No image uploaded",
+        description: "Please upload an image first",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsExpandingImage(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('image', uploadedImage)
+      if (imagePrompt) {
+        formData.append('prompt', imagePrompt)
+      }
+
+      const response = await fetch('/api/extend-image', {
+        method: 'POST',
+        body: formData
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to expand image')
+      }
+
+      setExpandedImageResult(result)
+
+      toast({
+        title: "Imagine extinsă cu succes",
+        description: `Extinsă cu 10% în toate direcțiile: ${result.originalSize.width}x${result.originalSize.height} → ${result.extendedSize.width}x${result.extendedSize.height}`,
+      })
+
+    } catch (error) {
+      console.error('Image expansion error:', error)
+      toast({
+        title: "Expansion failed",
+        description: "There was an error expanding your image. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsExpandingImage(false)
+    }
+  }
+
+  /**
+   * Download the expanded image
+   */
+  const handleDownloadExpandedImage = () => {
+    if (!expandedImageResult) return
+
+    const link = document.createElement('a')
+    link.href = expandedImageResult.extendedImage
+    link.download = `expanded-${uploadedImage?.name || 'image'}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Input Form */}
       <div className="space-y-6">
+        {/* Image Upload and Expansion */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Imagine Proprietate (Opțional)
+            </CardTitle>
+            <CardDescription>
+              Încărcați o imagine - se va extinde automat cu 10% în toate direcțiile
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!imagePreview ? (
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                  isDragActive 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-muted-foreground/25 hover:border-primary/50'
+                }`}
+              >
+                <input {...getInputProps()} />
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                {isDragActive ? (
+                  <p className="text-sm text-primary">Eliberați pentru a încărca...</p>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium mb-2">
+                      Trageți și plasați o imagine aici
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      sau faceți clic pentru a selecta (PNG, JPG, JPEG, WebP)
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Image Preview */}
+                <div className="relative rounded-lg overflow-hidden border bg-muted">
+                  <Image
+                    src={imagePreview}
+                    alt="Preview"
+                    width={400}
+                    height={300}
+                    className="w-full h-auto object-contain"
+                  />
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="absolute top-2 right-2"
+                    onClick={handleClearImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Info about automatic expansion */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                  <p className="text-sm text-primary">
+                    ℹ️ Imaginea va fi extinsă automat cu <strong>10% în toate direcțiile</strong> pentru a crea mai mult spațiu în jurul proprietății.
+                  </p>
+                </div>
+
+                {/* Image Prompt (Optional) */}
+                <div className="space-y-2">
+                  <Label htmlFor="imagePrompt">Prompt (Opțional)</Label>
+                  <Textarea
+                    id="imagePrompt"
+                    placeholder="Descrieți cum doriți să fie extinsă imaginea..."
+                    value={imagePrompt}
+                    onChange={(e) => setImagePrompt(e.target.value)}
+                    className="min-h-20"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Bria acceptă prompt-uri în limba engleză, fără caractere speciale
+                  </p>
+                </div>
+
+                {/* Expand Button */}
+                <Button
+                  onClick={handleExpandImage}
+                  disabled={isExpandingImage}
+                  className="w-full bg-primary hover:bg-primary/90"
+                >
+                  {isExpandingImage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Se extinde imaginea...
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Extindeți Imaginea cu AI
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -284,8 +521,68 @@ export function RealEstateGenerator() {
         </Card>
       </div>
 
-      {/* Generated Ads */}
+      {/* Results Section */}
       <div className="space-y-6">
+        {/* Expanded Image Result */}
+        {expandedImageResult && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Maximize2 className="h-5 w-5" />
+                Imagine Extinsă
+              </CardTitle>
+              <CardDescription>
+                Imagine extinsă cu Bria AI - Licențiată pentru uz comercial
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative rounded-lg overflow-hidden border bg-muted">
+                <Image
+                  src={expandedImageResult.extendedImage}
+                  alt="Expanded"
+                  width={expandedImageResult.extendedSize.width}
+                  height={expandedImageResult.extendedSize.height}
+                  className="w-full h-auto object-contain"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">Original:</span>
+                  <p className="font-medium">
+                    {expandedImageResult.originalSize.width}x{expandedImageResult.originalSize.height}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">Extinsă (+10%):</span>
+                  <p className="font-medium text-primary">
+                    {expandedImageResult.extendedSize.width}x{expandedImageResult.extendedSize.height}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">Mărime fișier:</span>
+                  <p className="font-medium">
+                    {(expandedImageResult.fileSize / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-xs">Metodă:</span>
+                  <p className="font-medium">{expandedImageResult.method}</p>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleDownloadExpandedImage}
+                className="w-full bg-primary hover:bg-primary/90"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Descărcați Imaginea Extinsă
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Generated Ads */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

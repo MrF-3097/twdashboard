@@ -13,7 +13,8 @@ import {
   Laptop,
   CheckCircle,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  FileText
 } from 'lucide-react'
 import { detectOS } from '@/lib/utils'
 import { PrinterDriver } from '@/types'
@@ -106,6 +107,20 @@ export function PrinterDriver() {
       setIsDownloading(false)
       setSelectedDriver(null)
     }
+  }
+
+  const handleContractDownload = (fileUrl: string, fileName: string) => {
+    const link = document.createElement('a')
+    link.href = fileUrl
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    toast({
+      title: "Descărcare inițiată",
+      description: `Descărcarea ${fileName} a fost inițiată.`,
+    })
   }
 
   return (
@@ -241,6 +256,84 @@ export function PrinterDriver() {
                 </div>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Contract Templates */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Șabloane Contracte Tower Imob
+          </CardTitle>
+          <CardDescription>
+            Descărcați șabloanele de contracte pentru documentele dvs. imobiliare
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Contract CERERE */}
+            <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10 flex-shrink-0">
+                    <FileText className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate">Contracte CERERE Tower Imob</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Șabloane pentru contracte de cerere și aplicații imobiliare
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end sm:justify-start">
+                  <Button
+                    size="sm"
+                    onClick={() => handleContractDownload(
+                      '/Contracte CERERE Tower Imob 22.09.2023-20251017T085909Z-1-001.zip',
+                      'Contracte-CERERE-Tower-Imob.zip'
+                    )}
+                    className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-auto"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span className="hidden sm:inline">Descarcă Contracte CERERE</span>
+                    <span className="sm:hidden">Descarcă</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Contract VÂNZARE-ÎNCHIRIERE */}
+            <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 flex-shrink-0">
+                    <FileText className="h-5 w-5 text-green-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate">Contracte VÂNZARE-ÎNCHIRIERE</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Șabloane pentru contracte de vânzare și închiriere imobiliară
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end sm:justify-start">
+                  <Button
+                    size="sm"
+                    onClick={() => handleContractDownload(
+                      '/Contracte VÂNZARE-ÎNCHIRIERE 22.09.2023-20251017T085901Z-1-001.zip',
+                      'Contracte-VANZARE-INCHIRIERE.zip'
+                    )}
+                    className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white w-full sm:w-auto"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span className="hidden sm:inline">Descarcă Contracte VÂNZARE</span>
+                    <span className="sm:hidden">Descarcă</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

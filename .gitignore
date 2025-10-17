@@ -36,4 +36,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Printer drivers and contract files (large binary files)
 public/UPDPSWin_3912040MU.zip
+public/UPDPSWin_3912040MU/
+public/Contracte*.zip

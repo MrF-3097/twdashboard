@@ -8,11 +8,11 @@ import { RealEstateGenerator } from '@/components/modules/real-estate-generator'
 import { PrinterDriver } from '@/components/modules/printer-driver'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText, Building2, Printer, Sparkles, RotateCcw, TrendingUp, Wand2 } from 'lucide-react'
+import { FileText, Building2, Printer, Sparkles, TrendingUp, Wand2 } from 'lucide-react'
 import { ImageEditor } from '@/components/modules/image-editor'
-import { AutoAngleFixer } from '@/components/modules/auto-angle-fixer'
 import { AgentRanking } from '@/components/modules/agent-ranking'
 import { PhotoFixer } from '@/components/modules/photo-fixer'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // Typing Animation Component
 function TypingAnimation() {
@@ -43,6 +43,8 @@ function TypingAnimation() {
 }
 
 export default function Dashboard() {
+  const [selectedModule, setSelectedModule] = useState('documents')
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <Header />
@@ -60,68 +62,108 @@ export default function Dashboard() {
           </h1>
           <p className="mx-auto max-w-2xl text-sm md:text-lg text-muted-foreground">
             Optimizați-vă fluxul de lucru cu instrumente puternice de conversie documente, 
-            anunțuri imobiliare generate de AI, editare imagini și corectare perspectivă automată cu AI extension.
+            anunțuri imobiliare generate de AI, editare și expansiune imagini cu AI.
           </p>
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="documents" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 mb-8 relative overflow-hidden">
+        <Tabs value={selectedModule} onValueChange={setSelectedModule} className="w-full">
+          {/* Mobile Dropdown Selector */}
+          <div className="md:hidden mb-6">
+            <Select value={selectedModule} onValueChange={setSelectedModule}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selectați modulul" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="documents">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Convertor Documente
+                  </div>
+                </SelectItem>
+                <SelectItem value="real-estate">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Anunțuri Imobiliare
+                  </div>
+                </SelectItem>
+                <SelectItem value="printer">
+                  <div className="flex items-center gap-2">
+                    <Printer className="h-4 w-4" />
+                    Driver Imprimantă
+                  </div>
+                </SelectItem>
+                <SelectItem value="image-editor">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    Editor Imagini
+                  </div>
+                </SelectItem>
+                <SelectItem value="agent-ranking">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Agent Ranking
+                  </div>
+                </SelectItem>
+                <SelectItem value="photo-fixer">
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="h-4 w-4" />
+                    Expansiune Imagini
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop Tabs */}
+          <TabsList className="hidden md:grid w-full grid-cols-6 mb-8 relative overflow-hidden">
             <TabsTrigger 
               value="documents" 
-              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105"
+              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
             >
-              <FileText className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300" />
+              <FileText className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-300" />
               <span className="hidden md:inline">Convertor Documente</span>
-              <span className="md:hidden text-xs">Documente</span>
+              <span className="md:hidden">Documente</span>
             </TabsTrigger>
             <TabsTrigger 
               value="real-estate" 
-              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105"
+              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
             >
-              <Building2 className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300" />
+              <Building2 className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-300" />
               <span className="hidden md:inline">Anunțuri Imobiliare</span>
-              <span className="md:hidden text-xs">Imobiliare</span>
+              <span className="md:hidden">Imobiliare</span>
             </TabsTrigger>
             <TabsTrigger 
               value="printer" 
-              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105"
+              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
             >
-              <Printer className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300" />
+              <Printer className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-300" />
               <span className="hidden md:inline">Driver Imprimantă</span>
-              <span className="md:hidden text-xs">Driver</span>
+              <span className="md:hidden">Driver</span>
             </TabsTrigger>
             <TabsTrigger 
               value="image-editor" 
-              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105"
+              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
             >
-              <svg className="h-4 w-4 md:h-5 md:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              <svg className="h-3 w-3 md:h-5 md:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
               <span className="hidden md:inline">Editor Imagini</span>
-              <span className="md:hidden text-xs">Imagini</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="auto-angle-fixer" 
-              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105"
-            >
-              <RotateCcw className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300" />
-              <span className="hidden md:inline">Corector Perspectivă</span>
-              <span className="md:hidden text-xs">Perspectivă</span>
+              <span className="md:hidden">Imagini</span>
             </TabsTrigger>
             <TabsTrigger 
               value="agent-ranking" 
-              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105"
+              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
             >
-              <TrendingUp className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300" />
+              <TrendingUp className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-300" />
               <span className="hidden md:inline">Agent Ranking</span>
-              <span className="md:hidden text-xs">Ranking</span>
+              <span className="md:hidden">Ranking</span>
             </TabsTrigger>
             <TabsTrigger 
               value="photo-fixer" 
-              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105"
+              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
             >
-              <Wand2 className="h-4 w-4 md:h-5 md:w-5 transition-transform duration-300" />
-              <span className="hidden md:inline">Photo Fixer</span>
-              <span className="md:hidden text-xs">Fixer</span>
+              <Wand2 className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-300" />
+              <span className="hidden md:inline">Expansiune Imagini</span>
+              <span className="md:hidden">Expansiune</span>
             </TabsTrigger>
           </TabsList>
 
@@ -206,26 +248,6 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent 
-            value="auto-angle-fixer" 
-            className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
-          >
-            <Card className="transform transition-all duration-500 hover:shadow-lg hover:scale-[1.02]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <RotateCcw className="h-5 w-5 transition-transform duration-300 hover:rotate-12" />
-                  Auto Angle Fixer
-                </CardTitle>
-                <CardDescription>
-                  Corectați automat perspectiva fotografiilor imobiliare cu AI extension pentru umplerea zonelor goale
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AutoAngleFixer />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent 
             value="agent-ranking" 
             className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
           >
@@ -253,7 +275,7 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wand2 className="h-5 w-5 transition-transform duration-300 hover:rotate-12" />
-                  Photo Fixer - Corector Automat Fotografii
+                  Expansiune Imagini - Corector Automat Fotografii
                 </CardTitle>
                 <CardDescription>
                   Corectare automată a înclinării și expansiune inteligentă pentru fotografii imobiliare
