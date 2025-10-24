@@ -57,3 +57,23 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile viewport optimization */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+  
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Prevent zoom on input focus (iOS) */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}

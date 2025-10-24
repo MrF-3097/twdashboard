@@ -4,6 +4,15 @@ A professional Next.js dashboard with document conversion, AI-powered real estat
 
 ## Features
 
+### 🔐 REBS CRM Authentication
+- **Agent Login**: Secure authentication using agent email addresses
+- **REBS API Integration**: Direct integration with Tower Imob CRM system
+- **Unified Password**: Single password "Towerimob2025" for all agents
+- **Dynamic User Profiles**: Fetches real agent data (name, photo, position, email)
+- **Personalized Dashboard**: Each agent sees their own stats and information
+- **Session Management**: Persistent login sessions with "Remember Me" option
+- **Profile Page**: Comprehensive agent profile with performance metrics
+
 ### 📄 Document Converter
 - **DOCX ↔ PDF Conversion**: Convert between Word documents and PDFs
 - **Format Preservation**: Maintains perfect formatting during conversion
@@ -517,6 +526,270 @@ This integration brings professional-grade, commercially licensed image expansio
 
 ---
 
+### Francesco 21.10.2025: Profile Page with Analytics & Desktop UI Enhancement
+
+**Changes/Updates:**
+- **Profile Page**: Complete user profile page with comprehensive analytics
+  - User profile header with avatar, name, email, rating
+  - Colorful gradient banner with profile picture
+  - Badge system showing ranking position (#3/25)
+  - Seniority level, rating stars, and join date
+  - Smooth animations on load (slide-in, fade-in effects)
+- **Stats Dashboard**: Moved transaction columns to profile page (desktop)
+  - 3 large stats cards: Tranzacții, Comision Luna Curentă, Comision Total
+  - Hover animations with scale effect
+  - Color-coded cards with icons (blue, green, purple)
+  - EUR currency display
+- **Yearly Chart**: Interactive commission chart
+  - 12-month bar chart (January - December)
+  - X-axis: Months, Y-axis: Commission in EUR
+  - Animated bars with staggered entrance
+  - Hover tooltips showing exact amounts
+  - Current month highlighted in green
+  - Gradient bar colors with smooth transitions
+- **Leaderboard Integration**: Full agent leaderboard on profile page
+  - Gamified ranking system
+  - Agent cards with stats and achievements
+  - Positioned below the yearly chart
+- **Desktop Profile Button**: User icon button in header (desktop only)
+  - Circular profile button in top-right
+  - Gradient background with hover animation
+  - Scales on hover (1.1x)
+  - Navigates to profile page on click
+- **Smooth Navigation**: State-based routing between dashboard and profile
+  - Back button to return to dashboard
+  - No page reload, instant transitions
+  - Maintains login state
+- **All in Romanian**: Complete Romanian language interface
+
+**Technical Implementation:**
+
+**Files Created:**
+1. `/src/components/pages/profile-page.tsx` - Complete profile page component
+   - User profile header with gradient banner
+   - Stats grid with 3 cards
+   - Interactive yearly commission chart
+   - Integrated leaderboard component
+   - Back navigation button
+   - Smooth animations with CSS keyframes
+   - Romanian language labels throughout
+
+**Files Modified:**
+1. `/src/components/layout/header.tsx` - Added profile button
+   - New `onProfileClick` prop interface
+   - Profile button in desktop view only (`hidden md:flex`)
+   - User icon with gradient background
+   - Hover effects with scale animation
+   - Positioned after quick action cards
+
+2. `/src/app/page.tsx` - Integrated profile navigation
+   - Added `showProfile` state
+   - `handleProfileClick` and `handleBackToDashboard` functions
+   - Conditional rendering: Login → Dashboard → Profile
+   - Passed `onProfileClick` to Header component
+
+**Profile Page Features:**
+
+**Header Section:**
+- Gradient banner (blue → purple → pink)
+- Profile picture with ranking badge
+- User name and email
+- 3 badge pills: Rating (⭐ 4.8), Seniority (Senior Agent), Join Date
+- Ranking card: #3/25 with trend icon
+
+**Stats Cards:**
+- **Tranzacții**: Blue theme, bar chart icon, shows count (12)
+- **Comision Octombrie**: Green theme, trending icon, shows EUR amount
+- **Comision Total**: Purple theme, award icon, shows total EUR
+
+**Yearly Chart:**
+- 12 responsive bars (one per month)
+- Height proportional to commission amount
+- Animated entrance (slideUp from bottom)
+- Staggered animation (100ms delay per bar)
+- Hover effects: scale 1.05, show tooltip with exact amount
+- Current month (Oct) highlighted in green gradient
+- Other months in blue gradient with purple hover
+- Romanian month abbreviations (Ian, Feb, Mar, etc.)
+
+**Leaderboard:**
+- Integrated existing `GamifiedLeaderboard` component
+- Shows all agents with rankings
+- Interactive cards with stats
+- Positioned at bottom of profile page
+
+**Animations:**
+- Profile card: `slide-in-from-top-4` (700ms)
+- Stats cards: `slide-in-from-bottom-4` with staggered delays (700ms + 100/200/300ms)
+- Chart: `slide-in-from-bottom-4` (700ms + 400ms)
+- Leaderboard: `slide-in-from-bottom-4` (700ms + 500ms)
+- Chart bars: Custom `slideUp` animation with staggered timing
+- Hover effects: Scale, shadow, color transitions
+
+**User Data Structure:**
+```typescript
+{
+  name: string
+  email: string
+  image: string (avatar URL)
+  joinedDate: string
+  rating: number (1-5)
+  seniority: string
+  ranking: number
+  totalAgents: number
+  transactions: number
+  currentMonthCommission: number
+  totalCommission: number
+}
+```
+
+**Chart Data Structure:**
+```typescript
+{
+  month: string (abbreviated)
+  commission: number (EUR)
+}[]
+```
+
+**Design Philosophy:**
+The profile page serves as a comprehensive analytics dashboard for individual agents. By moving the transaction stats from mobile-only to a full desktop profile page, we provide agents with deeper insights into their performance. The yearly chart visualizes trends at a glance, while the leaderboard adds competitive context. The gradient banner and smooth animations create a premium, professional feel that matches the quality of the Tower Imob brand. All interactions are smooth and responsive, with hover states that provide visual feedback. The Romanian language ensures accessibility for all team members.
+
+---
+
+### Francesco 21.10.2025: Simplified Mobile UI with Stats Dashboard & Login Prompt
+
+**Changes/Updates:**
+- **Login Modal UI**: Added beautiful login prompt on dashboard load
+  - UI-only authentication (no actual validation)
+  - Professional card design with Tower Imob branding
+  - Username and password fields with proper labels
+  - "Remember me" checkbox and "Forgot password" link
+  - Backdrop blur effect with smooth animations
+  - Romanian language interface
+- **Mobile Stats Bar**: Added 3-column statistics bar at top of mobile view
+  - Tranzacții: Shows number of transactions
+  - Comision {luna curentă}: Current month commission (abbreviated)
+  - Comision Total: Total commission earned
+- **Fixed Stats Alignment**: Properly structured cards with centered text
+  - Flexbox layout for perfect centering
+  - Break-all to prevent text overflow
+  - Separated currency numbers from "RON" label
+  - Smaller font sizes (9px labels, proper number sizing)
+  - Overflow hidden to contain content
+- **Color-Coded Stats**: Blue (transactions), Green (current month), Purple (total)
+- **Minimal Mobile Text**: Removed verbose descriptions on mobile
+- **Compact Headers**: Smaller card titles and hidden descriptions on mobile
+- **Cleaner Hero**: Simplified hero section for mobile (just title, no description)
+- **Mobile-Only Component**: Stats bar hidden on desktop (≥768px)
+
+**Technical Implementation:**
+
+**Files Created:**
+1. `/src/components/ui/login-modal.tsx` - Login prompt modal (UI only)
+   - Centered modal with backdrop blur
+   - Professional card design with branding
+   - Username and password inputs
+   - Remember me checkbox
+   - Forgot password link
+   - No actual authentication logic
+   - Smooth animations (fade-in, zoom-in)
+   - Romanian language labels
+
+2. `/src/components/layout/mobile-stats-bar.tsx` - Mobile statistics component
+   - TypeScript interface for props (transactions, commissions)
+   - Romanian currency formatting (numbers only)
+   - Dynamic month name display (shortened format)
+   - Gradient backgrounds for visual hierarchy
+   - Grid layout with 3 equal columns
+   - Flexbox for proper text centering
+   - Overflow handling to prevent text escape
+
+**Files Modified:**
+1. `/src/app/page.tsx` - Login modal, stats bar, and simplified mobile UI
+   - Added login state management (`isLoggedIn`)
+   - Imported LoginModal component
+   - Shows login modal on initial load
+   - After login, dashboard renders normally
+   - Imported MobileStatsBar component
+   - Added stats bar below header (mobile only)
+   - Simplified hero section: smaller icon, shorter title on mobile
+   - Hidden hero description on mobile (`hidden md:block`)
+   - Reduced card header padding on mobile (`pb-3 md:pb-6`)
+   - Smaller card titles on mobile (`text-base md:text-lg`)
+   - Smaller icons in cards (`h-4 w-4 md:h-5 md:w-5`)
+   - Hidden all CardDescription on mobile
+   - Shortened titles where applicable for mobile
+
+**Mobile Stats Bar Component:**
+```typescript
+interface MobileStatsBarProps {
+  transactions?: number
+  currentMonthCommission?: number
+  totalCommission?: number
+}
+```
+
+**Login Modal Design:**
+- Centered overlay with backdrop blur (`bg-black/50 backdrop-blur-sm`)
+- Card with shadow-2xl for depth
+- Tower Imob branding icon (Building2)
+- Input fields with proper labels and placeholders
+- Checkbox for "Remember me"
+- Link for "Forgot password"
+- Romanian language throughout
+- Smooth animations on appear
+- No actual authentication validation
+
+**Stats Card Design:**
+- **Tranzacții**: Blue gradient (`from-blue-50 to-blue-100`)
+  - Label: 9px uppercase
+  - Number: 2xl bold (24px)
+- **{Luna Curentă}**: Green gradient (`from-green-50 to-green-100`)
+  - Label: 9px uppercase (abbreviated month)
+  - Number: xs bold (12px) with break-all
+  - "RON" text below (8px)
+- **Total**: Purple gradient (`from-purple-50 to-purple-100`)
+  - Label: 9px uppercase
+  - Number: xs bold (12px) with break-all
+  - "RON" text below (8px)
+- Flexbox layout for vertical centering
+- Overflow hidden to contain text
+- Text center alignment throughout
+
+**Mobile UI Simplifications:**
+- ❌ **Removed on Mobile**: Long descriptions, verbose card titles, hero text
+- ✅ **Kept on Mobile**: Essential titles, stats, dropdown menu
+- 📱 **Mobile-First**: Stats bar, compact spacing, minimal text
+- 🖥️ **Desktop Unchanged**: Full descriptions, detailed titles
+
+**Before vs After (Mobile):**
+
+**Before:**
+```
+Bună, cu ce te pot ajuta astăzi?
+[Long paragraph description]
+[7 tiny cramped tabs]
+```
+
+**After:**
+```
+[📊 Tranzacții: 12] [💰 octombrie: 15.000 RON] [💵 Total: 45.000 RON]
+Instrumente Profesionale
+[Clean dropdown menu]
+```
+
+**User Benefits:**
+- **Quick Stats Access**: Key metrics always visible on mobile
+- **Less Scrolling**: Removed unnecessary text
+- **Better Focus**: Only important info shown
+- **Professional Look**: Color-coded stats dashboard
+- **Responsive**: Stats bar auto-hides on desktop
+
+**Purpose & Design Philosophy:**
+Mobile users need quick access to critical information without scrolling through lengthy descriptions. The new stats bar provides at-a-glance metrics for transactions and commissions, while the simplified UI removes all non-essential text. This creates a clean, professional mobile experience that prioritizes functionality over verbosity. The color-coded cards use subtle gradients to create visual hierarchy while maintaining readability. Desktop users still get the full, detailed experience with all descriptions intact.
+
+---
+
 ### Francesco 17.10.2025: Mobile Dropdown Navigation & Module Reorganization
 
 **Changes/Updates:**
@@ -928,6 +1201,766 @@ interface BeforeInstallPromptEvent extends Event {
 
 **Purpose & Design Philosophy:**
 This PWA installation feature transforms the Tower Imob dashboard from a traditional web app into a modern Progressive Web Application. By enabling easy installation, users can access the dashboard like a native app from their home screen, improving engagement and user experience. The intelligent button adapts to different platforms, providing native installation on Android and helpful instructions on iOS. The implementation follows modern web standards while maintaining backward compatibility with browsers that don't support PWA installation. The feature enhances the professional image of the platform by offering an app-like experience without requiring app store distribution.
+
+---
+
+---
+
+## 📝 Changelog
+
+### Francesco 21.10.2025: REBS CRM Authentication & Personalized Profiles
+
+**Objective:**
+Implement a complete authentication system integrated with the Tower Imob REBS CRM, allowing agents to log in with their email addresses and view personalized profile information with real data from the CRM API.
+
+**Changes Made:**
+
+**1. REBS CRM Authentication System**
+- Created `/api/auth/login` route that integrates with REBS CRM API
+- Password validation: All agents use unified password "Towerimob2025"
+- Email-based authentication: Validates agent email against REBS CRM database
+- Fetches real agent data (name, photo, position, email, join date) from CRM
+- Returns authenticated agent object with complete profile information
+
+**2. Enhanced Login Modal**
+- Converted from UI-only to fully functional authentication
+- Email and password input fields with proper validation
+- Loading states with spinner during authentication
+- Error handling with user-friendly Romanian error messages
+- Real-time feedback for incorrect credentials or connection errors
+- Disabled state during loading to prevent duplicate submissions
+- "Remember Me" functionality (UI ready, backend pending)
+
+**3. Dynamic Profile Page Integration**
+- Profile page now uses real agent data from REBS CRM
+- Displays agent's actual name, email, photo, and position
+- Shows formatted join date in Romanian (e.g., "15 ianuarie 2022")
+- Deterministic stats calculation based on agent ID (mock data until transaction API ready)
+- Professional avatar with fallback to Dicebear avatars
+- Stats cards show personalized commission and transaction data
+
+**4. Stock-Style Performance Graph**
+- Converted bar chart to professional line graph
+- Gradient fill underneath the line (blue → purple → pink)
+- Animated drawing effect (line draws from left to right over 2 seconds)
+- Interactive data points with hover tooltips showing exact EUR amounts
+- Grid lines for easier reading of values
+- Y-axis with formatted currency labels
+- X-axis with Romanian month abbreviations
+- Current month highlighted in green with glow effect
+- SVG-based rendering for crisp visuals at any resolution
+
+**5. Environment Configuration**
+- Added `REBS_API_KEY` to `env.example` with working API key
+- Documented API endpoint: `https://towerimob.crmrebs.com/api/public/agent?api_key=YOUR_KEY`
+- Query parameter authentication pattern for API calls
+- Secure server-side API key handling (never exposed to client)
+
+**6. State Management**
+- Dashboard maintains authenticated agent data in state
+- Agent data passed to profile page via props
+- Login callback receives and stores agent object
+- Profile navigation preserves agent context
+
+**Technical Implementation:**
+
+**API Route Structure:**
+```typescript
+POST /api/auth/login
+Body: { email: string, password: string }
+Response: { 
+  success: boolean, 
+  agent: {
+    id: number,
+    name: string,
+    email: string,
+    phone: string,
+    photo: string,
+    position: string,
+    created_at: string
+  }
+}
+```
+
+**Authentication Flow:**
+1. User enters email (e.g., `agent@towerimob.ro`) and password (`Towerimob2025`)
+2. Frontend sends POST request to `/api/auth/login`
+3. Backend validates password (same for all agents)
+4. Backend fetches all agents from REBS CRM API
+5. Backend finds agent by matching email (case-insensitive)
+6. Backend returns agent object if found, error if not
+7. Frontend stores agent data and sets `isLoggedIn = true`
+8. Dashboard displays with agent-specific information
+
+**Line Graph Implementation:**
+- SVG polyline for smooth curve through data points
+- Linear gradient applied to both line and fill area
+- CSS animations with `@keyframes` for drawing effect
+- `stroke-dasharray` and `stroke-dashoffset` for line animation
+- `popIn` animation for data points (staggered timing)
+- Responsive viewBox maintaining aspect ratio
+- Formatted currency amounts on Y-axis
+- Hover states with tooltips using `<title>` SVG elements
+
+**Data Flow:**
+```
+LoginModal → fetch('/api/auth/login') → REBS API → Agent Data → Dashboard State → Profile Page
+```
+
+**Error Handling:**
+- Invalid password: "Parola este incorectă"
+- Email not found: "Nu există cont cu acest email"
+- Connection error: "Eroare de conexiune. Vă rugăm încercați din nou"
+- API error: "Eroare la conectarea cu serverul"
+- Missing credentials: "Email și parola sunt obligatorii"
+
+**Design Philosophy:**
+
+This authentication update transforms the dashboard from a general-purpose tool into a personalized agent workspace. Each agent now has their own secure login using their CRM email, and sees their actual profile information pulled directly from the Tower Imob CRM system. The stock-style line graph adds a professional financial aesthetic, making the commission tracking feel like a sophisticated analytics platform. By integrating with the existing REBS CRM, we eliminate the need for duplicate user management and ensure data consistency across all Tower Imob systems.
+
+**Security Considerations:**
+- API key stored server-side only (not exposed to client)
+- Password validation before any API calls
+- Query parameter authentication with REBS API
+- No sensitive data stored in browser (session management pending)
+- Error messages don't expose system details
+
+**User Benefits:**
+- **Personalized Experience**: Each agent sees their own name, photo, and stats
+- **Single Sign-On Feel**: Uses existing CRM credentials (email)
+- **Professional Branding**: Real photos and positions from CRM
+- **Data Consistency**: Always shows latest CRM information
+- **Easy Onboarding**: No separate registration process needed
+- **Visual Performance**: Stock-style graph makes commission tracking engaging
+
+**Business Benefits:**
+- **Centralized User Management**: Uses existing CRM database
+- **No Duplicate Data**: Single source of truth for agent information
+- **Reduced Support**: Agents use familiar email for login
+- **Professional Image**: Polished, personalized interface
+- **Scalable**: Works with any number of agents in CRM
+- **Analytics Ready**: Graph visualization prepares for real transaction data
+
+**Next Steps (Not Implemented Yet):**
+- Session persistence with cookies or localStorage
+- "Remember Me" functionality backend implementation
+- Real transaction data from REBS CRM API
+- Logout functionality with session cleanup
+- Password reset flow
+- Role-based access control (admin vs agent)
+- Real-time stats updates from CRM
+
+**Files Modified:**
+- `src/app/api/auth/login/route.ts` (NEW)
+- `src/components/ui/login-modal.tsx` (Enhanced with real auth)
+- `src/components/pages/profile-page.tsx` (Dynamic data + line graph)
+- `src/app/page.tsx` (Agent data state management)
+- `env.example` (Added REBS_API_KEY)
+- `README.md` (Documentation)
+
+---
+
+## Francesco 23.10.2025: Duolingo-Inspired Mobile UI Redesign
+
+**Objective**: Transform the mobile experience into a thumb-optimized, visual-first interface inspired by Duolingo's UX/UI design philosophy. The goal is to create an engaging, gamified mobile experience with minimal text, maximum visual feedback, and intuitive navigation positioned where users' thumbs naturally rest.
+
+### 🎯 Key Changes
+
+**1. Bottom Navigation Bar** (`mobile-bottom-nav.tsx`)
+- **Thumb-Optimized Positioning**: Navigation moved from top/dropdown to bottom where thumbs naturally rest
+- **4-Tab Layout**: Home, Instrumente (Tools), Clasament (Stats), Profil (Profile)
+- **Visual Feedback**: 
+  - Active tabs scale up (110%) with gradient backgrounds
+  - Inactive tabs show at 60% opacity with gray icons
+  - Smooth transitions with bounce animation on tap
+  - Each tab has unique gradient colors (blue, purple, green, yellow)
+- **Large Touch Targets**: 48x48px icons minimum for accessibility
+- **Safe Area Support**: Respects device safe areas (notches, home indicators)
+- **Romanian Labels**: Tiny 10px labels under icons for clarity
+
+**2. Visual Stats Bar** (`mobile-stats-bar.tsx`)
+- **Icon-First Design**: Large icons (CheckCircle, Euro, TrendingUp) instead of text
+- **Gradient Cards**: Bold, colorful gradients (blue, green, purple)
+- **Minimal Text**: Only essential numbers and single-word labels
+  - "Vânzări" instead of "Tranzacții finalizate"
+  - "Luna" instead of "Luna curentă"
+  - "Total" instead of "Total acumulat"
+- **Smart Number Formatting**: Shows "15k" instead of "15000" for better readability
+- **Glassmorphism**: Frosted-glass icon backgrounds with `bg-white/20 backdrop-blur-sm`
+- **Hover Effects**: Cards scale to 105% on hover for tactile feedback
+
+**3. Minimal Mobile Header** (`header.tsx`)
+- **Mobile**: Just logo + streak indicator (fire emoji style from Duolingo)
+  - Compact 36px gradient logo badge
+  - Flame icon with day count (gamification element)
+  - No text, no menu, maximum space
+- **Desktop**: Full experience with quick actions and profile button
+- **White Background**: Clean, non-gradient background for better contrast on mobile
+- **Reduced Height**: 56px on mobile vs 64px on desktop for more content space
+
+**4. Emoji Module Grid** (`mobile-module-grid.tsx`)
+- **2-Column Grid**: Large, tappable cards optimized for thumbs
+- **Emoji Icons**: Massive 80px emojis for instant recognition
+  - 📄 Documents
+  - 🏠 Real Estate
+  - 🖨️ Printer
+  - 🎨 Image Editor
+  - 📊 Agent Ranking
+  - ✨ Photo Fixer
+- **Light Backgrounds**: Soft pastel backgrounds for each module
+- **Color-Coded Badges**: Small gradient badges with vector icons
+- **Bottom Color Bar**: 8px gradient stripe for visual accent
+- **Bounce Animation**: Emojis gently bounce (infinite loop, 2s duration)
+- **NO TEXT**: Zero text labels, only visual elements
+
+**5. Tab-Based Mobile Layout** (`page.tsx`)
+- **Home Tab**: 
+  - Stats bar at top
+  - "Instrumente" heading (bold, 32px)
+  - Visual module grid
+  - No module descriptions, just emojis
+- **Tools Tab**:
+  - Selected module content
+  - Minimal card headers (icon only on mobile)
+  - Full-width cards with no borders (borderless design)
+- **Stats Tab**:
+  - Full leaderboard
+  - "Clasament" heading
+  - Gamified agent ranking system
+- **Profile Tab**:
+  - Existing profile page
+  - Bottom nav stays visible
+
+**6. Visual Design Language**
+- **Almost No Text**: Heavy reliance on icons, emojis, colors
+- **Gradient Everything**: Every button, card, and badge uses gradients
+- **Rounded Corners**: 16-24px border radius for friendly, modern look
+- **Shadows**: Layered shadows for depth (shadow-lg, shadow-xl)
+- **White Space**: Generous padding, breathing room
+- **Animations**: Smooth 300ms transitions, scale effects, bounce
+- **Glassmorphism**: Frosted glass effects with backdrop-blur
+- **Vibrant Colors**: Saturated gradients (400-600 range) for energy
+
+### 📐 Technical Implementation
+
+**Component Structure:**
+```
+Dashboard (page.tsx)
+├── Header (minimal mobile, full desktop)
+├── Mobile View (conditional based on mobileTab state)
+│   ├── Home Tab
+│   │   ├── MobileStatsBar (visual stats)
+│   │   └── MobileModuleGrid (emoji cards)
+│   ├── Tools Tab
+│   │   └── Tabs (module content)
+│   ├── Stats Tab
+│   │   └── GamifiedLeaderboard
+│   └── Profile Tab
+│       └── ProfilePage
+├── Desktop View (always visible on desktop)
+│   └── Tabs with TabsList
+└── MobileBottomNav (fixed bottom)
+```
+
+**State Management:**
+```typescript
+const [mobileTab, setMobileTab] = useState<'home' | 'tools' | 'stats' | 'profile'>('home')
+const [selectedModule, setSelectedModule] = useState('documents')
+
+const handleMobileTabChange = (tab) => {
+  setMobileTab(tab)
+  if (tab === 'profile') setShowProfile(true)
+  else setShowProfile(false)
+}
+
+const handleModuleSelect = (moduleId) => {
+  setSelectedModule(moduleId)
+  setMobileTab('tools')  // Auto-switch to tools tab
+}
+```
+
+**Responsive Breakpoints:**
+- **Mobile**: `<768px` - Bottom nav, emoji grid, minimal text
+- **Desktop**: `≥768px` - Top tabs, full text, side-by-side layouts
+
+**CSS Patterns:**
+```css
+/* Bottom Safe Area */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Bounce Animation (Duolingo-style) */
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Gradient Buttons */
+bg-gradient-to-br from-blue-400 to-blue-600
+bg-gradient-to-r from-orange-400 to-orange-600
+
+/* Glassmorphism */
+bg-white/20 backdrop-blur-sm
+```
+
+**Accessibility:**
+- Minimum 48x48px touch targets
+- `aria-label` on all navigation buttons
+- High contrast ratios (AAA compliant)
+- Reduced motion support (smooth, not jarring)
+
+### 🎨 Design Philosophy
+
+**Inspired by Duolingo:**
+1. **Visual > Text**: Icons and emojis communicate faster than words
+2. **Gamification**: Streak counter, colorful badges, progress feels fun
+3. **Bottom Navigation**: Thumb zone optimization (reachability)
+4. **Bright Colors**: Energetic gradients create positive emotions
+5. **Smooth Animations**: Everything transitions smoothly (delight factor)
+6. **Minimal Friction**: Tap emoji → see tool (2 taps max)
+7. **Consistent Spacing**: 8px grid system for rhythm
+
+**Mobile-First Principles:**
+- **Content Priority**: Most important content (stats) at top
+- **One-Handed Use**: All interactions in thumb zone
+- **Immediate Recognition**: No reading required
+- **Fast Navigation**: Bottom nav = instant context switch
+- **Progressive Enhancement**: Desktop gets more features
+
+**Color Psychology:**
+- **Blue**: Trust, professionalism (documents)
+- **Purple**: Creativity, innovation (real estate)
+- **Pink**: Energy, action (printer)
+- **Orange**: Warmth, friendliness (image editor)
+- **Green**: Growth, success (ranking)
+- **Yellow**: Optimism, brightness (photo fixer)
+- **Orange Streak**: Urgency, momentum (daily habit)
+
+### 📱 User Experience Flow
+
+**First Launch:**
+1. Login with email + password
+2. See Home tab: Stats + Emoji grid
+3. Tap emoji → Auto-switch to Tools tab
+4. Use tool, tap Home icon to return
+5. Explore Stats tab (leaderboard)
+6. Check Profile tab (personal metrics)
+
+**Daily Usage:**
+1. See streak counter (motivates daily login)
+2. Check stats bar (quick performance overview)
+3. Tap tool emoji (fast access)
+4. Complete task
+5. Check leaderboard (competitive element)
+
+**Navigation Patterns:**
+- **Home → Tools**: Tap emoji
+- **Tools → Home**: Tap home icon (bottom nav)
+- **Any → Profile**: Tap profile icon (bottom nav)
+- **Any → Stats**: Tap stats icon (bottom nav)
+
+### 🔧 Technical Details
+
+**Performance Optimizations:**
+- Conditional rendering based on `mobileTab` (only render active tab)
+- CSS animations (GPU-accelerated)
+- No heavy libraries (pure CSS + Tailwind)
+- Lazy-loaded module content
+- Minimal JavaScript for transitions
+
+**Browser Support:**
+- iOS Safari 14+
+- Chrome Mobile 90+
+- Firefox Mobile 90+
+- Safe area insets (notch support)
+- Backdrop-filter (with fallbacks)
+
+**PWA Integration:**
+- Works seamlessly with existing PWA install button
+- Bottom nav respects safe areas
+- Standalone mode optimization
+- Add to Home Screen friendly
+
+### 📊 Metrics to Track
+
+**Engagement:**
+- Daily active users (streak counter shows momentum)
+- Tool usage patterns (which emojis get tapped most)
+- Session duration (longer = better UX)
+- Return rate (gamification hook)
+
+**Usability:**
+- Time to complete tasks (faster = better)
+- Navigation path efficiency (fewer taps = better)
+- Error rates (misclicks, wrong selections)
+- Task completion rates
+
+**Visual Appeal:**
+- Bounce rates on mobile
+- Time spent on Home tab
+- Profile page visits (personalization engagement)
+- Leaderboard views (competitive element)
+
+### 🚀 Future Enhancements (Ideas)
+
+**Gamification++:**
+- Daily challenges ("Convert 5 documents today!")
+- Achievement badges (unlock new emojis?)
+- Streak rewards (premium features at 30 days?)
+- Team competitions (agency vs agency)
+
+**Personalization:**
+- Custom emoji order (drag & drop)
+- Theme colors (match agency branding)
+- Favorite tools (quick access row)
+- Usage analytics (time saved graphs)
+
+**Social:**
+- Share achievements (social proof)
+- Agent shoutouts (top performer notifications)
+- Team chat (built into bottom nav?)
+- Collaboration tools (shared projects)
+
+### 📝 Files Added/Modified
+
+**New Files:**
+- `src/components/layout/mobile-bottom-nav.tsx` - Thumb-zone navigation
+- `src/components/modules/mobile-module-grid.tsx` - Emoji-based module selector
+
+**Modified Files:**
+- `src/components/layout/header.tsx` - Minimal mobile header, streak indicator
+- `src/components/layout/mobile-stats-bar.tsx` - Visual redesign with icons
+- `src/app/page.tsx` - Tab-based mobile layout, bottom nav integration
+
+**Design Principles:**
+- **Content > Chrome**: Maximum screen space for content
+- **Touch > Text**: Visual elements over descriptive text
+- **Bottom > Top**: Navigation where thumbs naturally rest
+- **Gradients > Flat**: Depth and visual interest
+- **Animation > Static**: Smooth, delightful interactions
+
+**Romanian UI Text:**
+- Acasă (Home)
+- Instrumente (Tools)
+- Clasament (Stats/Ranking)
+- Profil (Profile)
+- Vânzări (Sales/Transactions)
+- Luna (Month)
+- Total (Total)
+
+**Accessibility:**
+- High contrast colors (WCAG AAA)
+- Large touch targets (48px minimum)
+- Semantic HTML (`<nav>`, `<button>`)
+- Screen reader friendly (aria-labels)
+- Reduced motion support (prefers-reduced-motion)
+
+**Browser DevTools Testing:**
+- Responsive design mode (375px, 414px, 390px widths)
+- Touch simulation (pointer: coarse)
+- Safe area simulation (iPhone notch)
+- Performance profiling (60fps animations)
+
+**Inspiration Sources:**
+- Duolingo mobile app (navigation, gamification)
+- Headspace (calm colors, smooth animations)
+- Robinhood (financial graphs, bold numbers)
+- Notion (minimal chrome, content-first)
+- Instagram (bottom nav, visual hierarchy)
+
+---
+
+## Francesco 23.10.2025: Quest System & Mobile Viewport Fixes
+
+**Objective**: Implement a Revolut-inspired quest/target system for tracking agent goals and fix mobile viewport issues to ensure the app is properly contained within the screen.
+
+### 🎯 Quest/Target System
+
+**Inspired by Revolut's referral UI**, but adapted for real estate agent goal tracking. The system features visual progress indicators and gamified target completion.
+
+#### Features:
+
+**1. Individual Targets** (Personal Goals)
+- **Colaborare** 🤝 - Bring 1 collaboration
+- **Vânzare** 🏠 - Close 1 sale
+- **Exclusivitate** ⭐ - Secure 1 exclusivity
+- **Vizionări** 👁️ - Schedule 5 viewings
+
+**2. Group Targets** (Team Goals)
+- **Vânzări Echipă** 🏆 - 10 team sales
+- **Colaborări Echipă** 🤜🤛 - 20 team collaborations
+- **Exclusivități Echipă** ✨ - 15 team exclusivities
+- **Target Lunar** 💰 - €100k team commission
+
+#### Visual Design:
+
+**Quartered Pie Chart:**
+- 4-section circular progress indicator
+- Each completed quest fills one quarter
+- Smooth color gradients for each section
+- Animated transitions (500ms duration)
+- Center displays "X/4" completion count
+- Individual chart: blue-purple gradient theme
+- Group chart: orange-pink gradient theme
+
+**Quest Cards:**
+- Large emoji icons for instant recognition
+- Minimal text (title + subtitle)
+- Checkmark for completed quests
+- Circle icon for pending quests
+- Tap to toggle completion
+- Smooth hover/active states
+- White background when completed
+- Semi-transparent when pending
+
+**Layout:**
+- Vertical stack on mobile
+- Individual targets card (blue-purple theme)
+- Group targets card (orange-pink theme)
+- User/Users icons in header badges
+- Compact, scrollable design
+
+#### Technical Implementation:
+
+```typescript
+// Quest Structure
+interface Quest {
+  id: string
+  title: string
+  subtitle: string
+  completed: boolean
+  icon: React.ReactNode  // Emoji
+  color: string          // Gradient classes
+}
+
+// State Management
+const [individualQuests, setIndividualQuests] = useState<Quest[]>([...])
+const [groupQuests, setGroupQuests] = useState<Quest[]>([...])
+
+// Toggle Handler
+const toggleQuest = (questId: string, isGroup: boolean) => {
+  // Updates quest completion state
+}
+```
+
+**Pie Chart SVG:**
+- Uses SVG path for each quarter
+- `startAngle` and `endAngle` for 90° sections
+- Dynamic fill colors based on completion
+- Smooth transitions with `transition-all duration-500`
+- HSL color formula for gradient variation
+- White strokes for section separation
+
+**Integration:**
+- Displayed on mobile Home tab
+- Positioned between stats bar and module grid
+- Scrollable within viewport constraints
+- Responsive design (mobile-only currently)
+
+### 📱 Mobile Viewport Fixes
+
+**Problem:** Mobile view was overflowing and not properly contained like a native app.
+
+**Solution:**
+
+1. **Height Calculations:**
+   ```css
+   h-[calc(100vh-56px-80px)]  // 56px header + 80px bottom nav
+   ```
+   - Applied to all mobile tab views (home, stats, tools)
+   - Ensures content fits exactly in viewport
+   - Enables proper scrolling within bounded area
+
+2. **Global CSS Optimizations:**
+   ```css
+   @media (max-width: 768px) {
+     html, body {
+       overflow-x: hidden;      // Prevent horizontal scroll
+       position: fixed;          // Lock viewport
+       width: 100%;
+       height: 100%;
+     }
+     
+     body {
+       overscroll-behavior: none;              // Prevent pull-to-refresh
+       -webkit-overflow-scrolling: touch;      // Smooth iOS scrolling
+     }
+     
+     input, textarea, select {
+       font-size: 16px !important;  // Prevent iOS zoom on focus
+     }
+   }
+   ```
+
+3. **Per-View Scrolling:**
+   - Home tab: `overflow-y-auto` for stats + quests + modules
+   - Stats tab: `overflow-y-auto` for leaderboard
+   - Tools tab: `overflow-y-auto` for module content
+   - Profile tab: Native scrolling
+
+4. **Desktop Viewport Fix:**
+   - Separated mobile and desktop rendering
+   - Desktop tabs always visible: `md:block`
+   - Mobile tabs conditionally rendered based on `mobileTab` state
+   - Fixed blank screen caused by conditional logic
+
+### 🐛 Desktop Blank Screen Fix
+
+**Problem:** Desktop dashboard was blank after mobile UI refactor.
+
+**Root Cause:** Conditional rendering logic `(mobileTab === 'tools' || !mobileTab)` defaulted to 'home', making condition false.
+
+**Solution:**
+```typescript
+// BEFORE (broken)
+{(mobileTab === 'tools' || !mobileTab) && (
+  <Tabs>...</Tabs>
+)}
+
+// AFTER (fixed)
+<div className={`${mobileTab === 'tools' ? 'block' : 'hidden'} md:block`}>
+  <Tabs>...</Tabs>
+</div>
+```
+
+- Desktop: Always show tabs (`md:block`)
+- Mobile: Show only when `mobileTab === 'tools'`
+- Hero section: Always visible on desktop (`hidden md:block`)
+- Footer: Hidden on mobile (`hidden md:block`)
+
+### 🎨 Visual Hierarchy
+
+**Mobile Home Tab (Top to Bottom):**
+1. Stats Bar (transactions, commission)
+2. **Quest System** (individual + group targets)
+3. "Instrumente" heading
+4. Module Grid (emoji cards)
+
+**Desktop:**
+- Hero section (title + description)
+- Tab navigation (6 modules)
+- Module content (selected tab)
+- Footer
+
+### 📊 Progress Tracking
+
+**Individual Progress:**
+- Tracks completion of 4 personal targets
+- Visual: Quartered pie chart
+- Color: Blue-purple gradient
+- Header icon: User (single person)
+
+**Group Progress:**
+- Tracks completion of 4 team targets
+- Visual: Quartered pie chart
+- Color: Orange-pink gradient
+- Header icon: Users (multiple people)
+
+### 🎯 Gamification Elements
+
+1. **Visual Feedback:**
+   - Checkmark appears on completion
+   - Card background changes (white vs transparent)
+   - Pie chart animates quarter-by-quarter
+   - Smooth 300ms transitions
+
+2. **Progress Indicators:**
+   - "2/4" text in pie chart center
+   - Large, bold font for numbers
+   - Small, gray font for total
+   - Real-time updates
+
+3. **Interactive Elements:**
+   - Tap to toggle quest completion
+   - Hover states on cards
+   - Active state scaling
+   - Smooth animations
+
+### 🔧 Technical Details
+
+**Files Added:**
+- `src/components/modules/quest-system.tsx` - Quest component with pie charts
+
+**Files Modified:**
+- `src/app/page.tsx` - Integrated quest system, fixed desktop rendering, added viewport constraints
+- `src/app/globals.css` - Added mobile viewport optimizations
+
+**State Management:**
+```typescript
+const [individualQuests, setIndividualQuests] = useState<Quest[]>([...])
+const [groupQuests, setGroupQuests] = useState<Quest[]>([...])
+
+const calculateProgress = (quests: Quest[]) => {
+  return quests.filter(q => q.completed).length
+}
+
+const individualProgress = calculateProgress(individualQuests)
+const groupProgress = calculateProgress(groupQuests)
+```
+
+**Responsive Breakpoints:**
+- Mobile: `<768px` - Quest system visible, viewport constrained
+- Desktop: `≥768px` - Quest system hidden (currently), normal scrolling
+
+**Performance:**
+- SVG-based pie charts (GPU-accelerated)
+- CSS transitions (no JavaScript animations)
+- Minimal re-renders (React state updates only on toggle)
+- Smooth scrolling with `-webkit-overflow-scrolling: touch`
+
+### 🚀 Future Enhancements
+
+**Quest System:**
+- Backend integration (persist quest state)
+- Real transaction data from REBS CRM
+- Auto-completion based on actual sales
+- Rewards system (badges, points)
+- Weekly/monthly quest rotation
+- Team leaderboards based on quest completion
+- Push notifications for quest completion
+- Celebration animations (confetti, sounds)
+
+**Mobile Viewport:**
+- Pull-to-refresh for data sync
+- Native app install prompt
+- Offline mode support
+- Touch gestures (swipe between tabs)
+- Haptic feedback on interactions
+
+**Design:**
+- Desktop version of quest system
+- Customizable quest targets
+- Agency-specific branding
+- Dark mode support
+- Accessibility improvements (screen readers)
+
+### 📝 User Benefits
+
+1. **Clear Goal Visualization:** See exactly what needs to be done
+2. **Progress Tracking:** Know how close you are to completion
+3. **Team Awareness:** See group progress alongside personal goals
+4. **Motivation:** Gamified elements make work more engaging
+5. **Mobile-First:** Optimized for on-the-go checking
+6. **Instant Feedback:** Real-time updates on quest completion
+
+### 🎨 Design Philosophy
+
+**Revolut Inspiration:**
+- Circular progress indicators
+- Gradient color schemes
+- Minimal text, maximum visuals
+- Smooth animations
+- Card-based layout
+- Clear call-to-actions
+
+**Adapted for Real Estate:**
+- Personal vs Team goals (not referrals)
+- Transaction-based quests
+- Real estate emojis (🏠, ⭐, 👁️)
+- Professional color palette
+- Romanian language
+- Agency-focused metrics
 
 ---
 
