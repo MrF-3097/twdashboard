@@ -40,3 +40,10 @@ next-env.d.ts
 public/UPDPSWin_3912040MU.zip
 public/UPDPSWin_3912040MU/
 public/Contracte*.zip
+
+# Local data storage
+data/transactions.json
+data/database.sqlite
+data/database.sqlite-journal
+data/database.sqlite-wal
+drizzle/

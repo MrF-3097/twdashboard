@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@fal-ai/client": "^1.6.2",
@@ -26,8 +29,11 @@
     "@radix-ui/react-switch": "^1.0.3",
     "@radix-ui/react-tabs": "^1.0.4",
     "@radix-ui/react-toast": "^1.1.5",
+    "better-sqlite3": "^12.4.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "drizzle-kit": "^0.31.6",
+    "drizzle-orm": "^0.44.7",
     "framer-motion": "^12.23.22",
     "lucide-react": "^0.294.0",
     "next": "14.0.4",
@@ -37,10 +43,13 @@
     "react-dropzone": "^14.3.8",
     "replicate": "^1.2.0",
     "sharp": "^0.34.4",
+    "swr": "^2.3.6",
     "tailwind-merge": "^2.0.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

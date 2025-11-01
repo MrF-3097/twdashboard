@@ -16,6 +16,7 @@ export const LoginModal = ({ onLogin }: LoginModalProps) => {
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,7 +41,12 @@ export const LoginModal = ({ onLogin }: LoginModalProps) => {
       }
 
       if (data.success && data.agent) {
-        onLogin(data.agent)
+        // Add remember me flag to agent data
+        const agentWithRememberMe = {
+          ...data.agent,
+          rememberMe
+        }
+        onLogin(agentWithRememberMe)
       }
     } catch (err) {
       setError('Eroare de conexiune. Vă rugăm încercați din nou.')
@@ -103,8 +109,14 @@ export const LoginModal = ({ onLogin }: LoginModalProps) => {
             </div>
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded" disabled={isLoading} />
-                <span className="text-muted-foreground">Ține-mă minte</span>
+                <input 
+                  type="checkbox" 
+                  className="rounded" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoading} 
+                />
+                <span className="text-white/70">Ține-mă minte</span>
               </label>
               <a href="#" className="text-primary hover:underline">
                 Ai uitat parola?
@@ -122,7 +134,7 @@ export const LoginModal = ({ onLogin }: LoginModalProps) => {
             </Button>
           </form>
           <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/70">
               Nu ai cont?{' '}
               <a href="#" className="text-primary hover:underline font-medium">
                 Contactează administratorul

@@ -67,17 +67,18 @@ export const GamifiedLeaderboard: React.FC = () => {
 
   if (error) {
     return (
-      <Card className="border-red-500/50">
-        <CardContent className="pt-6">
+      <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+        <div className="relative z-10 p-6">
           <div className="text-center py-8">
-            <p className="text-red-500 font-medium">Error loading leaderboard</p>
-            <p className="text-sm text-muted-foreground mt-2">{error}</p>
-            <Button onClick={handleRefresh} className="mt-4">
+            <p className="text-red-400 font-medium">Error loading leaderboard</p>
+            <p className="text-sm text-white/70 mt-2">{error}</p>
+            <Button onClick={handleRefresh} className="mt-4 bg-white/20 hover:bg-white/30 text-white border-white/20">
               Try Again
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
@@ -93,7 +94,7 @@ export const GamifiedLeaderboard: React.FC = () => {
           size="sm"
           onClick={handleSimulateChanges}
           disabled={isLoading || agents.length === 0}
-          className="gap-2 bg-[#FFD700]/10 hover:bg-[#FFD700]/20 border-[#FFD700]/30 text-[#FFD700]"
+          className="gap-2 bg-white/10 hover:bg-white/20 border-white/20 text-white"
         >
           <Shuffle className="h-4 w-4" />
           <span className="hidden sm:inline">Simulate Changes</span>
@@ -103,7 +104,7 @@ export const GamifiedLeaderboard: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={toggleSound}
-          className="gap-2"
+          className="gap-2 bg-white/10 hover:bg-white/20 border-white/20 text-white"
         >
           {soundEnabled ? (
             <>
@@ -122,7 +123,7 @@ export const GamifiedLeaderboard: React.FC = () => {
           size="sm"
           onClick={handleRefresh}
           disabled={isLoading}
-          className="gap-2"
+          className="gap-2 bg-white/10 hover:bg-white/20 border-white/20 text-white"
         >
           <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           <span className="hidden sm:inline">{isLoading ? 'Updating...' : 'Refresh'}</span>
@@ -130,23 +131,24 @@ export const GamifiedLeaderboard: React.FC = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0 }}
         >
-          <Card className="bg-gradient-to-br from-[#203A53] to-[#203A53]/80 text-white">
-            <CardContent className="pt-6">
+          <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+            <div className="relative z-10 p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-80 mb-1">Total Agents</p>
-                  <p className="text-3xl font-bold">{stats?.total_agents || 0}</p>
+                  <p className="text-xs md:text-sm text-white/80 mb-1">Total Agents</p>
+                  <p className="text-xl md:text-3xl font-bold text-white">{stats?.total_agents || 0}</p>
                 </div>
-                <Users className="h-10 w-10 opacity-50" />
+                <Users className="h-6 w-6 md:h-10 md:w-10 text-white/50" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div
@@ -154,17 +156,18 @@ export const GamifiedLeaderboard: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <Card className="bg-gradient-to-br from-[#FFD700] to-[#FFD700]/80 text-[#203A53]">
-            <CardContent className="pt-6">
+          <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+            <div className="relative z-10 p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-80 mb-1">Total Transactions</p>
-                  <p className="text-3xl font-bold">{stats?.total_transactions || 0}</p>
+                  <p className="text-xs md:text-sm text-white/80 mb-1">Total Transactions</p>
+                  <p className="text-xl md:text-3xl font-bold text-white">{stats?.total_transactions || 0}</p>
                 </div>
-                <TrendingUp className="h-10 w-10 opacity-50" />
+                <TrendingUp className="h-6 w-6 md:h-10 md:w-10 text-white/50" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div
@@ -172,19 +175,20 @@ export const GamifiedLeaderboard: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <CardContent className="pt-6">
+          <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+            <div className="relative z-10 p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-80 mb-1">Total Sales Value</p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-xs md:text-sm text-white/80 mb-1">Total Sales Value</p>
+                  <p className="text-lg md:text-2xl font-bold text-white">
                     €{((stats?.total_sales_value || 0) / 1000000).toFixed(1)}M
                   </p>
                 </div>
-                <DollarSign className="h-10 w-10 opacity-50" />
+                <DollarSign className="h-6 w-6 md:h-10 md:w-10 text-white/50" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div
@@ -192,64 +196,68 @@ export const GamifiedLeaderboard: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <CardContent className="pt-6">
+          <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+            <div className="relative z-10 p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm opacity-80 mb-1">Top Performer</p>
-                  <p className="text-lg font-bold truncate">
+                  <p className="text-xs md:text-sm text-white/80 mb-1">Top Performer</p>
+                  <p className="text-sm md:text-lg font-bold text-white truncate">
                     {stats?.top_performer?.name || 'N/A'}
                   </p>
                 </div>
-                <Trophy className="h-10 w-10 opacity-50" />
+                <Trophy className="h-6 w-6 md:h-10 md:w-10 text-white/50" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
       </div>
 
       {/* Leaderboard */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <Trophy className="h-6 w-6 text-[#FFD700]" />
-            Agent Leaderboard
-          </CardTitle>
-          <CardDescription>
-            Real-time rankings updated every 30 seconds • {agents.length} agents competing
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading && agents.length === 0 ? (
-            <div className="text-center py-12">
-              <RefreshCcw className="h-12 w-12 mx-auto mb-4 animate-spin text-muted-foreground" />
-              <p className="text-muted-foreground">Loading leaderboard...</p>
-            </div>
-          ) : agents.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No agents found</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <AnimatePresence mode="popLayout">
-                {agents.map((agent, index) => {
-                  const rankChange = rankChanges.find((rc) => rc.agentId === agent.id)
-                  return (
-                    <AgentCard
-                      key={agent.id}
-                      agent={agent}
-                      index={index}
-                      onClick={() => handleAgentClick(agent)}
-                      rankChange={rankChange?.type}
-                    />
-                  )
-                })}
-              </AnimatePresence>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+        <div className="relative z-10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl text-white">
+              <Trophy className="h-6 w-6 text-[#FFD700]" />
+              Agent Leaderboard
+            </CardTitle>
+            <CardDescription className="text-white/70">
+              Real-time rankings updated every 30 seconds • {agents.length} agents competing
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading && agents.length === 0 ? (
+              <div className="text-center py-12">
+                <RefreshCcw className="h-12 w-12 mx-auto mb-4 animate-spin text-white/50" />
+                <p className="text-white/70">Loading leaderboard...</p>
+              </div>
+            ) : agents.length === 0 ? (
+              <div className="text-center py-12 text-white/70">
+                <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No agents found</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <AnimatePresence mode="popLayout">
+                  {agents.map((agent, index) => {
+                    const rankChange = rankChanges.find((rc) => rc.agentId === agent.id)
+                    return (
+                      <AgentCard
+                        key={agent.id}
+                        agent={agent}
+                        index={index}
+                        onClick={() => handleAgentClick(agent)}
+                        rankChange={rankChange?.type}
+                      />
+                    )
+                  })}
+                </AnimatePresence>
+              </div>
+            )}
+          </CardContent>
+        </div>
+      </div>
 
       {/* Agent Detail Modal */}
       <AgentDetailModal

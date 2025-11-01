@@ -1,0 +1,4 @@
+# This directory stores local transaction data
+# transactions.json is git-ignored to avoid committing actual data
+
+

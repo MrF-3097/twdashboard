@@ -147,6 +147,34 @@ export const apiUtils = {
   }
 }
 
+// Google Apps Script Commissions API
+const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxjKUEhxDobALZhfvpqS3tuI5AcMaRQuDJfZWHsPWLtgvOoj5aXR9GPUpkY2PqntOfI/exec'
+
+export async function fetchJson<T>(url: string): Promise<T> {
+  const u = new URL(url)
+  u.searchParams.set('_t', Date.now().toString())
+  const res = await fetch(u.toString(), { cache: 'no-store' })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  return res.json()
+}
+
+export const commissionsApi = {
+  transactions: async (params?: { since?: string; agent?: string }) => {
+    const url = new URL(GAS_BASE_URL)
+    url.searchParams.set('route', 'transactions')
+    if (params?.since) url.searchParams.set('since', params.since)
+    if (params?.agent) url.searchParams.set('agent', params.agent)
+    return fetchJson<any>(url.toString())
+  },
+  leaderboard: async (params?: { since?: string; agent?: string }) => {
+    const url = new URL(GAS_BASE_URL)
+    url.searchParams.set('route', 'leaderboard')
+    if (params?.since) url.searchParams.set('since', params.since)
+    if (params?.agent) url.searchParams.set('agent', params.agent)
+    return fetchJson<any>(url.toString())
+  },
+}
+
 // Mock API functions for development/testing
 export const mockApi = {
   // Mock document conversion

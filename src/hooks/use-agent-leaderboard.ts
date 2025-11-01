@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Agent, AgentStats, LeaderboardRankChange } from '@/types'
+import { useLeaderboard } from './use-commissions'
+import type { LeaderboardRow } from '@/types/commissions'
 
 interface UseAgentLeaderboardReturn {
   agents: Agent[]
@@ -19,6 +21,27 @@ export const useAgentLeaderboard = (
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [rankChanges, setRankChanges] = useState<LeaderboardRankChange[]>([])
+  const [rebsAgents, setRebsAgents] = useState<any[]>([])
+  
+  // Fetch commission spreadsheet data
+  const { data: commissionData, error: commissionError, isLoading: commissionLoading, refresh } = useLeaderboard()
+  
+  // Fetch REBS agents for avatar data
+  useEffect(() => {
+    const fetchRebsAgents = async () => {
+      try {
+        const response = await fetch('/api/agents')
+        const result = await response.json()
+        if (result.success && result.data) {
+          const agentsList = Array.isArray(result.data) ? result.data : (result.data?.objects || [])
+          setRebsAgents(agentsList)
+        }
+      } catch (err) {
+        console.error('Error fetching REBS agents:', err)
+      }
+    }
+    fetchRebsAgents()
+  }, [])
 
   const calculateStats = (agentData: Agent[]): AgentStats => {
     const totalTransactions = agentData.reduce(
@@ -39,53 +62,50 @@ export const useAgentLeaderboard = (
     }
   }
 
-  const processAgentData = (rawData: any): Agent[] => {
-    // Handle REBS API response structure (nested in 'objects' array)
-    const rawAgents = Array.isArray(rawData) ? rawData : (rawData?.objects || [])
-    
-    // Map REBS API structure to our Agent type
-    const mapped = rawAgents
-      .filter((agent: any) => agent.is_active !== false) // Only active agents
-      .map((agent: any, index: number) => {
-        // Combine first_name and last_name for REBS agents
-        const name = agent.first_name && agent.last_name 
-          ? `${agent.first_name} ${agent.last_name}`
-          : agent.name || agent.full_name || `Agent ${index + 1}`
-        
-        // For gamification: use a hash of agent ID to generate consistent fake stats
-        // This gives each agent consistent numbers that look realistic
-        const agentHash = typeof agent.id === 'number' ? agent.id : index
-        const fakeTransactions = Math.floor((agentHash * 7) % 30) + 5 // 5-35 transactions
-        const fakeValue = fakeTransactions * 120000 // ~120k per transaction
-        
-        return {
-          id: agent.id || index,
-          name,
-          email: agent.email,
-          phone: agent.phone,
-          avatar: agent.avatar || agent.profile_picture || agent.image,
-          closed_transactions: agent.closed_transactions || fakeTransactions,
-          total_value: agent.total_value || agent.sales_value || fakeValue,
-          active_listings: agent.active_listings || Math.floor(fakeTransactions / 2),
-          xp: (agent.closed_transactions || fakeTransactions) * 100,
-          level: Math.floor(((agent.closed_transactions || fakeTransactions) * 100) / 500) + 1,
-          position: agent.position, // REBS specific field
-          first_name: agent.first_name,
-          last_name: agent.last_name,
+  const processAgentData = useCallback((commissionRows: LeaderboardRow[]): Agent[] => {
+    // Map commission spreadsheet data to Agent type
+    // XP is based on commission earned (1 XP per euro of commission)
+    const mapped = commissionRows.map((row, index) => {
+      // Generate ID from name hash for consistency
+      const nameHash = row.Agent.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      
+      // XP and level calculation based on commission
+      const xp = Math.floor(row.SumaComision) // 1 XP per euro
+      const level = Math.floor(xp / 1000) + 1 // Level up every 1000 XP
+      
+      // Try to find matching REBS agent by name for avatar
+      const rebsAgent = rebsAgents.find(agent => {
+        if (agent.first_name && agent.last_name) {
+          const fullName = `${agent.first_name} ${agent.last_name}`
+          return fullName.toLowerCase() === row.Agent.toLowerCase()
         }
+        return agent.name?.toLowerCase() === row.Agent.toLowerCase()
       })
+      
+      return {
+        id: nameHash,
+        name: row.Agent,
+        email: rebsAgent?.email,
+        phone: rebsAgent?.phone,
+        avatar: rebsAgent?.avatar || rebsAgent?.profile_picture,
+        closed_transactions: row.NrTranzactii,
+        total_value: row.SumaValoare,
+        active_listings: 0, // Not tracked in commission sheet
+        xp,
+        level,
+        position: rebsAgent?.position,
+        first_name: rebsAgent?.first_name,
+        last_name: rebsAgent?.last_name,
+      }
+    })
     
-    // Sort by closed transactions (or customize ranking logic)
-    const sorted = mapped.sort((a, b) => 
-      (b.closed_transactions || 0) - (a.closed_transactions || 0)
-    )
-
-    // Assign ranks
-    return sorted.map((agent, index) => ({
+    // Already sorted by SumaComision desc from the API
+    // Just assign ranks
+    return mapped.map((agent, index) => ({
       ...agent,
       rank: index + 1,
     }))
-  }
+  }, [rebsAgents])
 
   const detectRankChanges = (
     oldAgents: Agent[],
@@ -117,18 +137,20 @@ export const useAgentLeaderboard = (
     return changes
   }
 
-  const fetchAgents = useCallback(async () => {
+  const fetchAgents = useCallback(() => {
     try {
-      setError(null)
-      const response = await fetch('/api/agents')
-      const result = await response.json()
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch agents')
+      setError(commissionError || null)
+      setIsLoading(commissionLoading)
+      
+      if (!commissionData?.rows || commissionData.rows.length === 0) {
+        setAgents([])
+        setStats(null)
+        setIsLoading(false)
+        return
       }
 
-      // result.data might be the array directly or a REBS API response object
-      const processedAgents = processAgentData(result.data)
+      // Process commission spreadsheet data
+      const processedAgents = processAgentData(commissionData.rows)
 
       // Detect rank changes
       if (agents.length > 0) {
@@ -142,35 +164,40 @@ export const useAgentLeaderboard = (
 
       setAgents(processedAgents)
       setStats(calculateStats(processedAgents))
+      setIsLoading(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred')
-      console.error('Error fetching agents:', err)
-    } finally {
+      console.error('Error processing agents:', err)
       setIsLoading(false)
     }
-  }, [agents])
+  }, [commissionData, commissionError, commissionLoading, agents, processAgentData, detectRankChanges])
 
   const refetch = useCallback(async () => {
     setIsLoading(true)
-    await fetchAgents()
-  }, [fetchAgents])
+    await refresh()
+  }, [refresh])
 
   // Simulate rank changes for testing
   const simulateChanges = useCallback(() => {
     if (agents.length === 0) return
 
-    // Create a shuffled copy of agents with modified transaction counts
+    // Create a shuffled copy of agents with modified commission values
     const shuffled = [...agents]
-      .map(agent => ({
-        ...agent,
-        // Randomly adjust transactions by -5 to +5
-        closed_transactions: Math.max(0, (agent.closed_transactions || 0) + Math.floor(Math.random() * 11) - 5)
-      }))
-      .sort((a, b) => (b.closed_transactions || 0) - (a.closed_transactions || 0))
+      .map(agent => {
+        // Randomly adjust commission by ±1000
+        const adjustedCommission = Math.max(0, (agent.xp || 0) + Math.floor(Math.random() * 2001) - 1000)
+        return {
+          ...agent,
+          xp: adjustedCommission,
+          level: Math.floor(adjustedCommission / 1000) + 1,
+          // Adjust closed_transactions and total_value proportionally for display
+          closed_transactions: Math.max(0, (agent.closed_transactions || 0) + Math.floor(Math.random() * 11) - 5),
+          total_value: Math.max(0, (agent.total_value || 0) + Math.floor(Math.random() * 20001) - 10000)
+        }
+      })
+      .sort((a, b) => (b.xp || 0) - (a.xp || 0))
       .map((agent, index) => ({
         ...agent,
-        xp: (agent.closed_transactions || 0) * 100,
-        level: Math.floor(((agent.closed_transactions || 0) * 100) / 500) + 1,
         rank: index + 1
       }))
 
@@ -185,18 +212,10 @@ export const useAgentLeaderboard = (
     setStats(calculateStats(shuffled))
   }, [agents])
 
-  // Initial fetch
+  // Update agents when commission data changes
   useEffect(() => {
     fetchAgents()
-  }, [])
-
-  // Polling
-  useEffect(() => {
-    if (pollingInterval > 0) {
-      const interval = setInterval(fetchAgents, pollingInterval)
-      return () => clearInterval(interval)
-    }
-  }, [pollingInterval, fetchAgents])
+  }, [fetchAgents])
 
   return {
     agents,

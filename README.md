@@ -1,5 +1,257 @@
 # Agent Dashboard Minimal
 
+## Francesco 17.01.2025 : Admin Dashboard Page Implementation & Mobile Optimization
+
+Summary
+- **Created admin dashboard route**: Added `/admin` page route that was previously missing, resolving 404 errors when navigating to admin section.
+- **Admin dashboard components integration**: Combined AgentManager, AnimatedTransactionModal, and ResetControls components into a unified admin interface.
+- **Navigation structure**: Added back button to return to main dashboard; integrated with existing Header component.
+- **Quick actions**: Prominent "Add Transaction" button to open the animated transaction modal.
+- **Grid layout**: Responsive two-column layout for admin sections on desktop, single column on mobile.
+- **Mobile optimization**: Full mobile-responsive design with stacked layouts, touch-friendly buttons, and optimized spacing for mobile devices.
+
+Why These Changes
+- The admin dashboard route `/admin` was referenced in navigation but didn't exist, causing 404 errors.
+- Admin components existed but weren't accessible through a proper page interface.
+- Needed centralized location for all administrative functions (agents, transactions, system reset).
+
+Technical Implementation
+- `src/app/admin/page.tsx`: New admin dashboard page component with full admin interface.
+- Uses existing admin components: AgentManager, AnimatedTransactionModal, ResetControls.
+- Implements responsive Card-based layout with gradient styling consistent with app design.
+- Navigation uses Next.js router for back button functionality.
+- Modal state management for transaction modal with controlled open/close.
+- Mobile-first responsive design:
+  - Conditional rendering with `md:hidden` and `hidden md:flex` for mobile/desktop layouts.
+  - Responsive spacing: `px-3 md:px-4`, `py-4 md:py-8`, `gap-3 md:gap-4`.
+  - Responsive typography: `text-xl md:text-3xl`, `text-xs md:text-sm`.
+  - Touch-friendly buttons: full-width on mobile (`w-full`), auto-width on desktop.
+  - Flexible icons with `flex-shrink-0` to prevent icon compression.
+  - Grid breakpoints: `grid-cols-1 lg:grid-cols-2` for single column mobile, two columns desktop.
+
+UI Changes
+- Admin dashboard: Full-page admin interface with header, quick actions, and admin sections.
+- Quick action card: Prominent blue-purple gradient card with "Add Transaction" button.
+- Grid layout: Two-column layout for agent management and reset controls on desktop, single column on mobile.
+- Info card: Bottom informational card explaining admin functions and warnings.
+- Back navigation: Clear back button to return to main dashboard (full-width on mobile, inline on desktop).
+- Consistent styling: Matches app's slate theme with gradient accents.
+- Mobile optimizations:
+  - Stacked vertical layout for header and quick actions on mobile.
+  - Full-width back button on mobile for better touch targets.
+  - Reduced padding and spacing (px-3, py-4) on mobile vs desktop (px-4, py-8).
+  - Smaller text sizes on mobile (text-xl vs text-3xl for headings).
+  - Full-width action buttons on mobile for easier tapping.
+  - Bottom padding (pb-24) on mobile to account for potential bottom navigation.
+
+Result
+- Admin dashboard now accessible at `/admin` route.
+- All admin functions (agent management, transaction creation, system reset) available in one interface.
+- Seamless navigation between main dashboard and admin panel.
+- Professional, organized admin interface with clear visual hierarchy.
+
+---
+
+## Francesco 31.10.2025 : Leaderboard Mobile Optimization, Real Data Integration, Property Value Tracking, and Editable Targets
+
+Summary
+- **Leaderboard mobile optimization**: Agent names show only first letter on mobile to save space; compact stats view.
+- **REBS API profile pictures**: Matches leaderboard agents by name to fetch avatars and profile info.
+- **Commission chart**: "Evolutia comisioanelor" now uses last 6 months from SQLite.
+- **Recent transactions**: "Comision generat luna aceasta" card shows last 3 transactions with date, type, and commission.
+- **Property value tracker**: Replaced monthly commission in stats bar with total value of properties sold (YTD sum of Valoare Tranzactie).
+- **Editable monthly targets**: Clicking the monthly target in the "Comision generat luna aceasta" card opens a modal to update the target; progress bar updates dynamically.
+
+Why These Changes
+- Mobile space optimization: first-letter names improve readability.
+- Profile pictures and avatars fetched from REBS for each agent.
+- Charts reflect server-side data instead of mocks.
+- Quick access to recent transactions on the home card.
+
+Technical Implementation
+- `agent-card.tsx`: conditional rendering for mobile first-letter-only.
+- `use-agent-leaderboard.ts`: fetches REBS agents and matches names to populate avatars.
+- `monthly-kpi-card.tsx`: recent transactions section with date, type, commission; clickable target with edit modal; dynamic progress bar.
+- `commission-chart.tsx`: accepts 6 months of data.
+- `mobile-stats-bar.tsx`: replaced monthly commission with property value tracker.
+- `page.tsx`: monthly data calculation and filtering by agent; calculates `totalValueSold` from transaction values; fetches and manages agent targets.
+- `db/schema.ts`: added `agentTargets` table for storing agent-specific monthly and annual targets.
+- `api/agents/update-target/route.ts`: POST endpoint to update agent targets.
+- `api/agents/get-target/route.ts`: GET endpoint to fetch agent targets.
+
+UI Changes
+- Leaderboard: compact mobile view.
+- Monthly KPI: recent transactions under commission; clickable target amount with edit icon.
+- Chart: updates from server-side data.
+- Stats bar: property value tracker replacing monthly commission.
+- Profile pictures: REBS avatars.
+- Colors: slate backgrounds preserved.
+- Target modal: dark theme with preview of new progress.
+
+Result
+- Responsive mobile experience; real data across charts and cards; personalized targets per agent; progress bar updates automatically.
+
+---
+
+## Francesco 31.10.2025 : Add Collaborative Transaction Feature with Agent Splits
+
+Summary
+- **Implemented collaborative transactions** allowing multiple agents to split a single transaction with custom percentages.
+- Added a 5-step modal: Agent selection → Collaboration setup → Transaction details → Commission → Confirmation.
+- Step 2: Checkbox to enable collaboration; add agents with individual split percentages (must total 100%).
+- Confirmation shows all collaborators with their split amounts; validation requires exactly 100% total.
+- Backend: submits separate transaction rows per collaborator with their proportional commission.
+
+Why This Feature
+- Supports real estate teams where multiple agents work together on a single transaction.
+- Transparent commission splits with clear per-agent breakdowns.
+- Automated backend handling creates a separate record per agent.
+
+Technical Implementation
+- State: `isCollaborative`, `collaborators` (name + split).
+- `canGoNext()`: validates 100% total for collaborative transactions.
+- `handleSubmit()`: branches into single or multi-submission.
+- `Promise.all` for all collaborators; refreshes leaderboard on success.
+- **Bug fix**: Moved `ModalContext` initialization before `Modal` to fix webpack runtime error.
+
+UI Changes
+- Step 2: collaboration checkbox; dynamic agent list with add/remove; split percentage inputs; real-time total; validation warning.
+- Confirmation: agent cards with commission per collaborator.
+- Colors: slate-800 backgrounds; green checks for completion; animations.
+- Created `src/components/ui/checkbox.tsx` component using Radix UI.
+
+Result
+- Supports any number of collaborators; transparent commission splits; leaderboard reflects individual contributions.
+
+---
+
+## Francesco 31.10.2025 : Migrate to SQLite Database for Production Stability
+
+Summary
+- **Migrated from JSON file to SQLite with Drizzle ORM** for concurrent writes, ACID, and scalability.
+- Storage: `data/database.sqlite` (git-ignored, server-side).
+- All API endpoints now use database queries instead of file I/O.
+- Supports 20+ agents with reliable writes and real-time aggregation.
+
+Why SQLite
+- **Concurrent writes**: handles multiple agents adding transactions safely.
+- **ACID**: transactions are atomic; no corruption or partial data.
+- **Performance**: SQL aggregation and indexing for fast leaderboards.
+- **Production-ready**: single SQLite file on disk.
+
+Database Schema
+- `transactions`: agent, valoareTranzactie, tipTranzactie, comisionPct, comision, timestamp, id (auto-increment).
+
+API Changes
+- `/api/transactions-local`: `db.select().from(transactions).where(...)` with filters.
+- `/api/leaderboard-local`: SQL `GROUP BY agent` with `SUM()` aggregation.
+- `/api/admin/add-transaction`: `db.insert(transactions).values(...).returning()`.
+- `/api/admin/reset-commissions`: `db.delete(transactions)`.
+
+Code Changes
+- `src/db/schema.ts`: Drizzle schema definition.
+- `src/db/index.ts`: database connection with `better-sqlite3`.
+- `drizzle.config.ts`: config for `drizzle-kit push`.
+- `package.json`: added `drizzle-orm`, `better-sqlite3`, `drizzle-kit`; `db:push` script.
+- `.gitignore`: exclude `.sqlite`, `.sqlite-journal`, `.sqlite-wal`, `drizzle/`.
+
+Result
+- Production-stable with 20+ concurrent users.
+- Fast aggregation, automatic migrations, zero data loss.
+
+## Francesco 30.10.2025 : Create Admin Dashboard with Transaction Management
+
+Summary
+- Built `/admin` dashboard matching the dark slate UI for manual transaction entry and agent management.
+- "Adaugă Tranzacție" button opens a modal with a 4-step form and progress bar.
+- Modal: Step 1 uses a dropdown of agents from REBS (via `/api/agents`), with a loading spinner. Steps 2–4: Valoare+Tip, Comision % with auto-calc, confirmation.
+- Commission input: entering "3" is treated as 3%; no need for 0.03.
+- Navigation: back/next; progress bar; only the final step submits.
+- After adding a transaction: auto-refreshes leaderboard so changes appear immediately.
+- Reset tab: shows total transactions; red "Reset Completă" button deletes all and resets leaderboard; requires confirmation.
+- `AgentManager`: active agents from live transactions; add new agents; status indicators.
+- Mobile-first; desktop button in header.
+
+Additional Updates
+- Profile page (`src/components/pages/profile-page.tsx`): replaced all mock data with live stats from transactions.
+- Yearly chart data: zeroed; shows current month commission in October.
+
+---
+
+## Francesco 30.10.2025 : Connect Gamified Leaderboard to Commission Spreadsheet
+
+Summary
+- Replaced REBS API leaderboard with live Google Sheets commission data.
+- Commission totals become XP (1 EUR = 1 XP); levels floor(commission/1000) + 1; renamed top stat to "€X comision".
+- Leaderboard refreshes via useLeaderboard (10s) with rank-change sounds; stats update automatically.
+- AgentCard: progress bar uses 1000 XP per level; primary display is total commission in EUR.
+
+Technical
+- `use-agent-leaderboard.ts`: switched from REBS to `useLeaderboard`; `processAgentData` maps `SumaComision` to XP.
+- Agent IDs use name hash for consistent ranking; sorting by `SumaComision` desc from GAS.
+- `agent-card.tsx`: primary stat is commission in EUR; transaction count is secondary; progress based on 1000-XP increments.
+
+Result
+- XP, levels, and ranking derive from real commissions; updates within ~10s.
+
+---
+
+## Francesco 30.10.2025 : Modern UI redesign with Slate/Blue palette
+
+Summary
+- Redesigned mobile dashboard with clean, modern glassmorphism and enhanced UX.
+- Replaced dark gradients with a slate/blue palette; added a 5‑tab bottom nav.
+- Applied the Revolut‑style: white surfaces, gradients where needed, subtle shadows, rounded cards, consistent spacing.
+- Typography and safe‑area spacing for native‑like mobile layouts.
+
+Visual Design
+- Primary: `slate-700` to `blue-700` gradients with glassmorphism overlays.
+- Secondary: white cards with `slate/blue` accents and light gradients.
+- UI elements: rounded‑2xl/3xl, backdrop‑blur, white tabs with blue‑600 active states.
+
+Code Changes
+- `src/components/layout/mobile-bottom-nav.tsx`: 5‑tab bar with white background, sheet dropdown, safe‑area spacing.
+- `src/components/layout/mobile-stats-bar.tsx`: three KPI cards, gradient badges, glassmorphism.
+- `src/components/layout/monthly-kpi-card.tsx`: slate/blue gradient, Inter typography, white progress.
+- `src/components/layout/ytd-card.tsx`: white card with slate/blue accents and progress.
+- `src/app/globals.css`: safe‑area utilities, mobile background `#F5F5F5`.
+- `tailwind.config.js`: Inter font family.
+
+Result
+- Mobile‑first with clean, consistent components.
+
+## Francesco 30.10.2025 : Integrate Google Apps Script commissions feed
+
+Summary
+- Added read-only integration with a Google Apps Script Web App exposing `transactions` and `leaderboard` JSON.
+- Implemented SWR hooks with 10s auto-revalidation, cache-busting, and fallback client aggregation.
+- Wired mobile home KPIs (Monthly, YTD, Stats Bar) to live data. Added a transactions table with filters.
+
+Endpoints
+- Transactions: `https://script.google.com/macros/s/AKfycbxjKUEhxDobALZhfvpqS3tuI5AcMaRQuDJfZWHsPWLtgvOoj5aXR9GPUpkY2PqntOfI/exec?route=transactions&since=<ISO>&agent=<name>`
+- Leaderboard: same base with `route=leaderboard`
+
+Code Changes
+- `src/types/commissions.ts`: Zod schemas for Transaction and LeaderboardRow, response shapes, and robust numeric parsing (supports 3, 3%, 0.03).
+- `src/lib/api.ts`: `fetchJson` utility and `commissionsApi` for GAS endpoints.
+- `src/hooks/use-commissions.ts`: `useTransactions` and `useLeaderboard` (with fallback aggregation from transactions when leaderboard fails). 10s refresh.
+- `src/components/modules/leaderboard/commission-leaderboard.tsx`: Table UI sorted by `SumaComision` desc.
+- `src/components/modules/leaderboard/transactions-table.tsx`: Transactions table with Agent and Since filters.
+- `src/app/leaderboard/page.tsx`: Renders the new leaderboard and transactions modules.
+- `src/app/page.tsx`: Mobile home now computes live Monthly and YTD commissions and counts from transactions and passes them to KPI components.
+
+Behavior & Constraints
+- Read-only consumption; no write calls.
+- Treat `Comision` as authoritative; compute from `Valoare Tranzactie * Comision %` if missing.
+- UTF‑8 names supported; UI renders diacritics.
+- Error states shown inline; hooks retry on refresh.
+
+Test Plan
+- Insert a row for “Ciprian Oprișor” with Valoare=1000 and Comision%=3%. Verify Transactions shows the row and Leaderboard increments by €30 within ≤15s.
+- Change Comision% format (3 ↔ 3%) and confirm commission parsing remains correct.
+- Call `?since=<now-1m>` filter in the UI and verify only new rows appear.
+- Disable `route=leaderboard` and verify the UI still renders a correct leaderboard aggregated from transactions.
+
 A professional Next.js dashboard with document conversion, AI-powered real estate ad generation, image expansion tools, and contract template downloads.
 
 ## Features
@@ -52,6 +304,26 @@ A professional Next.js dashboard with document conversion, AI-powered real estat
 - **Interactive Dashboard**: Click any agent card to view detailed statistics
 - **Professional Design**: Modern UI with custom color scheme (#203A53, #F4F0EB, #FFD700)
 
+### 🏆 TowerImob Quest Leaderboard
+- **Dynamic Quest Detection**: Automatically detects boolean quest columns from Google Sheets
+- **Group Quest Support**: Special handling for quests marked with "(GROUP)" in headers
+- **Real-Time Updates**: Auto-refreshes every 10 seconds without page reload
+- **Apps Script Integration**: Connected to Google Apps Script Web App for live data
+- **Romanian Localization**: All timestamps and UI text in Romanian (ro-RO)
+- **Responsive Design**: Mobile-friendly table with horizontal scrolling
+- **Error Handling**: Graceful error states with user-friendly messages
+- **No Caching**: Always fetches fresh data with `cache: 'no-store'`
+
+### 🎯 Dynamic Quest System
+- **Agent-Specific Quests**: Each agent sees only their own quest progress from Google Sheets
+- **4-Split Pie Chart**: Individual quests displayed with 4-section progress indicator
+- **3-Split Pie Chart**: Group quests displayed with 3-section progress indicator
+- **Real-Time Sync**: Quest status updates automatically from leaderboard data
+- **Smart Icon Mapping**: Automatic emoji assignment based on quest type
+- **Color-Coded Progress**: Different color schemes for individual vs group quests
+- **Authentication Required**: Shows login prompt when no agent is logged in
+- **Dynamic Column Detection**: Automatically adapts to any quest structure in the sheet
+
 ### ✨ Expansiune Imagini (Image Expansion & Auto-Correction)
 - **Automatic Tilt Detection**: AI-powered angle detection for tilted photos
 - **Smart Rotation**: Auto-corrects perspective issues
@@ -79,6 +351,39 @@ A professional Next.js dashboard with document conversion, AI-powered real estat
   - Fal.ai Bria Expand for commercially-licensed image expansion
   - Fal.ai Stable Diffusion v3.5 for image inpainting (legacy)
 - **Image Processing**: Sharp for server-side image manipulation
+- **AI Text Generation**: OpenAI GPT-4o-mini for Romanian real estate ad generation
+- **Leaderboard Integration**: Google Apps Script Web App for real-time quest tracking
+
+## Machine Learning Models
+
+This project uses several AI/ML models for different purposes:
+
+### 1. **OpenAI GPT-4o-mini** (Text Generation)
+- **Purpose**: Generate Romanian real estate advertisements
+- **Location**: `/src/app/api/real-estate/generate/route.ts`
+- **Features**: 
+  - Three distinct tones: professional, persuasive, friendly
+  - Romanian language optimization
+  - Custom system prompts for Tower Imob branding
+  - Temperature control based on tone (0.6-0.8)
+
+### 2. **Fal.ai Bria Expand** (Image Expansion)
+- **Purpose**: Expand property images beyond their borders
+- **Location**: `/src/app/api/extend-image/route.ts`
+- **Features**:
+  - Commercial license (safe for business use)
+  - 20% smart expansion maintaining aspect ratio
+  - Optional English prompt guidance
+  - High-quality inpainting with 40 inference steps
+
+### 3. **Fal.ai Stable Diffusion v3.5** (Image Inpainting - Legacy)
+- **Purpose**: Fill transparent areas in expanded images
+- **Location**: `/src/app/api/fix-perspective/route.ts`
+- **Features**:
+  - Mask-based inpainting approach
+  - Natural background extension
+  - 40 inference steps for high quality
+  - Guidance scale 7.5 for balanced creativity/fidelity
 
 ## Getting Started
 
@@ -125,6 +430,9 @@ REBS_API_KEY=ee93793d23fb4cdfc27e581a300503bda245b7c8
 
 # Fal.ai API Configuration (for Bria image expansion)
 FAL_KEY=your_fal_ai_api_key_here
+
+# TowerImob Leaderboard URL (Google Apps Script Web App)
+NEXT_PUBLIC_LEADERBOARD_URL="https://script.google.com/macros/s/AKfycbyCnMD4GtwhFXywdeqLVvel8qON6xNZrXpVTGvV9HNmXtIdj8DuVATHaWn5mbJCi_J5VA/exec"
 
 # Optional: Add your API keys here
 # OPENAI_API_KEY=your_openai_key_here
@@ -1964,5 +2272,126 @@ const groupProgress = calculateProgress(groupQuests)
 
 ---
 
+---
+
+## Francesco 18.08.2025: Mobile Tools Tab Redesign & Target Modules Integration
+
+**Changes/Updates:**
+
+**1. Mobile Tools Tab Redesign:**
+- **Simplified Icon Display**: The Instrumente tab now shows just the tool icon (Wrench) instead of a complex dropdown button, matching the visual consistency of other navigation tabs
+- **Animated Dropdown**: When clicking the Instrumente tab, an elegant animated dropdown appears upward with a smooth slide-in animation (`animate-in slide-in-from-bottom-2 duration-300`)
+- **Grid Layout**: Tools are displayed in a clean 3-column grid layout with large, tappable icons (20px) and minimal text labels (10px)
+- **Visual Feedback**: Active tools show with colored backgrounds (`bg-[#4F46E5]/10`) and small indicator dots
+- **Consistent Styling**: All tools maintain the same visual treatment as other navigation elements
+
+**2. Target Modules Integration:**
+- **Solo Target Module**: Added "Țintă Solo" (Solo Target) with Target icon for individual goal tracking
+- **Group Target Module**: Added "Țintă Grup" (Group Target) with Users icon for team goal tracking
+- **Romanian Language**: Both modules use proper Romanian terminology throughout the interface
+- **Placeholder Content**: Created professional placeholder cards with gradient backgrounds and "coming soon" messaging
+- **Desktop Integration**: Added both target modules to the desktop tab navigation (8-column grid layout)
+
+**3. Enhanced Mobile Navigation:**
+- **Unified State Management**: Single `selectedModule` state controls both mobile dropdown and desktop tabs
+- **Seamless Switching**: Module selection persists across mobile and desktop views
+- **Auto-Navigation**: Selecting a tool from the dropdown automatically switches to the tools tab
+- **Touch Optimization**: Large touch targets (48px minimum) for better mobile usability
+
+**Technical Implementation:**
+
+**Files Modified:**
+1. `/src/components/layout/mobile-bottom-nav.tsx` - Complete redesign of tools tab
+   - Removed complex ToolsDropdown component integration
+   - Added inline tools array with 6 modules including new target modules
+   - Implemented animated dropdown with upward slide animation
+   - Created `handleToolSelect` function for seamless module switching
+   - Added Target and Users icons from lucide-react
+   - Grid layout with responsive 3-column design
+
+2. `/src/app/page.tsx` - Desktop integration and state management
+   - Updated desktop TabsList to `grid-cols-8` (was `grid-cols-6`)
+   - Added Target and Users icon imports
+   - Created TabsContent sections for both target modules
+   - Added professional placeholder content with gradient backgrounds
+   - Romanian language descriptions and titles
+   - Consistent styling with existing modules
+
+**Mobile Tools Dropdown Features:**
+- **Animation**: Smooth slide-in from bottom with 300ms duration
+- **Layout**: 3-column grid (2 rows) for optimal mobile viewing
+- **Icons**: 20px Lucide React icons with consistent styling
+- **Labels**: 10px font size for compact display
+- **Active State**: Colored background and indicator dot for selected tool
+- **Touch Targets**: Large, accessible buttons for easy tapping
+- **Auto-Close**: Dropdown closes after tool selection
+
+**Target Modules Design:**
+- **Solo Target**: Red gradient theme (`from-red-50 to-red-100`)
+- **Group Target**: Blue gradient theme (`from-blue-50 to-blue-100`)
+- **Placeholder Content**: Professional "coming soon" messaging in Romanian
+- **Icons**: Large 16px icons with hover animations
+- **Consistent Layout**: Matches existing module card structure
+
+**Tools Array Structure:**
+```typescript
+const tools = [
+  { id: 'documents', icon: FileText, label: 'Documente' },
+  { id: 'real-estate', icon: Building2, label: 'Imobiliare' },
+  { id: 'printer', icon: Printer, label: 'Driver' },
+  { id: 'image-editor', icon: Image, label: 'Imagini' },
+  { id: 'solo-target', icon: Target, label: 'Țintă Solo' },
+  { id: 'group-target', icon: Users, label: 'Țintă Grup' },
+]
+```
+
+**Desktop Tab Updates:**
+- **Grid Layout**: Changed from 6 to 8 columns (`grid-cols-8`)
+- **New Tabs**: Added Solo Target and Group Target tabs
+- **Icon Integration**: Target and Users icons with consistent sizing
+- **Responsive Text**: Full names on desktop, abbreviated on mobile
+- **Hover Effects**: Scale animations and color transitions
+
+**User Experience Improvements:**
+- **Visual Consistency**: Tools tab now matches other navigation tabs
+- **Faster Access**: Single tap to open dropdown, single tap to select tool
+- **Better Organization**: All tools clearly visible in organized grid
+- **Professional Look**: Clean, modern design with smooth animations
+- **Mobile Optimized**: Thumb-friendly layout with proper spacing
+
+**Design Philosophy:**
+This update transforms the mobile tools navigation from a complex dropdown button into a clean, icon-based tab that matches the overall navigation design. The animated dropdown provides quick access to all tools while maintaining visual consistency. The addition of target modules prepares the platform for goal tracking functionality, with professional placeholder content that maintains the high-quality user experience. The Romanian language integration ensures accessibility for all team members.
+
+**Future Enhancements (Not Implemented Yet):**
+- Actual target tracking functionality
+- Integration with REBS CRM for real goal data
+- Progress visualization for targets
+- Team collaboration features
+- Achievement system for target completion
+- Analytics dashboard for target performance
+
+**Accessibility Features:**
+- Large touch targets (48px minimum)
+- High contrast colors for readability
+- Semantic HTML structure
+- Screen reader friendly labels
+- Keyboard navigation support
+- Reduced motion support
+
+**Performance Optimizations:**
+- CSS-based animations (GPU accelerated)
+- Minimal JavaScript for state management
+- Efficient re-rendering with React state
+- Smooth transitions without layout shifts
+- Optimized icon rendering
+
 **Built with ❤️ for professional agents and businesses**
+
+---
+
+## Development Log
+
+Francesco 18.08.2025 : Fixed real properties data integration - Login API now fetches actual properties count from REBS CRM instead of using mock/calculated data. Ciprian Oprișor now correctly shows 31 properties (was 9), Casandra Babă shows 5 properties, and Simona Pănoiu shows 22 properties. All agents now see their real portfolio size throughout the application. Updated properties API to filter by agent ID from REBS response and implemented robust error handling with fallback to mock data only if REBS API fails.
+
+Francesco 18.08.2025 : Complete leaderboard and UI overhaul for dark theme - Fixed all leaderboard components including gamified leaderboard, agent cards, and stats overview to use consistent dark slate theme with white text. Removed all white strokes and borders that broke immersion, replacing them with subtle white/20 borders. Updated mobile module grid to display "Instrumente" with dark theme styling and proper contrast. Fixed login modal text colors to white/70 for proper dark background readability. All components now maintain perfect contrast and immersive dark aesthetic throughout the entire application.
 

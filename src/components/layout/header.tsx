@@ -14,7 +14,7 @@ export function Header({ onProfileClick, streak = 7 }: HeaderProps) {
   return (
     <>
       <PwaInstallButton />
-      <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 md:bg-background/95 md:backdrop-blur md:supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] border-b border-white/20 md:bg-gradient-to-br md:from-[#1E293B] md:via-[#334155] md:to-[#475569] md:backdrop-blur md:supports-[backdrop-filter]:bg-gradient-to-br md:supports-[backdrop-filter]:from-[#1E293B] md:supports-[backdrop-filter]:via-[#334155] md:supports-[backdrop-filter]:to-[#475569]">
         <div className="container flex h-14 md:h-16 items-center justify-between px-3 md:px-4">
           {/* Mobile - Minimal Logo */}
           <div className="flex items-center space-x-2 md:space-x-3 md:hidden">
@@ -37,7 +37,7 @@ export function Header({ onProfileClick, streak = 7 }: HeaderProps) {
 
           {/* Desktop - Full Logo and Brand */}
           <div className="hidden md:flex items-center space-x-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-lg border border-gray-200">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm shadow-lg border border-white/20">
               <img 
                 src="/Path 1.png" 
                 alt="Tower Imob Logo" 
@@ -45,27 +45,27 @@ export function Header({ onProfileClick, streak = 7 }: HeaderProps) {
               />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-primary">
+              <h1 className="text-xl font-bold text-white">
                 Tower Imob
               </h1>
-              <p className="text-xs text-muted-foreground font-medium">Instrumente Profesionale</p>
+              <p className="text-xs text-white/70 font-medium">Instrumente Profesionale</p>
             </div>
           </div>
 
           {/* Desktop - Quick Actions */}
           <div className="hidden md:flex items-center space-x-2">
-            <Card className="flex items-center space-x-2 px-3 py-1 bg-secondary/50 border-secondary/20">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Instrumente Documente</span>
-            </Card>
-            <Card className="flex items-center space-x-2 px-3 py-1 bg-secondary/50 border-secondary/20">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Imobiliare</span>
-            </Card>
-            <Card className="flex items-center space-x-2 px-3 py-1 bg-secondary/50 border-secondary/20">
-              <Printer className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground font-medium">Driver Imprimantă</span>
-            </Card>
+            <div className="flex items-center space-x-2 px-3 py-1 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
+              <FileText className="h-4 w-4 text-white/80" />
+              <span className="text-sm text-white/80 font-medium">Instrumente Documente</span>
+            </div>
+            <div className="flex items-center space-x-2 px-3 py-1 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
+              <Building2 className="h-4 w-4 text-white/80" />
+              <span className="text-sm text-white/80 font-medium">Imobiliare</span>
+            </div>
+            <div className="flex items-center space-x-2 px-3 py-1 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
+              <Printer className="h-4 w-4 text-white/80" />
+              <span className="text-sm text-white/80 font-medium">Driver Imprimantă</span>
+            </div>
             
             {/* Profile Button */}
             <Button

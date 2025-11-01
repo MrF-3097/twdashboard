@@ -27,25 +27,25 @@
   }
 
   .dark {
-    --background: 203 50% 20%;
-    --foreground: 45 60% 60%;
-    --card: 203 50% 20%;
-    --card-foreground: 45 60% 60%;
-    --popover: 203 50% 20%;
-    --popover-foreground: 45 60% 60%;
-    --primary: 45 60% 60%;
-    --primary-foreground: 203 50% 20%;
-    --secondary: 45 60% 60%;
-    --secondary-foreground: 203 50% 20%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 45 60% 60%;
-    --accent-foreground: 203 50% 20%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 45 60% 60%;
+    --background: 215 28% 17%;
+    --foreground: 0 0% 98%;
+    --card: 215 28% 17%;
+    --card-foreground: 0 0% 98%;
+    --popover: 215 28% 17%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 215 20% 32%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 215 20% 32%;
+    --muted-foreground: 215 13% 65%;
+    --accent: 221 83% 53%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 215 20% 32%;
+    --input: 215 20% 32%;
+    --ring: 221 83% 53%;
   }
 }
 
@@ -70,10 +70,26 @@
   body {
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
+    background: #0F172A;
   }
   
   /* Prevent zoom on input focus (iOS) */
   input, textarea, select {
     font-size: 16px !important;
+  }
+}
+
+/* Revolut-style safe area spacing */
+@layer utilities {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-spacing {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
 }

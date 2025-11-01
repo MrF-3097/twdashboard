@@ -1,83 +1,135 @@
 'use client'
 
-import { Home, TrendingUp, User, Zap } from 'lucide-react'
+import { useState } from 'react'
+import { Home, CreditCard, Send, Grid, User, Wrench, TrendingUp, FileText, Building2, Printer, Image, Settings } from 'lucide-react'
 
 interface MobileBottomNavProps {
-  activeTab: 'home' | 'tools' | 'stats' | 'profile'
-  onTabChange: (tab: 'home' | 'tools' | 'stats' | 'profile') => void
+  activeTab: 'home' | 'tools' | 'leaderboard' | 'profile' | 'admin'
+  onTabChange: (tab: 'home' | 'tools' | 'leaderboard' | 'profile' | 'admin') => void
+  activeModule?: string
+  onModuleSelect?: (module: string) => void
 }
 
-export const MobileBottomNav = ({ activeTab, onTabChange }: MobileBottomNavProps) => {
-  const tabs = [
-    { id: 'home' as const, icon: Home, label: 'Acasă', color: 'text-blue-500' },
-    { id: 'tools' as const, icon: Zap, label: 'Instrumente', color: 'text-purple-500' },
-    { id: 'stats' as const, icon: TrendingUp, label: 'Clasament', color: 'text-green-500' },
-    { id: 'profile' as const, icon: User, label: 'Profil', color: 'text-yellow-500' },
+export const MobileBottomNav = ({ 
+  activeTab, 
+  onTabChange, 
+  activeModule = 'documents',
+  onModuleSelect 
+}: MobileBottomNavProps) => {
+  const [showToolsDropdown, setShowToolsDropdown] = useState(false)
+
+  // Revolut-style 5-tab navigation
+  const revolutTabs = [
+    { id: 'home' as const, icon: Home, label: 'Acasă' },
+    { id: 'tools' as const, icon: Grid, label: 'Hub' },
+    { id: 'leaderboard' as const, icon: TrendingUp, label: 'Stats' },
+    { id: 'admin' as const, icon: Settings, label: 'Admin' },
+    { id: 'profile' as const, icon: User, label: 'Profil' },
+  ] as const
+
+  const tools = [
+    { id: 'documents', icon: FileText, label: 'Documente' },
+    { id: 'real-estate', icon: Building2, label: 'Imobiliare' },
+    { id: 'printer', icon: Printer, label: 'Driver' },
+    { id: 'image-editor', icon: Image, label: 'Imagini' },
   ]
 
+  const handleTabClick = (tabId: string) => {
+    if (tabId === 'tools') {
+      setShowToolsDropdown(!showToolsDropdown)
+    } else {
+      setShowToolsDropdown(false)
+      onTabChange(tabId as any)
+    }
+  }
+
+  const handleToolSelect = (toolId: string) => {
+    if (onModuleSelect) {
+      onModuleSelect(toolId)
+    }
+    setShowToolsDropdown(false)
+    onTabChange('tools')
+  }
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg safe-area-bottom">
-      <div className="grid grid-cols-4 h-20 pb-2">
-        {tabs.map((tab) => {
+    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-700 z-50 safe-area-bottom">
+      {/* Glassmorphism blur overlay for depth */}
+      <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl" />
+      
+      {/* Tools Dropdown - Dark sheet style */}
+      {showToolsDropdown && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 rounded-t-[24px] border border-slate-700 shadow-[0_-4px_24px_rgba(0,0,0,0.5)] z-50 animate-in slide-in-from-bottom-2 duration-300">
+          {/* Sheet handle indicator */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 bg-slate-600 rounded-full" />
+          </div>
+          
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-3 gap-3">
+              {tools.map((tool) => {
+                const Icon = tool.icon
+                const isActive = tool.id === activeModule
+                
+                return (
+                  <button
+                    key={tool.id}
+                    onClick={() => handleToolSelect(tool.id)}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all ${
+                      isActive 
+                        ? 'bg-gradient-to-br from-slate-700 to-blue-700 text-white' 
+                        : 'hover:bg-slate-700 text-slate-300'
+                    }`}
+                  >
+                    <Icon 
+                      size={24} 
+                      className={isActive ? 'text-white' : 'text-slate-400'} 
+                    />
+                    <span className={`text-[11px] font-semibold text-center ${isActive ? 'text-white' : 'text-slate-300'}`}>
+                      {tool.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revolut-style tab bar */}
+      <div className="relative z-10 flex items-center justify-around max-w-[420px] mx-auto h-20 safe-area-spacing">
+        {revolutTabs.map((tab, index) => {
+          const isActive = activeTab === tab.id && !showToolsDropdown
           const Icon = tab.icon
-          const isActive = activeTab === tab.id
           
           return (
             <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
-                isActive ? 'scale-110' : 'scale-100 opacity-60'
-              }`}
-              aria-label={tab.label}
+              key={`${tab.id}-${index}`}
+              onClick={() => handleTabClick(tab.id)}
+              className="flex flex-col items-center gap-1 min-w-[64px] transition-all active:scale-95"
             >
-              <div className={`relative ${isActive ? 'animate-bounce-subtle' : ''}`}>
-                <div
-                  className={`
-                    flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300
-                    ${isActive 
-                      ? `bg-gradient-to-br ${tab.id === 'home' ? 'from-blue-400 to-blue-600' : 
-                         tab.id === 'tools' ? 'from-purple-400 to-purple-600' :
-                         tab.id === 'stats' ? 'from-green-400 to-green-600' :
-                         'from-yellow-400 to-yellow-600'} shadow-lg` 
-                      : 'bg-gray-100'
-                    }
-                  `}
-                >
-                  <Icon className={`h-6 w-6 ${isActive ? 'text-white' : 'text-gray-400'}`} />
-                </div>
-                {isActive && (
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-current rounded-full opacity-60" />
-                )}
+              <div className={`relative transition-colors ${isActive ? 'text-blue-400' : 'text-slate-400'}`}>
+                <Icon
+                  size={24}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  fill={isActive ? 'currentColor' : 'none'}
+                />
               </div>
               <span
-                className={`text-[10px] font-semibold transition-all duration-300 ${
-                  isActive ? tab.color : 'text-gray-400'
+                className={`text-[11px] font-medium transition-colors ${
+                  isActive ? 'text-blue-400' : 'text-slate-400'
                 }`}
               >
                 {tab.label}
               </span>
+              {/* Active indicator dot */}
+              {isActive && (
+                <div className="absolute -bottom-1 w-1 h-1 bg-blue-400 rounded-full" />
+              )}
             </button>
           )
         })}
       </div>
-      <style jsx>{`
-        @keyframes bounce-subtle {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-4px);
-          }
-        }
-        .animate-bounce-subtle {
-          animation: bounce-subtle 0.6s ease-in-out;
-        }
-        .safe-area-bottom {
-          padding-bottom: env(safe-area-inset-bottom);
-        }
-      `}</style>
-    </nav>
+    </div>
   )
 }
 

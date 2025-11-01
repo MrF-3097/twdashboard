@@ -106,7 +106,7 @@ export const QuestSystem = () => {
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="#e5e7eb"
+            stroke="rgba(71, 85, 105, 0.3)"
             strokeWidth="12"
           />
           {/* Progress circle */}
@@ -130,8 +130,8 @@ export const QuestSystem = () => {
           </defs>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-black text-gray-800">{completed}</span>
-          <span className="text-xs text-gray-500">din {total}</span>
+          <span className="text-3xl font-black text-white">{completed}</span>
+          <span className="text-xs text-white/70">din {total}</span>
         </div>
       </div>
     )
@@ -171,7 +171,7 @@ export const QuestSystem = () => {
           })}
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xl font-black text-gray-800">{completed}/4</span>
+          <span className="text-xl font-black text-white">{completed}/4</span>
         </div>
       </div>
     )
@@ -192,15 +192,15 @@ export const QuestSystem = () => {
   return (
     <div className="w-full max-w-md mx-auto space-y-4 px-3 py-4">
       {/* Individual Targets */}
-      <Card className="p-4 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200 overflow-hidden">
+      <Card className="p-4 bg-slate-800 border-2 border-slate-700 overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white">
               <User className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-black text-gray-800 text-lg">Target Personal</h3>
-              <p className="text-xs text-gray-600">Obiectivele tale</p>
+              <h3 className="font-black text-white text-lg">Target Personal</h3>
+              <p className="text-xs text-white/70">Obiectivele tale</p>
             </div>
           </div>
           <QuarteredPieChart completed={individualProgress} total={4} />
@@ -216,19 +216,19 @@ export const QuestSystem = () => {
               <div className={`
                 flex items-center gap-3 p-3 rounded-2xl transition-all duration-300
                 ${quest.completed 
-                  ? 'bg-white shadow-md' 
-                  : 'bg-white/50 hover:bg-white/80'
+                  ? 'bg-slate-700 shadow-md' 
+                  : 'bg-slate-700/50 hover:bg-slate-700/80'
                 }
               `}>
                 <div className="text-3xl">{quest.icon}</div>
                 <div className="flex-1 text-left">
-                  <p className="font-bold text-gray-800 text-sm">{quest.title}</p>
-                  <p className="text-xs text-gray-500">{quest.subtitle}</p>
+                  <p className="font-bold text-white text-sm">{quest.title}</p>
+                  <p className="text-xs text-white/70">{quest.subtitle}</p>
                 </div>
                 {quest.completed ? (
-                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                  <CheckCircle2 className="h-6 w-6 text-green-400" />
                 ) : (
-                  <Circle className="h-6 w-6 text-gray-300 group-hover:text-gray-400" />
+                  <Circle className="h-6 w-6 text-slate-500 group-hover:text-slate-400" />
                 )}
               </div>
             </button>
@@ -237,15 +237,15 @@ export const QuestSystem = () => {
       </Card>
 
       {/* Group Targets */}
-      <Card className="p-4 bg-gradient-to-br from-orange-50 to-pink-50 border-2 border-orange-200 overflow-hidden">
+      <Card className="p-4 bg-slate-800 border-2 border-slate-700 overflow-hidden">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-pink-600 flex items-center justify-center text-white">
               <Users className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-black text-gray-800 text-lg">Target Echipă</h3>
-              <p className="text-xs text-gray-600">Obiectivele grupului</p>
+              <h3 className="font-black text-white text-lg">Target Echipă</h3>
+              <p className="text-xs text-white/70">Obiectivele grupului</p>
             </div>
           </div>
           <QuarteredPieChart completed={groupProgress} total={4} />
@@ -261,19 +261,19 @@ export const QuestSystem = () => {
               <div className={`
                 flex items-center gap-3 p-3 rounded-2xl transition-all duration-300
                 ${quest.completed 
-                  ? 'bg-white shadow-md' 
-                  : 'bg-white/50 hover:bg-white/80'
+                  ? 'bg-slate-700 shadow-md' 
+                  : 'bg-slate-700/50 hover:bg-slate-700/80'
                 }
               `}>
                 <div className="text-3xl">{quest.icon}</div>
                 <div className="flex-1 text-left">
-                  <p className="font-bold text-gray-800 text-sm">{quest.title}</p>
-                  <p className="text-xs text-gray-500">{quest.subtitle}</p>
+                  <p className="font-bold text-white text-sm">{quest.title}</p>
+                  <p className="text-xs text-white/70">{quest.subtitle}</p>
                 </div>
                 {quest.completed ? (
-                  <CheckCircle2 className="h-6 w-6 text-orange-500" />
+                  <CheckCircle2 className="h-6 w-6 text-orange-400" />
                 ) : (
-                  <Circle className="h-6 w-6 text-gray-300 group-hover:text-gray-400" />
+                  <Circle className="h-6 w-6 text-slate-500 group-hover:text-slate-400" />
                 )}
               </div>
             </button>

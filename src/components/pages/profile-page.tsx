@@ -1,17 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Star, TrendingUp, Award, Calendar, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Star, TrendingUp, Award, Calendar, BarChart3, LogOut } from 'lucide-react'
 import { GamifiedLeaderboard } from '@/components/modules/leaderboard/gamified-leaderboard'
+import { useTransactions } from '@/hooks/use-commissions'
 
 interface ProfilePageProps {
   onBack: () => void
   agentData: any
+  onLogout?: () => void
 }
 
-export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
+export const ProfilePage = ({ onBack, agentData, onLogout }: ProfilePageProps) => {
+  // Fetch all transactions to calculate agent-specific stats
+  const { data: allTransactionsData } = useTransactions()
+  
   // Use actual agent data from login
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A'
@@ -23,13 +28,54 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
     })
   }
 
-  // Calculate mock stats based on agent ID (deterministic)
+  // Calculate real stats from commission spreadsheet
+  const agentStats = useMemo(() => {
+    const agentName = agentData?.name
+    if (!agentName || !allTransactionsData?.rows) {
+      return {
+        transactions: 0,
+        currentMonthCommission: 0,
+        totalCommission: 0,
+        propertiesCount: 0,
+      }
+    }
+
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    // Filter transactions for this specific agent
+    const agentTransactions = allTransactionsData.rows.filter(t => t.Agent === agentName)
+    
+    const totalTransactions = agentTransactions.length
+    
+    // Calculate total commission
+    const totalCommission = agentTransactions.reduce((sum, t) => {
+      const valoare = typeof t['Valoare Tranzactie'] === 'number' ? t['Valoare Tranzactie'] : 0
+      const pct = typeof t['Comision %'] === 'number' ? (t['Comision %'] > 1 ? t['Comision %'] / 100 : t['Comision %']) : 0
+      const com = t.Comision && t.Comision > 0 ? t.Comision : (valoare * pct)
+      return sum + (Number.isFinite(com) ? com : 0)
+    }, 0)
+
+    // Calculate current month commission
+    const currentMonthCommission = agentTransactions
+      .filter(t => new Date(t.Timestamp) >= monthStart)
+      .reduce((sum, t) => {
+        const valoare = typeof t['Valoare Tranzactie'] === 'number' ? t['Valoare Tranzactie'] : 0
+        const pct = typeof t['Comision %'] === 'number' ? (t['Comision %'] > 1 ? t['Comision %'] / 100 : t['Comision %']) : 0
+        const com = t.Comision && t.Comision > 0 ? t.Comision : (valoare * pct)
+        return sum + (Number.isFinite(com) ? com : 0)
+      }, 0)
+
+    return {
+      transactions: totalTransactions,
+      currentMonthCommission: Math.round(currentMonthCommission),
+      totalCommission: Math.round(totalCommission),
+      propertiesCount: 0,
+    }
+  }, [agentData?.name, allTransactionsData?.rows])
+
   const agentId = agentData?.id || 1
-  const transactions = Math.floor((agentId * 7) % 20) + 5
-  const currentMonthCommission = Math.floor((agentId * 1234) % 25000) + 5000
-  const totalCommission = Math.floor((agentId * 9876) % 200000) + 50000
   const rating = 3.5 + ((agentId * 13) % 15) / 10
-  const ranking = (agentId % 25) + 1
 
   const userData = {
     name: agentData?.name || 'Agent Necunoscut',
@@ -38,30 +84,31 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
     joinedDate: formatDate(agentData?.created_at),
     rating: Math.min(5, Math.max(3.5, rating)),
     seniority: agentData?.position || 'Agent Imobiliar',
-    ranking: ranking,
-    totalAgents: 25,
-    transactions: transactions,
-    currentMonthCommission: currentMonthCommission,
-    totalCommission: totalCommission,
+    ranking: 0, // Will be set from leaderboard
+    totalAgents: 0, // Will be set from leaderboard
+    transactions: agentStats.transactions,
+    currentMonthCommission: agentStats.currentMonthCommission,
+    totalCommission: agentStats.totalCommission,
+    propertiesCount: agentStats.propertiesCount,
   }
 
-  // Yearly data for chart
+  // Yearly data for chart - Zero out since we don't have historical breakdown yet
   const yearlyData = [
-    { month: 'Ian', commission: 8500 },
-    { month: 'Feb', commission: 12000 },
-    { month: 'Mar', commission: 15000 },
-    { month: 'Apr', commission: 11000 },
-    { month: 'Mai', commission: 14500 },
-    { month: 'Iun', commission: 16000 },
-    { month: 'Iul', commission: 13500 },
-    { month: 'Aug', commission: 17000 },
-    { month: 'Sep', commission: 14000 },
-    { month: 'Oct', commission: 15000 },
+    { month: 'Ian', commission: 0 },
+    { month: 'Feb', commission: 0 },
+    { month: 'Mar', commission: 0 },
+    { month: 'Apr', commission: 0 },
+    { month: 'Mai', commission: 0 },
+    { month: 'Iun', commission: 0 },
+    { month: 'Iul', commission: 0 },
+    { month: 'Aug', commission: 0 },
+    { month: 'Sep', commission: 0 },
+    { month: 'Oct', commission: agentStats.currentMonthCommission },
     { month: 'Nov', commission: 0 },
     { month: 'Dec', commission: 0 },
   ]
 
-  const maxCommission = Math.max(...yearlyData.map(d => d.commission))
+  const maxCommission = Math.max(...yearlyData.map(d => d.commission), 1)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('ro-RO', {
@@ -71,31 +118,47 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 animate-in fade-in-0 duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] animate-in fade-in-0 duration-500">
       <div className="container mx-auto px-4 py-6">
-        {/* Back Button */}
-        <Button 
-          variant="ghost" 
-          onClick={onBack}
-          className="mb-6 hover:bg-primary/10 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Înapoi la Dashboard
-        </Button>
+        {/* Back Button and Logout */}
+        <div className="mb-6 flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            onClick={onBack}
+            className="hover:bg-primary/10 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Înapoi la Dashboard
+          </Button>
+          {onLogout && (
+            <Button 
+              variant="ghost" 
+              onClick={onLogout}
+              className="hover:bg-destructive/10 transition-colors text-destructive hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Deconectare
+            </Button>
+          )}
+        </div>
 
         {/* Profile Header Card */}
-        <Card className="mb-6 overflow-hidden border-2 shadow-xl animate-in slide-in-from-top-4 duration-700">
-          <div className="h-16 bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-600 relative">
-            {/* Ranking Badge in top right of gradient */}
-            <div className="absolute top-2 right-3 bg-white/90 backdrop-blur-sm text-gray-800 rounded-full px-3 py-1 text-sm font-bold shadow-lg">
-              #{userData.ranking}/{userData.totalAgents}
+        <div className="mb-6 relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl animate-in slide-in-from-top-4 duration-700">
+          {/* Background pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+          
+          <div className="relative z-10">
+            <div className="h-16 bg-gradient-to-r from-[#F59E0B] via-[#D97706] to-[#B45309] relative">
+              {/* Ranking Badge in top right of gradient */}
+              <div className="absolute top-2 right-3 bg-white/20 backdrop-blur-sm text-white rounded-full px-3 py-1 text-sm font-bold shadow-lg">
+                #{userData.ranking}/{userData.totalAgents}
+              </div>
             </div>
-          </div>
-          <CardContent className="relative pt-0 pb-8">
+            <div className="relative pt-0 pb-8 px-6">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-4 -mt-8 pt-4">
               {/* Profile Image - Fixed aspect ratio */}
               <div className="relative flex-shrink-0">
-                <div className="w-24 h-24 rounded-full border-4 border-background shadow-2xl bg-white overflow-hidden">
+                <div className="w-24 h-24 rounded-full border-4 border-white/20 shadow-2xl bg-white overflow-hidden">
                   <img
                     src={userData.image}
                     alt={userData.name}
@@ -106,8 +169,8 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
 
               {/* Profile Info */}
               <div className="flex-1 text-center md:text-left mt-4 pt-[10px] w-full">
-                <h1 className="text-xl md:text-2xl font-bold mb-2 break-words px-4 md:px-0">{userData.name}</h1>
-                <p className="text-muted-foreground mb-4 text-xs md:text-sm break-all px-4 md:px-0">{userData.email}</p>
+                <h1 className="text-xl md:text-2xl font-bold mb-2 break-words px-4 md:px-0 text-white">{userData.name}</h1>
+                <p className="text-white/70 mb-4 text-xs md:text-sm break-all px-4 md:px-0">{userData.email}</p>
                 <div className="flex flex-wrap gap-2 justify-center md:justify-start px-4 md:px-0">
                   <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900 rounded-full">
                     <Star className="h-3 w-3 text-yellow-600 fill-yellow-600" />
@@ -125,83 +188,89 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
               </div>
 
               {/* Ranking Badge - Desktop Only */}
-              <div className="hidden md:flex flex-col items-center justify-center px-4 py-3 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900 dark:to-amber-900 rounded-lg border-2 border-yellow-200 dark:border-yellow-700 shadow-lg">
-                <TrendingUp className="h-5 w-5 mb-1 text-yellow-600" />
-                <p className="text-xs text-muted-foreground">Clasament</p>
-                <p className="text-xl font-bold text-yellow-600">#{userData.ranking}</p>
-                <p className="text-xs text-muted-foreground">din {userData.totalAgents}</p>
+              <div className="hidden md:flex flex-col items-center justify-center px-4 py-3 bg-white/10 backdrop-blur-sm rounded-lg border-2 border-white/20 shadow-lg">
+                <TrendingUp className="h-5 w-5 mb-1 text-white" />
+                <p className="text-xs text-white/70">Clasament</p>
+                <p className="text-xl font-bold text-white">#{userData.ranking}</p>
+                <p className="text-xs text-white/70">din {userData.totalAgents}</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Tranzacții */}
-          <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in slide-in-from-bottom-4 duration-700 delay-100">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                  <BarChart3 className="h-5 w-5 text-blue-600" />
+          <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] p-6 shadow-xl hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in slide-in-from-bottom-4 duration-700 delay-100">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-white" />
                 </div>
-                Tranzacții
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-blue-600">{userData.transactions}</p>
-              <p className="text-sm text-muted-foreground mt-2">Tranzacții finalizate</p>
-            </CardContent>
-          </Card>
+                <h3 className="text-lg font-semibold text-white">Tranzacții</h3>
+              </div>
+              <p className="text-4xl font-bold text-white mb-2">{userData.transactions}</p>
+              <p className="text-sm text-white/70">Tranzacții finalizate</p>
+            </div>
+          </div>
 
           {/* Comision Luna Curentă */}
-          <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in slide-in-from-bottom-4 duration-700 delay-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-green-600" />
+          <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] p-6 shadow-xl hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in slide-in-from-bottom-4 duration-700 delay-200">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-white" />
                 </div>
-                Comision Octombrie
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-green-600">{formatCurrency(userData.currentMonthCommission)} €</p>
-              <p className="text-sm text-muted-foreground mt-2">Luna curentă</p>
-            </CardContent>
-          </Card>
+                <h3 className="text-lg font-semibold text-white">Comision Octombrie</h3>
+              </div>
+              <p className="text-4xl font-bold text-white mb-2">{formatCurrency(userData.currentMonthCommission)} €</p>
+              <p className="text-sm text-white/70">Luna curentă</p>
+            </div>
+          </div>
 
           {/* Comision Total */}
-          <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in slide-in-from-bottom-4 duration-700 delay-300">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                  <Award className="h-5 w-5 text-purple-600" />
+          <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] p-6 shadow-xl hover:shadow-lg transition-all duration-300 hover:scale-105 animate-in slide-in-from-bottom-4 duration-700 delay-300">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                  <Award className="h-5 w-5 text-white" />
                 </div>
-                Comision Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-purple-600">{formatCurrency(userData.totalCommission)} €</p>
-              <p className="text-sm text-muted-foreground mt-2">Total acumulat</p>
-            </CardContent>
-          </Card>
+                <h3 className="text-lg font-semibold text-white">Comision Total</h3>
+              </div>
+              <p className="text-4xl font-bold text-white mb-2">{formatCurrency(userData.totalCommission)} €</p>
+              <p className="text-sm text-white/70">Total acumulat</p>
+            </div>
+          </div>
         </div>
 
         {/* Yearly Commission Chart */}
-        <Card className="mb-6 animate-in slide-in-from-bottom-4 duration-700 delay-400">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
+        <div className="mb-6 relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl animate-in slide-in-from-bottom-4 duration-700 delay-400">
+          {/* Background pattern */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+          
+          <div className="relative z-10 p-6">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-2">
+              <BarChart3 className="h-5 w-5 text-white" />
               Evoluție Comision 2025
-            </CardTitle>
-            <CardDescription>Comision generat pe fiecare lună (EUR)</CardDescription>
-          </CardHeader>
-          <CardContent>
+            </h3>
+            <p className="text-white/70 mb-6">Comision generat pe fiecare lună (EUR)</p>
+            
             {/* Mobile: Horizontal scrollable chart */}
             <div className="md:hidden">
               <div className="relative h-64 overflow-x-auto">
                 <div className="w-[600px] h-full pt-4">
                   {/* Y-axis labels */}
-                  <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-muted-foreground">
+                  <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-white/70">
                     <span>{formatCurrency(maxCommission)} €</span>
                     <span>{formatCurrency(maxCommission * 0.75)} €</span>
                     <span>{formatCurrency(maxCommission * 0.5)} €</span>
@@ -306,7 +375,7 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
                       {yearlyData.map((data, index) => (
                         <span
                           key={data.month}
-                          className={`text-xs font-medium ${index === 9 ? 'text-green-600 font-bold' : 'text-muted-foreground'}`}
+                          className={`text-xs font-medium ${index === 9 ? 'text-white font-bold' : 'text-white/70'}`}
                         >
                           {data.month.substring(0, 2)}
                         </span>
@@ -320,7 +389,7 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
             {/* Desktop: Original chart */}
             <div className="hidden md:block relative h-80 pt-4">
               {/* Y-axis labels */}
-              <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-muted-foreground">
+              <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-xs text-white/70">
                 <span>{formatCurrency(maxCommission)} €</span>
                 <span>{formatCurrency(maxCommission * 0.75)} €</span>
                 <span>{formatCurrency(maxCommission * 0.5)} €</span>
@@ -425,7 +494,7 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
                   {yearlyData.map((data, index) => (
                     <span
                       key={data.month}
-                      className={`text-xs font-medium ${index === 9 ? 'text-green-600 font-bold' : 'text-muted-foreground'}`}
+                      className={`text-xs font-medium ${index === 9 ? 'text-white font-bold' : 'text-white/70'}`}
                     >
                       {data.month}
                     </span>
@@ -433,23 +502,25 @@ export const ProfilePage = ({ onBack, agentData }: ProfilePageProps) => {
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Leaderboard */}
         <div className="animate-in slide-in-from-bottom-4 duration-700 delay-500">
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
+          <div className="mb-6 relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] shadow-xl">
+            {/* Background pattern */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+            
+            <div className="relative z-10 p-6">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-2">
+                <TrendingUp className="h-5 w-5 text-white" />
                 Clasament Agenți
-              </CardTitle>
-              <CardDescription>Top performeri din agenție</CardDescription>
-            </CardHeader>
-            <CardContent>
+              </h3>
+              <p className="text-white/70 mb-6">Top performeri din agenție</p>
+              
               <GamifiedLeaderboard />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 

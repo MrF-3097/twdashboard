@@ -131,8 +131,15 @@ export async function GET(request: NextRequest) {
     for (const method of methods) {
       try {
         console.log(`Trying REBS API: ${method.url}`)
+        // Filter out undefined headers
+        const cleanHeaders: Record<string, string> = {}
+        for (const [key, value] of Object.entries(method.headers)) {
+          if (value !== undefined) {
+            cleanHeaders[key] = value
+          }
+        }
         const response = await fetch(method.url, { 
-          headers: method.headers,
+          headers: cleanHeaders,
           cache: 'no-store'
         })
         

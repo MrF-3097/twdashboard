@@ -1,0 +1,132 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+
+interface AgentData {
+  id: number
+  name: string
+  email: string
+  phone?: string
+  photo?: string
+  position?: string
+  created_at?: string
+  // Additional computed fields
+  currentMonthCommission?: number
+  previousMonthCommission?: number
+  monthlyTarget?: number
+  ytdCommission?: number
+  annualTarget?: number
+  totalTransactions?: number
+  propertiesCount?: number
+}
+
+interface AuthState {
+  isLoggedIn: boolean
+  agentData: AgentData | null
+  isLoading: boolean
+}
+
+const STORAGE_KEY = 'towerimob_auth_data'
+const SESSION_TIMEOUT = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+
+export const useAuth = () => {
+  const [authState, setAuthState] = useState<AuthState>({
+    isLoggedIn: false,
+    agentData: null,
+    isLoading: true
+  })
+
+  // Load cached authentication data on mount
+  useEffect(() => {
+    const loadCachedAuth = () => {
+      try {
+        const cachedData = localStorage.getItem(STORAGE_KEY)
+        if (cachedData) {
+          const { agentData, timestamp } = JSON.parse(cachedData)
+          
+          // Check if session is still valid (not expired)
+          const now = Date.now()
+          if (now - timestamp < SESSION_TIMEOUT) {
+            setAuthState({
+              isLoggedIn: true,
+              agentData,
+              isLoading: false
+            })
+            return
+          } else {
+            // Session expired, clear cache
+            localStorage.removeItem(STORAGE_KEY)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading cached auth data:', error)
+        localStorage.removeItem(STORAGE_KEY)
+      }
+      
+      setAuthState(prev => ({ ...prev, isLoading: false }))
+    }
+
+    loadCachedAuth()
+  }, [])
+
+  const login = (agentData: AgentData) => {
+    const authData = {
+      agentData,
+      timestamp: Date.now()
+    }
+    
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(authData))
+      setAuthState({
+        isLoggedIn: true,
+        agentData,
+        isLoading: false
+      })
+    } catch (error) {
+      console.error('Error saving auth data to localStorage:', error)
+      // Still set the state even if localStorage fails
+      setAuthState({
+        isLoggedIn: true,
+        agentData,
+        isLoading: false
+      })
+    }
+  }
+
+  const logout = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch (error) {
+      console.error('Error clearing auth data from localStorage:', error)
+    }
+    
+    setAuthState({
+      isLoggedIn: false,
+      agentData: null,
+      isLoading: false
+    })
+  }
+
+  const refreshSession = () => {
+    if (authState.isLoggedIn && authState.agentData) {
+      const authData = {
+        agentData: authState.agentData,
+        timestamp: Date.now()
+      }
+      
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(authData))
+      } catch (error) {
+        console.error('Error refreshing session:', error)
+      }
+    }
+  }
+
+  return {
+    ...authState,
+    login,
+    logout,
+    refreshSession
+  }
+}
+

@@ -1,0 +1,18 @@
+[
+  {
+    "Agent": "Marco Roman",
+    "Valoare Tranzactie": 10000,
+    "Tip Tranzactie": "Inchiriere",
+    "Comision %": 5,
+    "Comision": 500,
+    "Timestamp": "2025-10-31T09:25:29.442Z"
+  },
+  {
+    "Agent": "Andrei Fârțonea",
+    "Valoare Tranzactie": 75000,
+    "Tip Tranzactie": "Vanzare",
+    "Comision %": 4,
+    "Comision": 3000,
+    "Timestamp": "2025-10-31T09:31:47.148Z"
+  }
+]
