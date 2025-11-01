@@ -43,7 +43,8 @@ public/Contracte*.zip
 
 # Local data storage
 data/transactions.json
-data/database.sqlite
-data/database.sqlite-journal
-data/database.sqlite-wal
+# Database files are included for deployment (not sensitive data)
+# data/database.sqlite
+# data/database.sqlite-journal
+# data/database.sqlite-wal
 drizzle/
