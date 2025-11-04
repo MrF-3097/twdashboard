@@ -1,6 +1,8 @@
 'use client'
 
+import React from 'react'
 import { TrendingUp, Euro, CheckCircle2, Building2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface MobileStatsBarProps {
   transactions?: number
@@ -8,6 +10,7 @@ interface MobileStatsBarProps {
   totalCommission?: number
   propertiesCount?: number
   totalValueSold?: number
+  onPropertiesClick?: () => void
 }
 
 export const MobileStatsBar = ({ 
@@ -15,8 +18,40 @@ export const MobileStatsBar = ({
   currentMonthCommission = 0, 
   totalCommission = 0,
   propertiesCount = 0,
-  totalValueSold = 0
+  totalValueSold = 0,
+  onPropertiesClick
 }: MobileStatsBarProps) => {
+  const router = useRouter()
+
+  React.useEffect(() => {
+    console.log('🔵 [MobileStatsBar] Component mounted', {
+      propertiesCount,
+      hasOnPropertiesClick: !!onPropertiesClick,
+      routerAvailable: !!router,
+    })
+  }, [propertiesCount, onPropertiesClick, router])
+
+  const handlePropertiesClick = (e?: React.MouseEvent) => {
+    console.log('🔵 [MobileStatsBar] Properties card clicked!', {
+      event: e,
+      hasOnPropertiesClick: !!onPropertiesClick,
+      router: router,
+      timestamp: new Date().toISOString(),
+    })
+    
+    if (onPropertiesClick) {
+      console.log('🔵 [MobileStatsBar] Using onPropertiesClick callback')
+      onPropertiesClick()
+    } else {
+      console.log('🔵 [MobileStatsBar] Using router.push to /properties')
+      try {
+        router.push('/properties')
+        console.log('🔵 [MobileStatsBar] router.push called successfully')
+      } catch (error) {
+        console.error('🔴 [MobileStatsBar] Error navigating to /properties:', error)
+      }
+    }
+  }
   const formatCurrency = (amount: number) => {
     if (amount >= 10000) {
       return `${Math.floor(amount / 1000)}k`
@@ -44,9 +79,41 @@ export const MobileStatsBar = ({
           </div>
         </div>
 
-        {/* Proprietăți - Blue/Purple accent */}
-        <div className="flex-1 relative overflow-hidden rounded-2xl bg-slate-800 border border-slate-700 p-4 shadow-lg">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-blue-600/20 opacity-50" />
+        {/* Proprietăți - Blue/Purple accent - Clickable */}
+        <div 
+          onClick={(e) => {
+            console.log('🟢 [MobileStatsBar] onClick event fired', {
+              target: e.target,
+              currentTarget: e.currentTarget,
+              bubbles: e.bubbles,
+              defaultPrevented: e.defaultPrevented,
+            })
+            e.preventDefault()
+            e.stopPropagation()
+            handlePropertiesClick(e)
+          }}
+          onMouseDown={(e) => {
+            console.log('🟢 [MobileStatsBar] onMouseDown event fired')
+          }}
+          onTouchStart={(e) => {
+            console.log('🟢 [MobileStatsBar] onTouchStart event fired', {
+              touches: e.touches.length,
+            })
+          }}
+          onKeyDown={(e) => {
+            console.log('🟢 [MobileStatsBar] onKeyDown event fired', { key: e.key })
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              handlePropertiesClick()
+            }
+          }}
+          tabIndex={0}
+          role="button"
+          aria-label="View active properties"
+          className="flex-1 relative overflow-hidden rounded-2xl bg-slate-800 border border-slate-700 p-4 shadow-lg cursor-pointer transform transition-all duration-200 hover:scale-105 active:scale-95 hover:border-purple-500/50 touch-manipulation"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-blue-600/20 opacity-50 pointer-events-none" />
           <div className="relative z-10 flex flex-col items-start gap-1">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 shadow-md">
               <Building2 className="h-5 w-5 text-white" />

@@ -64,6 +64,7 @@ export default function Dashboard() {
   const [mobileTab, setMobileTab] = useState<'home' | 'tools' | 'leaderboard' | 'profile'>('home')
   const [showProfile, setShowProfile] = useState(false)
   const [monthlyTarget, setMonthlyTarget] = useState(16000)
+  const [salesCount, setSalesCount] = useState(0)
   
   const { isLoggedIn, agentData, isLoading, login, logout } = useAuth()
 
@@ -99,6 +100,32 @@ export default function Dashboard() {
     }
     fetchTarget()
   }, [agentName])
+
+  // Fetch sales count (properties with availability=4 AND closed_transaction_type=2)
+  useEffect(() => {
+    const fetchSalesCount = async () => {
+      if (agentData?.id) {
+        try {
+          const response = await fetch(`/api/agents/${agentData.id}/sales-count`)
+          const result = await response.json()
+          if (result.success) {
+            setSalesCount(result.salesCount || 0)
+          } else {
+            console.error('Error fetching sales count:', result.error)
+            setSalesCount(0)
+          }
+        } catch (err) {
+          console.error('Error fetching sales count:', err)
+          setSalesCount(0)
+        }
+      }
+    }
+    fetchSalesCount()
+    
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchSalesCount, 60000)
+    return () => clearInterval(interval)
+  }, [agentData?.id])
   
   const monthCommission = Math.round((txMonth.data?.rows || [])
     .filter(t => t.Agent === agentName)
@@ -254,11 +281,15 @@ export default function Dashboard() {
               agentAvatar={agentData?.avatar}
             />
             <MobileStatsBar 
-              transactions={monthTransactions}
+              transactions={salesCount}
               currentMonthCommission={monthCommission}
               totalCommission={ytdCommission}
               propertiesCount={agentData?.propertiesCount || 0}
               totalValueSold={totalValueSold}
+              onPropertiesClick={() => {
+                console.log('🟡 [Dashboard] onPropertiesClick callback called from page.tsx')
+                router.push('/properties')
+              }}
             />
             <MonthlyKPICard 
               currentAmount={monthCommission || agentData?.currentMonthCommission || 0}

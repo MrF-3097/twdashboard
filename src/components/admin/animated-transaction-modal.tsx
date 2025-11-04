@@ -49,6 +49,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
     Comision: '',
     Timestamp: new Date().toISOString(),
   })
+  const [commissionType, setCommissionType] = useState<'percentage' | 'fixed'>('percentage')
 
   // Fetch all agents from REBS API
   useEffect(() => {
@@ -118,7 +119,11 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       case 3:
         return !!formData['Valoare Tranzactie'] && !!formData['Tip Tranzactie']
       case 4:
-        return !!formData['Comision %']
+        if (commissionType === 'percentage') {
+          return !!formData['Comision %']
+        } else {
+          return !!formData.Comision && Number(formData.Comision) > 0
+        }
       default:
         return true
     }
@@ -128,16 +133,29 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
     setFormData(prev => {
       const updated = { ...prev, [field]: value }
       
-      // Auto-calculate commission
-      if (field === 'Valoare Tranzactie' || field === 'Comision %') {
-        const valoare = parseFloat(String(updated['Valoare Tranzactie'] || 0))
-        const comisionPctRaw = parseFloat(String(updated['Comision %'] || 0))
-        
-        // Normalize commission %: if > 1, treat as percentage (3 = 0.03), else treat as decimal
-        const comisionPct = comisionPctRaw > 1 ? comisionPctRaw / 100 : comisionPctRaw
-        
-        if (valoare > 0 && comisionPct > 0) {
-          updated.Comision = valoare * comisionPct
+      // Auto-calculate commission based on commission type
+      if (commissionType === 'percentage') {
+        // Percentage mode: calculate commission from percentage
+        if (field === 'Valoare Tranzactie' || field === 'Comision %') {
+          const valoare = parseFloat(String(updated['Valoare Tranzactie'] || 0))
+          const comisionPctRaw = parseFloat(String(updated['Comision %'] || 0))
+          
+          // Normalize commission %: if > 1, treat as percentage (3 = 0.03), else treat as decimal
+          const comisionPct = comisionPctRaw > 1 ? comisionPctRaw / 100 : comisionPctRaw
+          
+          if (valoare > 0 && comisionPct > 0) {
+            updated.Comision = valoare * comisionPct
+          }
+        }
+      } else {
+        // Fixed value mode: calculate percentage from fixed commission
+        if (field === 'Valoare Tranzactie' || field === 'Comision') {
+          const valoare = parseFloat(String(updated['Valoare Tranzactie'] || 0))
+          const comision = parseFloat(String(updated.Comision || 0))
+          
+          if (valoare > 0 && comision > 0) {
+            updated['Comision %'] = (comision / valoare) * 100
+          }
         }
       }
       
@@ -385,39 +403,119 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="comision-pct" className="text-white/80 text-sm font-medium">Comision %</Label>
-                <Input
-                  id="comision-pct"
-                  type="number"
-                  step="0.01"
-                  value={formData['Comision %'] || ''}
-                  onChange={(e) => handleFieldChange('Comision %', parseFloat(e.target.value) || 0)}
-                  placeholder="Ex: 0.03 sau 3"
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
-                  autoFocus
-                />
-              </div>
-
-              {formData.Comision && formData.Comision > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30"
+              {/* Commission Type Toggle */}
+              <div className="flex gap-2 p-1 bg-slate-800 rounded-lg border border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCommissionType('percentage')
+                    // Clear fixed commission when switching to percentage
+                    if (formData.Comision && !formData['Comision %']) {
+                      setFormData(prev => ({ ...prev, Comision: '' }))
+                    }
+                  }}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                    commissionType === 'percentage'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/70 text-sm">Comision Calculat:</span>
-                    <span className="text-white font-bold text-lg">
-                      €{formData.Comision.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </motion.div>
-              )}
-
-              <div className="flex gap-2 text-xs text-slate-500 mt-2">
-                <Sparkles className="h-4 w-4" />
-                <span>Introdu 3 pentru 3% sau 0.03 pentru format zecimal</span>
+                  <Percent className="h-4 w-4 inline-block mr-2" />
+                  Procent
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCommissionType('fixed')
+                    // Clear percentage when switching to fixed
+                    if (formData['Comision %'] && !formData.Comision) {
+                      setFormData(prev => ({ ...prev, 'Comision %': '' }))
+                    }
+                  }}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                    commissionType === 'fixed'
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Euro className="h-4 w-4 inline-block mr-2" />
+                  Valoare Fixă
+                </button>
               </div>
+
+              {commissionType === 'percentage' ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="comision-pct" className="text-white/80 text-sm font-medium">Comision %</Label>
+                    <Input
+                      id="comision-pct"
+                      type="number"
+                      step="0.01"
+                      value={formData['Comision %'] || ''}
+                      onChange={(e) => handleFieldChange('Comision %', parseFloat(e.target.value) || 0)}
+                      placeholder="Ex: 0.03 sau 3"
+                      className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
+                      autoFocus
+                    />
+                  </div>
+
+                  {formData.Comision && formData.Comision > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/70 text-sm">Comision Calculat:</span>
+                        <span className="text-white font-bold text-lg">
+                          €{formData.Comision.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <div className="flex gap-2 text-xs text-slate-500 mt-2">
+                    <Sparkles className="h-4 w-4" />
+                    <span>Introdu 3 pentru 3% sau 0.03 pentru format zecimal</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="comision-fixed" className="text-white/80 text-sm font-medium">Comision Fix (€)</Label>
+                    <Input
+                      id="comision-fixed"
+                      type="number"
+                      step="0.01"
+                      value={formData.Comision || ''}
+                      onChange={(e) => handleFieldChange('Comision', parseFloat(e.target.value) || 0)}
+                      placeholder="Ex: 1500"
+                      className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
+                      autoFocus
+                    />
+                  </div>
+
+                  {formData['Comision %'] && formData['Comision %'] > 0 && formData['Valoare Tranzactie'] && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/70 text-sm">Procent Echivalent:</span>
+                        <span className="text-white font-bold text-lg">
+                          {Number(formData['Comision %']).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
+                        </span>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <div className="flex gap-2 text-xs text-slate-500 mt-2">
+                    <Sparkles className="h-4 w-4" />
+                    <span>Introdu valoarea fixă a comisionului în euro</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )
@@ -610,6 +708,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
         Comision: '',
         Timestamp: new Date().toISOString(),
       })
+      setCommissionType('percentage')
       setIsCollaborative(false)
       setCollaborators([])
       setCurrentStep(1)

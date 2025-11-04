@@ -1,88 +1,261 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
-import { CheckCircle2, Circle, Users, User, TrendingUp, Zap } from 'lucide-react'
+import { CheckCircle2, Circle, Users, User, Home, Building2, Award, Eye } from 'lucide-react'
+import { useAuth } from '@/hooks/use-auth'
 
 interface Quest {
   id: string
   title: string
   subtitle: string
   completed: boolean
+  currentProgress: number
+  targetProgress: number
   icon: React.ReactNode
   color: string
 }
 
-export const QuestSystem = () => {
-  const [individualQuests, setIndividualQuests] = useState<Quest[]>([
-    {
-      id: 'colaborare',
-      title: 'Colaborare',
-      subtitle: 'Aduceți 1 colaborare',
-      completed: true,
-      icon: '🤝',
-      color: 'from-blue-400 to-blue-600',
-    },
-    {
-      id: 'vanzare',
-      title: 'Vânzare',
-      subtitle: 'Încheiați 1 vânzare',
-      completed: true,
-      icon: '🏠',
-      color: 'from-green-400 to-green-600',
-    },
-    {
-      id: 'exclusivitate',
-      title: 'Exclusivitate',
-      subtitle: 'Obțineți 1 exclusivitate',
-      completed: false,
-      icon: '⭐',
-      color: 'from-yellow-400 to-yellow-600',
-    },
-    {
-      id: 'vizionare',
-      title: 'Vizionări',
-      subtitle: 'Programați 5 vizionări',
-      completed: false,
-      icon: '👁️',
-      color: 'from-purple-400 to-purple-600',
-    },
-  ])
+// Quest configuration mapping
+const QUEST_CONFIG: Record<string, { title: string; icon: React.ReactNode; color: string; defaultTarget: number }> = {
+  'proprietati-preluate': {
+    title: 'Proprietăți Preluate',
+    icon: <Home className="h-6 w-6" />,
+    color: 'from-blue-400 to-blue-600',
+    defaultTarget: 10,
+  },
+  'vanzare': {
+    title: 'Vânzare',
+    icon: <Building2 className="h-6 w-6" />,
+    color: 'from-green-400 to-green-600',
+    defaultTarget: 1,
+  },
+  'chirie': {
+    title: 'Închiriere',
+    icon: <Building2 className="h-6 w-6" />,
+    color: 'from-purple-400 to-purple-600',
+    defaultTarget: 1,
+  },
+  'colaborare': {
+    title: 'Colaborare',
+    icon: <Users className="h-6 w-6" />,
+    color: 'from-blue-400 to-blue-600',
+    defaultTarget: 1,
+  },
+  'exclusivitate': {
+    title: 'Exclusivitate',
+    icon: <Award className="h-6 w-6" />,
+    color: 'from-yellow-400 to-yellow-600',
+    defaultTarget: 1,
+  },
+  'vizionare': {
+    title: 'Vizionări',
+    icon: <Eye className="h-6 w-6" />,
+    color: 'from-purple-400 to-purple-600',
+    defaultTarget: 5,
+  },
+}
 
-  const [groupQuests, setGroupQuests] = useState<Quest[]>([
-    {
-      id: 'group-vanzari',
-      title: 'Vânzări Echipă',
-      subtitle: '10 vânzări în echipă',
-      completed: true,
-      icon: '🏆',
-      color: 'from-orange-400 to-orange-600',
-    },
-    {
-      id: 'group-colaborari',
-      title: 'Colaborări Echipă',
-      subtitle: '20 colaborări în echipă',
-      completed: false,
-      icon: '🤜🤛',
-      color: 'from-pink-400 to-pink-600',
-    },
-    {
-      id: 'group-exclusivitati',
-      title: 'Exclusivități Echipă',
-      subtitle: '15 exclusivități în echipă',
-      completed: false,
-      icon: '✨',
-      color: 'from-teal-400 to-teal-600',
-    },
-    {
-      id: 'group-target',
-      title: 'Target Lunar',
-      subtitle: '€100k comision echipă',
-      completed: false,
-      icon: '💰',
-      color: 'from-indigo-400 to-indigo-600',
-    },
-  ])
+// Define which quests are individual vs group (same as admin panel)
+const INDIVIDUAL_QUESTS = ['proprietati-preluate', 'vanzare', 'chirie', 'vizionare']
+const GROUP_QUESTS = ['colaborare', 'exclusivitate']
+
+export const QuestSystem = () => {
+  const { agentData } = useAuth()
+  const [individualQuests, setIndividualQuests] = useState<Quest[]>([])
+  const [groupQuests, setGroupQuests] = useState<Quest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch quest progress from API and merge with all possible quests
+  useEffect(() => {
+    const fetchQuestProgress = async () => {
+      if (!agentData?.id) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        setError(null)
+
+        const response = await fetch(`/api/quests/progress?agentId=${agentData.id}`, {
+          cache: 'no-store', // Always fetch fresh data to see admin changes
+        })
+        const result = await response.json()
+
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to fetch quest progress')
+        }
+
+        // Find the current agent's quest data
+        // Normalize names for comparison (case-insensitive, remove diacritics)
+        const normalizeName = (name: string) => {
+          return name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+            .trim()
+        }
+
+        const agentQuestData = result.data?.find((agent: any) => {
+          // Match by ID first (most reliable) - handle both number and string
+          const agentIdMatch = Number(agent.agentId) === Number(agentData.id)
+          if (agentIdMatch) {
+            console.log('✅ Matched by ID:', { agentId: agent.agentId, agentDataId: agentData.id })
+            return true
+          }
+          // Fallback to name matching (normalized)
+          if (agent.agentName && agentData.name) {
+            const nameMatch = normalizeName(agent.agentName) === normalizeName(agentData.name)
+            if (nameMatch) {
+              console.log('✅ Matched by name:', { 
+                dbName: agent.agentName, 
+                agentDataName: agentData.name,
+                normalizedDb: normalizeName(agent.agentName),
+                normalizedData: normalizeName(agentData.name),
+              })
+              return true
+            }
+          }
+          return false
+        })
+
+        // Debug logging
+        console.log('🔍 Quest System - Agent Matching:', {
+          agentDataId: agentData.id,
+          agentDataName: agentData.name,
+          availableAgents: result.data?.map((a: any) => ({
+            id: a.agentId,
+            name: a.agentName,
+            individualCount: a.individual?.length || 0,
+            groupCount: a.group?.length || 0,
+          })),
+          matchedAgent: agentQuestData ? {
+            id: agentQuestData.agentId,
+            name: agentQuestData.agentName,
+            individualCount: agentQuestData.individual?.length || 0,
+            groupCount: agentQuestData.group?.length || 0,
+          } : null,
+        })
+
+        // Create maps of existing quests for quick lookup
+        const existingIndividualQuests = new Map<string, any>()
+        const existingGroupQuests = new Map<string, any>()
+
+        if (agentQuestData) {
+          agentQuestData.individual?.forEach((quest: any) => {
+            existingIndividualQuests.set(quest.questId, quest)
+          })
+          agentQuestData.group?.forEach((quest: any) => {
+            existingGroupQuests.set(quest.questId, quest)
+          })
+        }
+
+        // Merge existing quests with all possible individual quests
+        const individual = INDIVIDUAL_QUESTS.map(questId => {
+          const existing = existingIndividualQuests.get(questId)
+          const config = QUEST_CONFIG[questId] || {
+            title: questId,
+            icon: <Award className="h-6 w-6" />,
+            color: 'from-gray-400 to-gray-600',
+            defaultTarget: 1,
+          }
+
+          const questData = existing || {
+            questId,
+            currentProgress: 0,
+            targetProgress: config.defaultTarget,
+            completed: false,
+          }
+
+          return {
+            id: questId,
+            title: config.title,
+            subtitle: `${questData.currentProgress}/${questData.targetProgress} ${config.title.toLowerCase()}`,
+            completed: questData.completed,
+            currentProgress: questData.currentProgress,
+            targetProgress: questData.targetProgress,
+            icon: config.icon,
+            color: config.color,
+          }
+        })
+
+        // Merge existing quests with all possible group quests
+        const group = GROUP_QUESTS.map(questId => {
+          const existing = existingGroupQuests.get(questId)
+          const config = QUEST_CONFIG[questId] || {
+            title: questId,
+            icon: <Award className="h-6 w-6" />,
+            color: 'from-gray-400 to-gray-600',
+            defaultTarget: 1,
+          }
+
+          const questData = existing || {
+            questId,
+            currentProgress: 0,
+            targetProgress: config.defaultTarget,
+            completed: false,
+          }
+
+          return {
+            id: questId,
+            title: config.title,
+            subtitle: `${questData.currentProgress}/${questData.targetProgress} ${config.title.toLowerCase()}`,
+            completed: questData.completed,
+            currentProgress: questData.currentProgress,
+            targetProgress: questData.targetProgress,
+            icon: config.icon,
+            color: config.color,
+          }
+        })
+
+        setIndividualQuests(individual)
+        setGroupQuests(group)
+      } catch (err) {
+        console.error('Error fetching quest progress:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load quests')
+        
+        // Even on error, show all quests with default values
+        const individual = INDIVIDUAL_QUESTS.map(questId => {
+          const config = QUEST_CONFIG[questId]
+          return {
+            id: questId,
+            title: config.title,
+            subtitle: `0/${config.defaultTarget} ${config.title.toLowerCase()}`,
+            completed: false,
+            currentProgress: 0,
+            targetProgress: config.defaultTarget,
+            icon: config.icon,
+            color: config.color,
+          }
+        })
+        const group = GROUP_QUESTS.map(questId => {
+          const config = QUEST_CONFIG[questId]
+          return {
+            id: questId,
+            title: config.title,
+            subtitle: `0/${config.defaultTarget} ${config.title.toLowerCase()}`,
+            completed: false,
+            currentProgress: 0,
+            targetProgress: config.defaultTarget,
+            icon: config.icon,
+            color: config.color,
+          }
+        })
+        setIndividualQuests(individual)
+        setGroupQuests(group)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchQuestProgress()
+
+    // Refresh every 10 seconds (more frequent to catch admin changes quickly)
+    const interval = setInterval(fetchQuestProgress, 10000)
+    return () => clearInterval(interval)
+  }, [agentData?.id, agentData?.name])
 
   const calculateProgress = (quests: Quest[]) => {
     return quests.filter(q => q.completed).length
@@ -178,15 +351,46 @@ export const QuestSystem = () => {
   }
 
   const toggleQuest = (questId: string, isGroup: boolean) => {
-    if (isGroup) {
-      setGroupQuests(prev =>
-        prev.map(q => q.id === questId ? { ...q, completed: !q.completed } : q)
-      )
-    } else {
-      setIndividualQuests(prev =>
-        prev.map(q => q.id === questId ? { ...q, completed: !q.completed } : q)
-      )
-    }
+    // Quest progress is managed by the backend, so this is just for visual feedback
+    console.log(`Quest ${questId} toggled (${isGroup ? 'group' : 'individual'})`)
+  }
+
+  if (!agentData) {
+    return (
+      <div className="w-full max-w-md mx-auto space-y-4 px-3 py-4">
+        <Card className="p-4 bg-slate-800 border-2 border-slate-700">
+          <div className="text-center text-white/70 py-4">
+            <p className="font-bold text-white">Conectează-te pentru a vedea quest-urile</p>
+            <p className="text-sm mt-2">Trebuie să te conectezi pentru a vedea obiectivele tale</p>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-md mx-auto space-y-4 px-3 py-4">
+        <Card className="p-4 bg-slate-800 border-2 border-slate-700">
+          <div className="text-center text-white/70 py-4">
+            <p className="text-sm animate-pulse">Se încarcă quest-urile...</p>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="w-full max-w-md mx-auto space-y-4 px-3 py-4">
+        <Card className="p-4 bg-slate-800 border-2 border-slate-700">
+          <div className="text-center text-red-400 py-4">
+            <p className="font-bold text-red-300">Eroare la încărcarea quest-urilor</p>
+            <p className="text-sm text-red-400/80 mt-2">{error}</p>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -220,10 +424,20 @@ export const QuestSystem = () => {
                   : 'bg-slate-700/50 hover:bg-slate-700/80'
                 }
               `}>
-                <div className="text-3xl">{quest.icon}</div>
+                <div className="text-white/80 flex-shrink-0">{quest.icon}</div>
                 <div className="flex-1 text-left">
                   <p className="font-bold text-white text-sm">{quest.title}</p>
                   <p className="text-xs text-white/70">{quest.subtitle}</p>
+                  {quest.currentProgress > 0 && (
+                    <div className="mt-1 w-full bg-slate-600 rounded-full h-1.5">
+                      <div
+                        className="bg-gradient-to-r from-blue-400 to-purple-600 h-1.5 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, (quest.currentProgress / quest.targetProgress) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
                 {quest.completed ? (
                   <CheckCircle2 className="h-6 w-6 text-green-400" />
@@ -265,10 +479,20 @@ export const QuestSystem = () => {
                   : 'bg-slate-700/50 hover:bg-slate-700/80'
                 }
               `}>
-                <div className="text-3xl">{quest.icon}</div>
+                <div className="text-white/80 flex-shrink-0">{quest.icon}</div>
                 <div className="flex-1 text-left">
                   <p className="font-bold text-white text-sm">{quest.title}</p>
                   <p className="text-xs text-white/70">{quest.subtitle}</p>
+                  {quest.currentProgress > 0 && (
+                    <div className="mt-1 w-full bg-slate-600 rounded-full h-1.5">
+                      <div
+                        className="bg-gradient-to-r from-orange-400 to-pink-600 h-1.5 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, (quest.currentProgress / quest.targetProgress) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
                 {quest.completed ? (
                   <CheckCircle2 className="h-6 w-6 text-orange-400" />

@@ -1,5 +1,152 @@
 # Agent Dashboard Minimal
 
+## Francesco 19.01.2025 : Admin Quest Management Interface
+
+Summary
+- **Admin quest management**: Added interface in admin dashboard to manually tick/untick quests for any agent.
+- **Agent selection**: Dropdown selector to choose any agent from the system.
+- **Quest display**: Shows both individual and group quests with current progress and completion status.
+- **Manual override**: Admins can mark quests as completed or incomplete with a single click, updating the database immediately.
+- **Real-time updates**: Changes are reflected immediately in the UI and saved to the database.
+
+Why These Changes
+- Need for manual quest management when automatic tracking may not capture all achievements.
+- Admins should be able to override quest completion status for special cases or corrections.
+- Manual management complements automatic tracking system.
+
+Technical Implementation
+- **API Endpoint** (`src/app/api/quests/update/route.ts`):
+  - `PUT /api/quests/update`: Updates quest completion status for a specific agent and quest.
+  - Accepts: `agentId`, `questId`, `questType` ('individual' | 'group'), `completed` (boolean), optional `currentProgress`.
+  - Creates new quest progress record if it doesn't exist.
+  - Updates existing record if found.
+- **Admin Component** (`src/components/admin/quest-manager.tsx`):
+  - Fetches agents from `/api/agents` endpoint.
+  - Displays agent selector dropdown.
+  - Fetches quest progress when agent is selected.
+  - Renders individual and group quests separately with icons and progress bars.
+  - Handles quest toggle (complete/incomplete) with loading states.
+  - Updates local state optimistically for immediate UI feedback.
+- **Integration** (`src/app/admin/page.tsx`):
+  - Added QuestManager component to admin dashboard.
+  - Positioned below agent management and reset controls sections.
+  - Full-width layout for better visibility of quest lists.
+
+Usage
+1. Navigate to `/admin` page.
+2. Scroll to "Gestionare Quest-uri" section.
+3. Select an agent from the dropdown.
+4. View their individual and group quests.
+5. Click the circle/checkmark icon next to any quest to toggle completion status.
+6. Changes are saved immediately to the database.
+
+## Francesco 18.01.2025 : Dynamic Quest System with REBS API Integration
+
+Summary
+- **Dynamic quest tracking**: Quest system now automatically tracks and updates progress based on real data from CRM REBS API.
+- **Property count tracking**: When agent properties are fetched, the system compares current count with previous count and increments quest progress for "Proprietăți Preluate" quest (10+ properties target).
+- **Sales/Rentals tracking**: System fetches properties with "Tranzacționată de noi" status (availability=4) from REBS API, detects if they're sales (closed_transaction_type=2) or rentals (closed_transaction_type=1), and updates quest progress accordingly.
+- **Database schema**: Added three new tables for quest progress tracking: `agent_property_counts`, `agent_transaction_counts`, and `quest_progress`.
+- **Real-time UI updates**: Quest system component fetches progress from API every 30 seconds and displays dynamic progress bars with current/target counters.
+
+Why These Changes
+- Quest system was static and required manual updates.
+- Need to automatically track agent achievements based on CRM data.
+- Properties fetched from REBS API should automatically update quest progress when count increases.
+- Sales and rentals should be detected automatically from transaction status in CRM.
+
+Technical Implementation
+- **Database Schema** (`src/db/schema.ts`):
+  - `agent_property_counts`: Stores previous and current property counts per agent, tracks last fetch timestamp.
+  - `agent_transaction_counts`: Stores previous and current sales/rentals counts per agent, tracks last fetch timestamp.
+  - `quest_progress`: Stores quest progress per agent with current progress, target progress, and completion status.
+- **API Endpoints**:
+  - `POST /api/quests/track-properties`: Fetches all active properties from REBS API, groups by agent, compares counts, and updates quest progress for "proprietati-preluate" quest.
+  - `POST /api/quests/track-transactions`: Fetches properties with availability=4 (Tranzacționată de noi), detects sale vs rental based on closed_transaction_type, and updates quest progress for "vanzare" and "chirie" quests.
+  - `GET /api/quests/progress`: Fetches quest progress for agents (supports filtering by agentId, agentName, questType).
+  - `POST /api/quests/sync`: Convenience endpoint that triggers both property and transaction tracking in parallel.
+- **Quest UI Component** (`src/components/modules/quest-system.tsx`):
+  - Fetches quest progress from API using current agent's ID.
+  - Displays dynamic progress bars showing current/target progress.
+  - Auto-refreshes every 30 seconds.
+  - Shows loading and error states.
+  - Maps quest IDs to user-friendly titles, icons, and colors.
+
+API Integration Details
+- **REBS API Property Fields Used**:
+  - `availability`: 1 = Activă (active), 4 = Tranzacționată de noi (transacted by us)
+  - `closed_transaction_type`: 2 = Vânzare (Sale), 1 = Închiriere (Rental)
+  - `agent.id`: Agent ID for grouping properties
+  - `agent.first_name` / `agent.last_name`: Agent name for display
+- **Quest Logic**:
+  - Property tracking: When new properties detected (currentCount > previousCount), increment quest progress by the difference.
+  - Transaction tracking: When new sales/rentals detected, increment respective quest progress.
+  - Quest completion: Automatically marked as completed when currentProgress >= targetProgress.
+
+Database Tables Structure
+```sql
+-- Tracks property counts per agent
+agent_property_counts:
+  - agent_id (integer)
+  - agent_name (text)
+  - previous_count (integer)
+  - current_count (integer)
+  - last_fetch_at (timestamp)
+
+-- Tracks sales/rentals counts per agent
+agent_transaction_counts:
+  - agent_id (integer)
+  - agent_name (text)
+  - previous_sales_count (integer)
+  - current_sales_count (integer)
+  - previous_rentals_count (integer)
+  - current_rentals_count (integer)
+  - last_fetch_at (timestamp)
+
+-- Tracks quest progress per agent
+quest_progress:
+  - agent_id (integer)
+  - agent_name (text)
+  - quest_id (text) -- e.g., 'proprietati-preluate', 'vanzare', 'chirie'
+  - quest_type (text) -- 'individual' | 'group'
+  - current_progress (integer)
+  - target_progress (integer)
+  - completed (boolean)
+  - last_updated_at (timestamp)
+```
+
+Usage
+- **Initial Setup**: 
+  - Option 1: Call `POST /api/quests/init` once to initialize database tables and run initial sync.
+  - Option 2: Call `GET /api/db-init` to create tables, then `POST /api/quests/sync` to populate quest data.
+- **Periodic Sync**: Set up a cron job or scheduled task to call `/api/quests/sync` periodically (recommended: every hour).
+  - Bash script: `./scripts/sync-quests.sh [BASE_URL]` (requires curl)
+  - Node.js script: `node scripts/sync-quests.js [BASE_URL]` (requires Node.js 18+)
+  - Cron example: `0 * * * * /path/to/scripts/sync-quests.sh https://your-domain.com`
+- **Manual Sync**: Call `POST /api/quests/sync` manually to trigger sync anytime.
+- **Quest Display**: Quest system component automatically fetches and displays progress for logged-in agent.
+
+Quest Types Supported
+- **proprietati-preluate**: Track properties fetched (target: 10)
+- **vanzare**: Track sales completed (target: 1)
+- **chirie**: Track rentals completed (target: 1)
+- Additional quests can be added by inserting records into `quest_progress` table.
+
+UI Changes
+- Quest cards now show dynamic progress bars with current/target counts.
+- Progress bars use gradient colors (blue-purple for individual, orange-pink for group).
+- Icons are mapped to quest types (Home for properties, Building2 for sales/rentals).
+- Subtitle shows "X/Y quest_name" format for clarity.
+- Loading states and error handling for API calls.
+
+Result
+- Quest system automatically tracks real achievements from CRM REBS API.
+- Agents see their progress update dynamically as they fetch properties and complete transactions.
+- No manual quest updates required.
+- Progress persists in database and survives app restarts.
+
+---
+
 ## Francesco 17.01.2025 : Admin Dashboard Page Implementation & Mobile Optimization
 
 Summary

@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header'
 import { AgentManager } from '@/components/admin/agent-manager'
 import { AnimatedTransactionModal } from '@/components/admin/animated-transaction-modal'
 import { ResetControls } from '@/components/admin/reset-controls'
+import { QuestManager } from '@/components/admin/quest-manager'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowLeft, Plus, Settings, Shield } from 'lucide-react'
@@ -16,6 +17,7 @@ import { ArrowLeft, Plus, Settings, Shield } from 'lucide-react'
  * Provides administrative controls for managing:
  * - Agents (view and add new agents)
  * - Transactions (add new transactions via multi-step modal)
+ * - Quest management (manually tick quests for agents)
  * - System reset (dangerous operations to reset all data)
  * 
  * @component
@@ -144,6 +146,11 @@ export default function AdminDashboard() {
           <div>
             <ResetControls />
           </div>
+        </div>
+
+        {/* Quest Management - Full width */}
+        <div className="mt-4 md:mt-6">
+          <QuestManager />
         </div>
 
         {/* Info Card - Mobile Optimized */}
