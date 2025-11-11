@@ -71,22 +71,24 @@ export const PwaInstallButton = () => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
-    // If no prompt event fires but app is not installed, show button anyway (for manual install)
-    // This handles cases where user dismissed before but wants to install later
+    // Always show button on Android if app is not installed (for manual install)
+    // This ensures users can always install even if they dismissed the prompt
     const checkInstallability = () => {
       // Check if it's Android Chrome/Edge (supports PWA install)
       const currentUserAgent = window.navigator.userAgent.toLowerCase()
       const isAndroid = /android/i.test(currentUserAgent)
       const isChrome = /chrome/i.test(currentUserAgent) && !/edg/i.test(currentUserAgent)
       const isEdge = /edg/i.test(currentUserAgent)
+      const isSamsung = /samsungbrowser/i.test(currentUserAgent)
       
-      if ((isAndroid && (isChrome || isEdge)) && !isStandalone) {
-        // Show button even if prompt was dismissed - user can still manually install
+      if (isAndroid && (isChrome || isEdge || isSamsung) && !isStandalone) {
+        // Always show button on Android - force manual install option
         setIsVisible(true)
       }
     }
 
-    // Check after a short delay to see if prompt event fires
+    // Check immediately and after a delay
+    checkInstallability()
     const timeoutId = setTimeout(() => {
       checkInstallability()
     }, 1000)
@@ -178,7 +180,7 @@ export const PwaInstallButton = () => {
     <Button
       onClick={handleInstallClick}
       size="sm"
-      className="fixed top-20 right-4 z-50 shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-all duration-300 hover:scale-105"
+      className="fixed top-20 right-4 z-50 shadow-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold transition-all duration-300 hover:scale-105 border-2 border-white/20"
       aria-label="Download App"
     >
       <Download className="h-4 w-4 mr-2" />

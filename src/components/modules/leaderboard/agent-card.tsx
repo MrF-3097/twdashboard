@@ -16,11 +16,11 @@ interface AgentCardProps {
 const getRankIcon = (rank: number) => {
   switch (rank) {
     case 1:
-      return <Trophy className="h-6 w-6 text-[#FFD700]" />
+      return <Trophy className="h-6 w-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
     case 2:
-      return <Award className="h-6 w-6 text-[#C0C0C0]" />
+      return <Award className="h-6 w-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
     case 3:
-      return <Award className="h-6 w-6 text-[#CD7F32]" />
+      return <Award className="h-6 w-6 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
     default:
       return <span className="text-2xl font-bold text-white/70">#{rank}</span>
   }
@@ -29,11 +29,14 @@ const getRankIcon = (rank: number) => {
 const getRankBackground = (rank: number) => {
   switch (rank) {
     case 1:
-      return 'bg-transparent border-yellow-500/30'
+      // Gold gradient background
+      return 'bg-gradient-to-br from-[#FFD700] via-[#FFA500] to-[#FF8C00] border-[#FFD700]/80'
     case 2:
-      return 'bg-transparent border-gray-400/30'
+      // Silver gradient background
+      return 'bg-gradient-to-br from-[#E8E8E8] via-[#C0C0C0] to-[#A8A8A8] border-[#C0C0C0]/80'
     case 3:
-      return 'bg-transparent border-orange-700/30'
+      // Bronze gradient background
+      return 'bg-gradient-to-br from-[#CD7F32] via-[#B87333] to-[#8B4513] border-[#CD7F32]/80'
     default:
       return 'bg-transparent border-white/20'
   }
@@ -60,11 +63,41 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
           rank
         )} hover:border-white/30 rounded-2xl border ${isCurrentUser ? 'ring-2 ring-yellow-400/50 ring-offset-2 ring-offset-transparent' : ''}`}
       >
-        {/* Background pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.1),transparent_50%)]" />
+        {/* Metal background for top 3 */}
+        {isTopThree && (
+          <>
+            {/* Base metal gradient */}
+            <div className="absolute inset-0 opacity-95" />
+            
+            {/* White shine/highlight effect for metallic look */}
+            <div 
+              className="absolute inset-0 opacity-60"
+              style={{
+                background: rank === 1 
+                  ? 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 30%, transparent 60%, rgba(255,255,255,0.2) 100%)'
+                  : rank === 2
+                  ? 'linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.2) 30%, transparent 60%, rgba(255,255,255,0.3) 100%)'
+                  : 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 30%, transparent 60%, rgba(255,255,255,0.2) 100%)'
+              }}
+            />
+            
+            {/* Additional shine overlay for depth */}
+            <div 
+              className="absolute top-0 left-0 right-0 h-1/3 opacity-40"
+              style={{
+                background: 'linear-gradient(to bottom, rgba(255,255,255,0.6), transparent)'
+              }}
+            />
+          </>
+        )}
         
-        {/* Glow effect for current user */}
-        {isCurrentUser && (
+        {/* Background pattern for non-top-3 */}
+        {!isTopThree && (
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.1),transparent_50%)]" />
+        )}
+        
+        {/* Glow effect for current user (only if not in top 3) */}
+        {isCurrentUser && !isTopThree && (
           <motion.div
             className="absolute inset-0 opacity-40 z-10"
             animate={{
@@ -85,7 +118,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
         {rankChange && rankChange !== 'same' && (
           <motion.div
             className={`absolute top-2 right-2 z-20 ${
-              rankChange === 'up' ? 'text-green-400' : 'text-red-400'
+              rankChange === 'up' ? (isTopThree ? 'text-green-600' : 'text-green-400') : (isTopThree ? 'text-red-600' : 'text-red-400')
             }`}
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
@@ -97,21 +130,6 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
               <TrendingDown className="h-5 w-5" />
             )}
           </motion.div>
-        )}
-
-        {/* Glow effect for top positions */}
-        {isTopThree && !isCurrentUser && (
-          <motion.div
-            className="absolute inset-0 opacity-30 z-10"
-            animate={{
-              background: [
-                'radial-gradient(circle at 0% 0%, rgba(255,215,0,0.3) 0%, transparent 50%)',
-                'radial-gradient(circle at 100% 100%, rgba(255,215,0,0.3) 0%, transparent 50%)',
-                'radial-gradient(circle at 0% 0%, rgba(255,215,0,0.3) 0%, transparent 50%)',
-              ],
-            }}
-            transition={{ duration: 3, repeat: Infinity }}
-          />
         )}
 
         <div className="relative p-4 md:p-6 z-20">
@@ -126,7 +144,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
               <div className="relative">
                 <div
                   className={`w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden border-2 ${
-                    isTopThree ? 'border-[#FFD700]/50' : 'border-white/20'
+                    isTopThree ? 'border-white shadow-lg shadow-white/50' : 'border-white/20'
                   }`}
                 >
                   {agent.avatar || agent.profile_picture ? (
@@ -143,7 +161,10 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
                 </div>
                 {/* Level badge */}
                 {agent.level && (
-                  <div className="absolute -bottom-1 -right-1 bg-[#FFD700] text-[#203A53] rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-xs font-bold border-2 border-white/20">
+                  <div className={`absolute -bottom-1 -right-1 rounded-full w-5 h-5 md:w-6 md:h-6 flex items-center justify-center text-xs font-bold border-2 ${
+                    isTopThree ? 'bg-white text-slate-900 border-white shadow-lg shadow-white/50' :
+                    'bg-[#FFD700] text-[#203A53] border-white/20'
+                  }`}>
                     {agent.level}
                   </div>
                 )}
@@ -152,12 +173,18 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
 
             {/* Agent Info */}
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-base md:text-lg truncate text-white">
+              <h3 className={`font-bold text-base md:text-lg truncate ${
+                isTopThree ? 'text-slate-900 drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]' : 'text-white'
+              }`}>
                 <span className="md:hidden">{agent.name?.charAt(0) || 'A'}</span>
                 <span className="hidden md:inline">{agent.name}</span>
               </h3>
-              <div className="flex items-center gap-2 text-xs md:text-sm text-white/70">
-                <Star className="h-3 w-3 md:h-4 md:w-4 text-[#FFD700]" />
+              <div className={`flex items-center gap-2 text-xs md:text-sm ${
+                isTopThree ? 'text-slate-800' : 'text-white/70'
+              }`}>
+                <Star className={`h-3 w-3 md:h-4 md:w-4 ${
+                  isTopThree ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]' : 'text-[#FFD700]'
+                }`} />
                 <span>L{agent.level || 1}</span>
               </div>
             </div>
@@ -165,14 +192,22 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
             {/* Stats */}
             <div className="flex-shrink-0 text-right space-y-1">
               <div className="hidden md:flex items-center gap-1 md:gap-2 justify-end">
-                <Zap className="h-3 w-3 md:h-4 md:w-4 text-[#FFD700]" />
-                <span className="text-xs md:text-sm font-medium text-white/80">{agent.xp || 0} XP</span>
+                <Zap className={`h-3 w-3 md:h-4 md:w-4 ${
+                  isTopThree ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]' : 'text-[#FFD700]'
+                }`} />
+                <span className={`text-xs md:text-sm font-medium ${
+                  isTopThree ? 'text-slate-800' : 'text-white/80'
+                }`}>{agent.xp || 0} XP</span>
               </div>
-              <div className="text-sm md:text-lg font-bold text-white">
+              <div className={`text-sm md:text-lg font-bold ${
+                isTopThree ? 'text-slate-900 drop-shadow-[0_1px_2px_rgba(255,255,255,0.8)]' : 'text-white'
+              }`}>
                 <span className="md:hidden">€{agent.xp?.toLocaleString('ro-RO') || '0'}</span>
                 <span className="hidden md:inline">€{agent.xp?.toLocaleString('ro-RO') || '0'} comision</span>
               </div>
-              <div className="text-xs md:text-sm text-white/70">
+              <div className={`text-xs md:text-sm ${
+                isTopThree ? 'text-slate-800' : 'text-white/70'
+              }`}>
                 <span className="md:hidden">{agent.closed_transactions || 0}</span>
                 <span className="hidden md:inline">{agent.closed_transactions || 0} tranzacții</span>
               </div>
@@ -182,13 +217,22 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
           {/* XP Progress Bar */}
           {agent.xp !== undefined && (
             <div className="mt-4">
-              <div className="flex justify-between text-xs text-white/70 mb-1">
+              <div className={`flex justify-between text-xs mb-1 ${
+                isTopThree ? 'text-slate-800' : 'text-white/70'
+              }`}>
                 <span>Progress to Level {(agent.level || 1) + 1}</span>
                 <span>{((agent.xp % 1000) / 1000) * 100}%</span>
               </div>
-              <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+              <div className={`h-2 rounded-full overflow-hidden ${
+                isTopThree ? 'bg-slate-900/30' : 'bg-white/20'
+              }`}>
                 <motion.div
-                  className="h-full bg-gradient-to-r from-[#203A53] to-[#FFD700]"
+                  className={`h-full ${
+                    rank === 1 ? 'bg-gradient-to-r from-slate-900 to-[#FFD700]' :
+                    rank === 2 ? 'bg-gradient-to-r from-slate-900 to-[#C0C0C0]' :
+                    rank === 3 ? 'bg-gradient-to-r from-slate-900 to-[#CD7F32]' :
+                    'bg-gradient-to-r from-[#203A53] to-[#FFD700]'
+                  }`}
                   initial={{ width: 0 }}
                   animate={{ width: `${((agent.xp % 1000) / 1000) * 100}%` }}
                   transition={{ duration: 1, delay: index * 0.1 }}
@@ -203,7 +247,12 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
               {agent.badges.slice(0, 3).map((badge, i) => (
                 <span
                   key={i}
-                  className="text-xs bg-[#FFD700]/20 text-[#FFD700] px-2 py-1 rounded-full"
+                  className={`text-xs px-2 py-1 rounded-full ${
+                    rank === 1 ? 'bg-[#FFD700]/30 text-slate-900' :
+                    rank === 2 ? 'bg-[#C0C0C0]/30 text-slate-900' :
+                    rank === 3 ? 'bg-[#CD7F32]/30 text-slate-900' :
+                    'bg-[#FFD700]/20 text-[#FFD700]'
+                  }`}
                 >
                   {badge}
                 </span>
