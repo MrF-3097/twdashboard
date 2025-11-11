@@ -123,6 +123,5 @@ async function correctPerspective(file: File, angle: number = 0): Promise<ArrayB
     .jpeg({ quality: 95 })
     .toBuffer();
   
-  // @ts-expect-error - Buffer type compatibility issue with sharp
   return finalBuffer as any;
 }
