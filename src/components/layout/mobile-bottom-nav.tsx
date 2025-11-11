@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Home, TrendingUp, User, FileText, Building2, Printer, Image, FolderOpen, Wrench, X, Bell } from 'lucide-react'
+import { Home, TrendingUp, User, FileText, Building2, Printer, Image, FolderOpen, Plus, X, Bell } from 'lucide-react'
 
 interface MobileBottomNavProps {
   activeTab: 'home' | 'tools' | 'leaderboard' | 'profile' | 'news'
@@ -180,53 +180,75 @@ export const MobileBottomNav = ({
     <>
       {/* Floating Hub Bubble Button */}
       <div className="md:hidden fixed bottom-24 right-4 z-[1001]">
-        {/* Tools Menu - Expands upward from bubble */}
-        {showToolsDropdown && (
-          <div className="absolute bottom-full right-0 mb-3 w-64 bg-slate-800 rounded-2xl border border-slate-700 shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="p-4">
-              <div className="grid grid-cols-2 gap-3">
-                {tools.map((tool) => {
-                  const Icon = tool.icon
-                  const isActive = tool.id === activeModule
+        {/* Tools Menu - Always rendered, tied to FAB */}
+        <div 
+          className="absolute bottom-full right-0 mb-3 z-50"
+          style={{
+            opacity: showToolsDropdown ? 1 : 0,
+            pointerEvents: showToolsDropdown ? 'auto' : 'none'
+          }}
+        >
+          <div className="flex flex-col gap-4 items-end">
+            {tools.map((tool, index) => {
+              const Icon = tool.icon
+              const isActive = tool.id === activeModule
+              
+              // First item (Documente) appears first
+              // Calculate travel distance from FAB position - first item travels least
+              const itemHeight = 56
+              const gap = 16
+              const travelDistance = index * (itemHeight + gap)
+              
+              // Calculate delay for CSS animation - first item has no delay
+              const delay = showToolsDropdown ? index * 0.06 : 0
+              
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => handleToolSelect(tool.id)}
+                  className="flex flex-row items-center gap-4 transition-all active:scale-95"
+                  style={{
+                    opacity: showToolsDropdown ? 1 : 0,
+                    transform: showToolsDropdown 
+                      ? 'translateY(0) scale(1)' 
+                      : `translateY(${travelDistance + 12}px) scale(0.7)`,
+                    transition: `opacity 0.25s ease-out ${delay}s, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s`,
+                    willChange: 'transform, opacity'
+                  }}
+                >
+                  {/* Text label on the left */}
+                  <span className={`text-base font-semibold transition-colors ${
+                    isActive ? 'text-white' : 'text-slate-300'
+                  }`}>
+                    {tool.label}
+                  </span>
                   
-                  return (
-                    <button
-                      key={tool.id}
-                      onClick={() => handleToolSelect(tool.id)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all ${
-                        isActive 
-                          ? `bg-gradient-to-br ${fabGradient.toolGradient} text-white shadow-lg` 
-                          : 'hover:bg-slate-700 text-slate-300 active:scale-95'
-                      }`}
-                    >
-                      <Icon 
-                        size={24} 
-                        className={isActive ? 'text-white' : 'text-slate-400'} 
-                      />
-                      <span className={`text-xs font-semibold text-center ${isActive ? 'text-white' : 'text-slate-300'}`}>
-                        {tool.label}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            {/* Arrow pointing down to bubble */}
-            <div className="absolute -bottom-2 right-6 w-4 h-4 bg-slate-800 border-r border-b border-slate-700 transform rotate-45" />
+                  {/* Circular icon button on the right */}
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center transition-all bg-gradient-to-br ${fabGradient.toolGradient} ${
+                    isActive ? 'shadow-lg scale-110' : 'shadow-md opacity-80 hover:opacity-100'
+                  }`}>
+                    <Icon 
+                      size={24} 
+                      className="text-white" 
+                    />
+                  </div>
+                </button>
+              )
+            })}
           </div>
-        )}
+        </div>
 
         {/* Hub Bubble Button */}
         <button
           onClick={handleHubBubbleClick}
-          className={`w-14 h-14 rounded-full bg-gradient-to-br ${fabGradient.gradient} shadow-2xl flex items-center justify-center transition-all duration-300 ${
+          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
             showToolsDropdown 
-              ? 'scale-110' 
-              : 'hover:scale-110 active:scale-95'
+              ? 'bg-transparent scale-110' 
+              : `bg-gradient-to-br ${fabGradient.gradient} shadow-2xl hover:scale-110 active:scale-95`
           }`}
           style={{
             boxShadow: showToolsDropdown 
-              ? `0 25px 50px -12px ${fabGradient.shadow}` 
+              ? 'none'
               : `0 20px 25px -5px ${fabGradient.shadow}, 0 10px 10px -5px ${fabGradient.shadow}`
           }}
           aria-label="Hub"
@@ -238,8 +260,8 @@ export const MobileBottomNav = ({
               strokeWidth={2.5}
             />
           ) : (
-            <Wrench 
-              size={24} 
+            <Plus 
+              size={28} 
               className="text-white transition-all duration-300"
               strokeWidth={2.5}
             />
@@ -247,18 +269,20 @@ export const MobileBottomNav = ({
         </button>
       </div>
 
-      {/* Backdrop when tools menu is open */}
-      {showToolsDropdown && (
-        <div 
-          className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-[1000]"
-          onClick={() => {
-            setShowToolsDropdown(false)
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('nav-tools-dropdown', 'false')
-            }
-          }}
-        />
-      )}
+      {/* Backdrop when tools menu is open - Always rendered */}
+      <div 
+        className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-[1000] transition-opacity duration-200"
+        style={{
+          opacity: showToolsDropdown ? 1 : 0,
+          pointerEvents: showToolsDropdown ? 'auto' : 'none'
+        }}
+        onClick={() => {
+          setShowToolsDropdown(false)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('nav-tools-dropdown', 'false')
+          }
+        }}
+      />
 
       {/* Floating Circle Navigation Bar */}
       <div 

@@ -155,7 +155,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
         if (isCollaborative) {
           if (commissionType === 'fixed') {
             // For fixed commission, splits must sum to total commission
-            const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
+          const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
             const totalCommission = Number(formData.Comision || 0)
             return collaborators.length > 0 && totalSplit === totalCommission && totalCommission > 0
           } else {
@@ -188,15 +188,15 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       // Auto-calculate commission based on commission type
       if (commissionType === 'percentage') {
         // Percentage mode: calculate commission from percentage
-        if (field === 'Valoare Tranzactie' || field === 'Comision %') {
-          const valoare = parseFloat(String(updated['Valoare Tranzactie'] || 0))
-          const comisionPctRaw = parseFloat(String(updated['Comision %'] || 0))
-          
-          // Normalize commission %: if > 1, treat as percentage (3 = 0.03), else treat as decimal
-          const comisionPct = comisionPctRaw > 1 ? comisionPctRaw / 100 : comisionPctRaw
-          
-          if (valoare > 0 && comisionPct > 0) {
-            updated.Comision = valoare * comisionPct
+      if (field === 'Valoare Tranzactie' || field === 'Comision %') {
+        const valoare = parseFloat(String(updated['Valoare Tranzactie'] || 0))
+        const comisionPctRaw = parseFloat(String(updated['Comision %'] || 0))
+        
+        // Normalize commission %: if > 1, treat as percentage (3 = 0.03), else treat as decimal
+        const comisionPct = comisionPctRaw > 1 ? comisionPctRaw / 100 : comisionPctRaw
+        
+        if (valoare > 0 && comisionPct > 0) {
+          updated.Comision = valoare * comisionPct
           }
         }
       } else {
@@ -633,30 +633,30 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                   const totalCommission = Number(formData.Comision || 0)
                   
                   if (commissionType === 'fixed') {
-                    const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
+                  const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
                     const isValid = totalSplit === totalCommission && totalCommission > 0
                     
-                    return (
-                      <div className="p-4 rounded-xl bg-slate-800 border border-slate-700">
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-400 text-sm">Total Split:</span>
+                  return (
+                    <div className="p-4 rounded-xl bg-slate-800 border border-slate-700">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-400 text-sm">Total Split:</span>
                           <span className={`text-lg font-bold ${isValid ? 'text-green-400' : 'text-red-400'}`}>
                             €{totalSplit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        </div>
+                        </span>
+                      </div>
                         <div className="flex justify-between items-center mt-1">
                           <span className="text-slate-400 text-xs">Comision Total:</span>
                           <span className="text-slate-300 text-sm">
                             €{totalCommission.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
-                        </div>
+                    </div>
                         {!isValid && (
                           <p className="text-xs text-red-400 mt-2">
                             ⚠️ Splitul trebuie să fie exact €{totalCommission.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </p>
-                        )}
-                      </div>
-                    )
+            )}
+          </div>
+        )
                   } else {
                     const totalSplit = collaborators.reduce((sum, c) => {
                       if (c.splitType === 'percentage') {
@@ -668,19 +668,19 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                     }, 0)
                     const isValid = Math.abs(totalSplit - 100) < 0.01
                     
-                    return (
+        return (
                       <div className="p-4 rounded-xl bg-slate-800 border border-slate-700">
                         <div className="flex justify-between items-center">
                           <span className="text-slate-400 text-sm">Total Split:</span>
                           <span className={`text-lg font-bold ${isValid ? 'text-green-400' : 'text-red-400'}`}>
                             {totalSplit.toFixed(2)}%
                           </span>
-                        </div>
+              </div>
                         {!isValid && (
                           <p className="text-xs text-red-400 mt-2">⚠️ Splitul trebuie să fie exact 100%</p>
                         )}
-                      </div>
-                    )
+          </div>
+        )
                   }
                 })()}
               </div>

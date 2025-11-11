@@ -36,26 +36,26 @@ export default function AdminDashboard() {
       <div className="md:hidden container mx-auto px-3 py-4">
         {/* Page Header - Mobile */}
         <div className="mb-6 space-y-4">
-          <Button
-            onClick={handleBackToDashboard}
-            variant="outline"
-            className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 justify-center"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Înapoi la Dashboard
-          </Button>
-          
-          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleBackToDashboard}
+              variant="outline"
+              className="w-full border-slate-700 text-slate-300 hover:bg-slate-800 justify-center"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Înapoi la Dashboard
+            </Button>
+            
+            <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg flex-shrink-0">
               <Shield className="h-5 w-5 text-white" />
-            </div>
-            <div>
+              </div>
+              <div>
               <h1 className="text-xl font-bold text-white">Panou Administrativ</h1>
               <p className="text-xs text-slate-400">Gestionare agenți și tranzacții</p>
             </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
       {/* Desktop: Full width layout */}
       <div className="hidden md:block">
@@ -64,20 +64,20 @@ export default function AdminDashboard() {
           <div className="px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
-                <Button
-                  onClick={handleBackToDashboard}
-                  variant="outline"
-                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Înapoi la Dashboard
-                </Button>
-                
+              <Button
+                onClick={handleBackToDashboard}
+                variant="outline"
+                className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Înapoi la Dashboard
+              </Button>
+              
                 <div className="flex items-center gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg">
                     <Shield className="h-7 w-7 text-white" />
-                  </div>
-                  <div>
+                </div>
+                <div>
                     <h1 className="text-4xl font-bold text-white">Panou Administrativ</h1>
                     <p className="text-base text-slate-400 mt-1">Gestionare agenți, tranzacții și quest-uri</p>
                   </div>
@@ -205,10 +205,10 @@ export default function AdminDashboard() {
 
         {/* Admin Sections Grid - Mobile */}
         <div className="grid grid-cols-1 gap-4">
-          <AgentManager />
+            <AgentManager />
           <ResetControls />
           <TokenUsageTracker />
-        </div>
+          </div>
 
         {/* Quest Management - Mobile */}
         <div className="mt-4">

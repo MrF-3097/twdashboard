@@ -20,7 +20,7 @@
     "totalLikes": 1,
     "reactions": [
       {
-        "emoji": "❤️",
+        "emoji": "🤩",
         "agentName": "Sorin Băcilă"
       }
     ]
@@ -61,6 +61,34 @@
       {
         "emoji": "🍾",
         "agentName": "Sorin Băcilă"
+      }
+    ]
+  },
+  "2025-11-05T10:43:11.974Z-4": {
+    "itemId": "2025-11-05T10:43:11.974Z-4",
+    "likedBy": [
+      "Alina Tarita",
+      "Sorin Băcilă",
+      "Andrei Fârțonea",
+      "Petru Vidrean"
+    ],
+    "totalLikes": 4,
+    "reactions": [
+      {
+        "emoji": "❤️",
+        "agentName": "Alina Tarita"
+      },
+      {
+        "emoji": "👍",
+        "agentName": "Sorin Băcilă"
+      },
+      {
+        "emoji": "🤩",
+        "agentName": "Andrei Fârțonea"
+      },
+      {
+        "emoji": "🤩",
+        "agentName": "Petru Vidrean"
       }
     ]
   }

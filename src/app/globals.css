@@ -327,26 +327,42 @@
   filter: blur(38px);
 }
 
-/* Stock-exchange chart line animations - random appearance and disappearance */
-@keyframes stock-chart-random {
+/* Scrolling Excel tile rows animation */
+@keyframes excel-scroll {
   0% {
-    opacity: 0;
-    stroke-dasharray: 0, 2000;
-  }
-  10% {
-    opacity: 0.5;
-    stroke-dasharray: 2000, 0;
-  }
-  90% {
-    opacity: 0.5;
-    stroke-dasharray: 2000, 0;
+    transform: translateX(0);
   }
   100% {
-    opacity: 0;
-    stroke-dasharray: 0, 2000;
+    transform: translateX(-50%);
   }
 }
 
-.animate-stock-chart-random {
-  animation: stock-chart-random ease-in-out infinite;
+.animate-excel-scroll {
+  animation: excel-scroll linear infinite;
+}
+
+/* Vertical line fade and scroll animation */
+@keyframes excel-line-fade-scroll {
+  0% {
+    opacity: 0;
+    transform: translateX(50vw);
+  }
+  15% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.3;
+    transform: translateX(0);
+  }
+  85% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50vw);
+  }
+}
+
+.animate-excel-line-fade-scroll {
+  animation: excel-line-fade-scroll linear infinite;
 }

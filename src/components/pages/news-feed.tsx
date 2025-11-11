@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTransactions } from '@/hooks/use-commissions'
 import { useAuth } from '@/hooks/use-auth'
 import Image from 'next/image'
@@ -35,6 +35,23 @@ export const NewsFeed = () => {
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null)
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
   const [longPressItemId, setLongPressItemId] = useState<string | null>(null)
+
+  // Generate stable random values for vertical lines
+  const verticalLines = useMemo(() => {
+    return Array.from({ length: 25 }).map((_, index) => {
+      // Use index as seed for consistent randomness
+      const seed = index * 123.456
+      const randomX = (Math.sin(seed) * 10000) % 100
+      const randomDelay = Math.abs(Math.sin(seed * 2) * 4)
+      const randomDuration = 3 + Math.abs(Math.sin(seed * 3) * 4)
+      
+      return {
+        x: Math.abs(randomX),
+        delay: randomDelay,
+        duration: randomDuration
+      }
+    })
+  }, [])
 
   // Fetch REBS agents for avatar data
   useEffect(() => {
@@ -286,45 +303,84 @@ export const NewsFeed = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(186,230,253,0.05),transparent_60%)]" />
       </div>
 
-      {/* Animated Stock Chart Lines - Above background, behind notifications */}
+      {/* Scrolling Excel Tile Rows - Continuous scroll */}
       <div className="absolute inset-0 pointer-events-none z-[1]" style={{ overflow: 'hidden' }}>
         {[
-          // Random positioned chart lines - irregular placement
-          { d: "M-50,200 L50,180 L150,220 L250,160 L350,240 L450,140 L550,260 L650,120 L750,280 L850,100 L950,300", x: '5%', y: '15%', delay: 0, duration: 12, width: '30%' },
-          { d: "M-30,400 L70,380 L170,420 L270,360 L370,440 L470,340 L570,460 L670,320 L770,480", x: '60%', y: '25%', delay: -2, duration: 15, width: '25%' },
-          { d: "M-40,600 L60,580 L160,620 L260,560 L360,640 L460,540 L560,660 L660,520 L760,680", x: '15%', y: '45%', delay: -4, duration: 11, width: '28%' },
-          { d: "M-20,300 L80,280 L180,320 L280,260 L380,340 L480,240 L580,360 L680,220 L780,380", x: '70%', y: '35%', delay: -6, duration: 14, width: '22%' },
-          { d: "M-60,500 L40,480 L140,520 L240,460 L340,540 L440,440 L540,560 L640,420 L740,580", x: '10%', y: '55%', delay: -1, duration: 13, width: '35%' },
-          { d: "M-35,700 L65,680 L165,720 L265,660 L365,740 L465,640 L565,760 L665,620 L765,780", x: '55%', y: '65%', delay: -3, duration: 16, width: '30%' },
-          { d: "M-25,150 L75,130 L175,170 L275,110 L375,190 L475,90 L575,210 L675,70 L775,230", x: '80%', y: '10%', delay: -5, duration: 10, width: '20%' },
-          { d: "M-45,550 L55,530 L155,570 L255,510 L355,590 L455,490 L555,610 L655,470 L755,630", x: '25%', y: '70%', delay: -7, duration: 17, width: '32%' },
-          { d: "M-15,250 L85,230 L185,270 L285,210 L385,290 L485,190 L585,310 L685,170 L785,330", x: '45%', y: '20%', delay: -0.5, duration: 11.5, width: '26%' },
-          { d: "M-55,450 L45,430 L145,470 L245,410 L345,490 L445,390 L545,510 L645,370 L745,530", x: '75%', y: '50%', delay: -2.5, duration: 13.5, width: '24%' },
-          { d: "M-30,350 L70,330 L170,370 L270,310 L370,390 L470,290 L570,410 L670,270 L770,430", x: '5%', y: '40%', delay: -4.5, duration: 12.5, width: '30%' },
-          { d: "M-40,650 L60,630 L160,670 L260,610 L360,690 L460,590 L560,710 L660,570 L760,730", x: '50%', y: '75%', delay: -6.5, duration: 15.5, width: '28%' },
-        ].map((line, index) => (
-          <svg
+          // Random positioned Excel-like tile rows that scroll horizontally
+          { y: '10%', delay: 0, duration: 20, widths: [80, 120, 90, 110, 100, 95, 115, 85, 105, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '18%', delay: -2, duration: 25, widths: [95, 110, 85, 125, 100, 90, 120, 80, 115, 105, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '28%', delay: -4, duration: 22, widths: [100, 90, 110, 85, 120, 95, 105, 80, 125, 115, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '38%', delay: -1, duration: 18, widths: [85, 115, 95, 105, 100, 90, 120, 80, 110, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '48%', delay: -3, duration: 24, widths: [110, 100, 90, 120, 85, 115, 95, 105, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '58%', delay: -5, duration: 21, widths: [95, 105, 110, 85, 120, 100, 90, 115, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '68%', delay: -2.5, duration: 23, widths: [100, 90, 115, 95, 105, 110, 85, 120, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '78%', delay: -6, duration: 19, widths: [90, 110, 100, 95, 115, 85, 120, 105, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '15%', delay: -1.5, duration: 26, widths: [105, 95, 110, 100, 90, 115, 85, 120, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '35%', delay: -3.5, duration: 20, widths: [110, 100, 90, 115, 95, 105, 85, 120, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '55%', delay: -4.5, duration: 22, widths: [95, 110, 100, 90, 115, 85, 120, 105, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '75%', delay: -0.5, duration: 24, widths: [100, 95, 110, 90, 115, 105, 85, 120, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '5%', delay: -7, duration: 27, widths: [105, 100, 90, 110, 95, 115, 85, 120, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '85%', delay: -2.2, duration: 21, widths: [90, 110, 100, 95, 115, 105, 85, 120, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+          { y: '25%', delay: -5.5, duration: 19, widths: [110, 95, 100, 90, 115, 105, 85, 120, 80, 125, 75, 130, 88, 112, 98, 108, 92, 118, 82, 102] },
+        ].map((tile, index) => (
+          <div
             key={index}
-            className="absolute animate-stock-chart-random"
+            className="absolute w-[200%] animate-excel-scroll"
             style={{
-              left: line.x,
-              top: line.y,
-              width: line.width,
-              height: 'auto',
-              animationDelay: `${line.delay}s`,
-              animationDuration: `${line.duration}s`,
+              left: '0',
+              top: tile.y,
+              height: '3px',
+              animationDelay: `${tile.delay}s`,
+              animationDuration: `${tile.duration}s`,
             }}
-            viewBox="0 0 800 100"
-            preserveAspectRatio="none"
           >
-            <path
-              d={line.d}
-              fill="none"
-              stroke="#FDE047"
-              strokeWidth="0.5"
-              opacity="0.3"
-            />
-          </svg>
+            {/* Repeating Excel grid pattern - duplicated for seamless scroll */}
+            <div className="flex h-full relative">
+              {/* First pattern */}
+              {tile.widths.map((width, i) => (
+                <div
+                  key={`first-${i}`}
+                  className="flex-shrink-0 relative"
+                  style={{
+                    width: `${width}px`,
+                    height: '100%',
+                    background: 'rgba(253, 224, 71, 0.1)',
+                    borderRight: '1px solid rgba(253, 224, 71, 0.25)',
+                    marginRight: '1px',
+                  }}
+                />
+              ))}
+              {/* Duplicate pattern for seamless loop */}
+              {tile.widths.map((width, i) => (
+                <div
+                  key={`second-${i}`}
+                  className="flex-shrink-0 relative"
+                  style={{
+                    width: `${width}px`,
+                    height: '100%',
+                    background: 'rgba(253, 224, 71, 0.1)',
+                    borderRight: '1px solid rgba(253, 224, 71, 0.25)',
+                    marginRight: '1px',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+        
+        {/* Vertical lines that fade in and out randomly and scroll horizontally */}
+        {verticalLines.map((line, index) => (
+          <div
+            key={`vline-${index}`}
+            className="absolute top-0 bottom-0 animate-excel-line-fade-scroll"
+            style={{
+              left: `${line.x}%`,
+              width: '1px',
+              background: 'rgba(253, 224, 71, 0.2)',
+              animationDelay: `${line.delay}s`,
+              animationDuration: `${line.duration * 2}s`, // Longer duration for scrolling
+            }}
+          />
         ))}
       </div>
 
@@ -363,7 +419,7 @@ export const NewsFeed = () => {
         ) : (
           newsItems.map((item) => {
             const userReaction = getUserReaction(item)
-            const reactionEmojis = ['👏', '👍', '❤️', '🍾', '🤩'] // Applause, Like, Heart, Champagne, Starstruck
+            const reactionEmojis = ['👏', '❤️', '🍾', '🤩'] // Applause, Heart, Champagne, Starstruck
             
             return (
               <div
@@ -371,8 +427,14 @@ export const NewsFeed = () => {
                 className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-3.5 md:p-4 hover:border-white/30 hover:bg-white/15 transition-all shadow-lg relative"
                 style={{
                   transform: 'scale(0.9)',
-                  transformOrigin: 'center'
+                  transformOrigin: 'center',
+                  overflow: 'visible'
                 }}
+                onMouseDown={() => handleLongPressStart(item.id)}
+                onMouseUp={handleLongPressEnd}
+                onMouseLeave={handleLongPressEnd}
+                onTouchStart={() => handleLongPressStart(item.id)}
+                onTouchEnd={handleLongPressEnd}
               >
                 <div className="flex items-center gap-3">
                   {/* Agent Avatar */}
@@ -397,145 +459,131 @@ export const NewsFeed = () => {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0 pr-2">
-                        {/* Notification text - Two lines */}
-                        <div className="text-white font-bold text-sm md:text-base mb-2 leading-snug">
-                          <div className="flex items-center gap-1">
-                            <span>{item.transactionType || 'Vanzare'}:</span>
-                            <span className="text-sky-300">
-                              €{item.transactionValue.toLocaleString('ro-RO')}
-                            </span>
-                          </div>
-                          <div className="mt-0.5">
-                            <span className="text-white/90">Comision: </span>
-                            <span className="text-sky-300">
-                              €{item.commission.toLocaleString('ro-RO')}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Reactions Display */}
-                        {Object.keys(item.reactionCounts).length > 0 && (
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            {Object.entries(item.reactionCounts).map(([emoji, count]) => {
-                              // Get agents who reacted with this emoji
-                              const agentsWithReaction = item.reactions
-                                .filter(r => r.emoji === emoji)
-                                .map(r => r.agentName)
-                              
-                              return (
-                                <div
-                                  key={emoji}
-                                  className="relative group"
-                                >
-                                  <button
-                                    onClick={() => {
-                                      // If user has this reaction, remove it
-                                      if (userReaction === emoji) {
-                                        handleReaction(item.id, emoji)
-                                      }
-                                    }}
-                                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-sm transition-all ${
-                                      userReaction === emoji
-                                        ? 'bg-white/25 border border-white/40 hover:bg-white/30'
-                                        : 'bg-white/15 border border-white/25 hover:bg-white/20'
-                                    }`}
-                                  >
-                                    <span className="text-lg">{emoji}</span>
-                                    {count > 1 && (
-                                      <span className="text-white/90 font-semibold text-xs">{count}</span>
-                                    )}
-                                  </button>
-                                  
-                                  {/* Tooltip showing agents who reacted */}
-                                  {agentsWithReaction.length > 0 && (
-                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                      <div className="bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-2 rounded-lg border border-white/20 shadow-xl whitespace-nowrap">
-                                        <div className="font-semibold mb-1 text-center">{emoji} {count}</div>
-                                        <div className="space-y-0.5">
-                                          {agentsWithReaction.map((agentName, idx) => (
-                                            <div key={idx} className="text-white/80">
-                                              {agentName}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                      {/* Tooltip arrow */}
-                                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                                        <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-900/95"></div>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
+                    {/* Notification text - Two lines */}
+                    <div className="text-white font-bold text-sm md:text-base mb-2 leading-snug">
+                      <div className="flex items-center gap-1">
+                        <span>{item.transactionType || 'Vanzare'}:</span>
+                        <span className="text-sky-300">
+                          €{item.transactionValue.toLocaleString('ro-RO')}
+                        </span>
                       </div>
-
-                      {/* Reaction Button */}
-                      <div className="relative flex-shrink-0">
-                        <button
-                          onMouseDown={() => handleLongPressStart(item.id)}
-                          onMouseUp={handleLongPressEnd}
-                          onMouseLeave={handleLongPressEnd}
-                          onTouchStart={() => handleLongPressStart(item.id)}
-                          onTouchEnd={handleLongPressEnd}
-                          className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
-                            userReaction
-                              ? 'text-white/90' 
-                              : 'text-white/40 hover:text-white/60'
-                          } hover:bg-white/10 active:bg-white/15`}
-                        >
-                          <div className="relative">
-                            {userReaction ? (
-                              <span className="text-2xl md:text-3xl">{userReaction}</span>
-                            ) : (
-                              <SmilePlus className="h-5 w-5 md:h-6 md:w-6" />
-                            )}
-                            {longPressItemId === item.id && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1.2 }}
-                                className="absolute inset-0 bg-white/20 rounded-full"
-                              />
-                            )}
-                          </div>
-                        </button>
-
-                        {/* Reaction Picker */}
-                        <AnimatePresence>
-                          {showReactionPicker === item.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-40"
-                                onClick={() => setShowReactionPicker(null)}
-                              />
-                              <motion.div
-                                initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                                transition={{ type: 'spring', damping: 20 }}
-                                className="absolute bottom-full right-0 mb-2 bg-slate-800/95 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl p-2 z-50 flex gap-1"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {reactionEmojis.map((emoji) => (
-                                  <button
-                                    key={emoji}
-                                    onClick={() => handleReaction(item.id, emoji)}
-                                    className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-2xl md:text-3xl hover:scale-125 active:scale-110 transition-transform rounded-lg hover:bg-white/10"
-                                  >
-                                    {emoji}
-                                  </button>
-                                ))}
-                              </motion.div>
-                            </>
-                          )}
-                        </AnimatePresence>
+                      <div className="mt-0.5">
+                        <span className="text-white/90">Comision: </span>
+                        <span className="text-sky-300">
+                          €{item.commission.toLocaleString('ro-RO')}
+                        </span>
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Reaction Picker - Attached to card */}
+                <AnimatePresence>
+                  {showReactionPicker === item.id && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowReactionPicker(null)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                        transition={{ type: 'spring', damping: 20 }}
+                        className="absolute bottom-full right-2 mb-2 bg-slate-800/95 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl p-2 z-50 flex gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {reactionEmojis.map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleReaction(item.id, emoji)}
+                            className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-2xl md:text-3xl hover:scale-125 active:scale-110 transition-transform rounded-lg hover:bg-white/10"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+
+                {/* Reactions Container - Top-right with overflow, lined horizontally */}
+                <div 
+                  className="absolute flex flex-row-reverse gap-2 z-10 pointer-events-none"
+                  style={{
+                    top: '-16px',
+                    right: '7px',
+                  }}
+                >
+                  {/* Existing Reactions - Stacked vertically */}
+                  {Object.entries(item.reactionCounts).map(([emoji, count]) => {
+                    // Get agents who reacted with this emoji
+                    const agentsWithReaction = item.reactions
+                      .filter(r => r.emoji === emoji)
+                      .map(r => r.agentName)
+                    
+                    return (
+                      <motion.div
+                        key={emoji}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        transition={{ type: 'spring', damping: 15 }}
+                        className="relative group flex flex-col items-center pointer-events-auto"
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            // If user has this reaction, remove it; otherwise add it
+                            handleReaction(item.id, emoji)
+                          }}
+                          className="transition-all hover:scale-110 active:scale-95"
+                          style={{
+                            width: '27px',
+                            height: '27px',
+                            background: 'rgba(30, 40, 60, 0.85)',
+                            borderRadius: '50%',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                            padding: '5px',
+                          }}
+                        >
+                          <span className="text-base">{emoji}</span>
+                        </button>
+                        
+                        {/* Count Badge */}
+                        <div 
+                          className="text-white font-semibold text-center"
+                          style={{
+                            fontSize: '10px',
+                            marginTop: '2px',
+                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)',
+                          }}
+                        >
+                          {count}
+                        </div>
+
+                        {/* Tooltip showing agents who reacted */}
+                        {agentsWithReaction.length > 0 && (
+                          <div className="absolute bottom-full right-full mr-2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                            <div className="bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-2 rounded-lg border border-white/20 shadow-xl whitespace-nowrap">
+                              <div className="font-semibold mb-1">{emoji} {count}</div>
+                              <div className="space-y-0.5">
+                                {agentsWithReaction.map((agentName, idx) => (
+                                  <div key={idx} className="text-white/80">
+                                    {agentName}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    )
+                  })}
                 </div>
               </div>
             )
