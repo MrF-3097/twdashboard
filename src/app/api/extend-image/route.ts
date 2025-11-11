@@ -97,7 +97,8 @@ export async function POST(req: Request) {
       extendedSize: { 
         width: result.data.image.width, 
         height: result.data.image.height 
-      }, M      fileSize: (result.data.image as any).file_size || 0,
+      },
+      fileSize: (result.data.image as any).file_size || 0,
       seed: result.data.seed,
       method: 'bria-expand',
       requestId: result.requestId,
