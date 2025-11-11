@@ -65,16 +65,22 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
       setIsVisible(true)
     }
 
-    // Handle Android install prompt
+    // Handle Android install prompt - CRITICAL: prevent default and store it
     const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e as BeforeInstallPromptEvent)
+      e.preventDefault() // Prevent the browser's default install prompt
+      const promptEvent = e as BeforeInstallPromptEvent
+      setDeferredPrompt(promptEvent)
       setIsVisible(true)
+      // Store the prompt event so we can use it later
+      console.log('[PWA] Install prompt event captured, ready to show')
       // Clear dismissal flag when prompt is available again
       localStorage.removeItem(STORAGE_KEY)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    
+    // Also check if we have a stored prompt (though browsers don't persist this)
+    // But we'll try to use it if available
 
     // Always show button - force visibility
     setIsVisible(true)
@@ -108,29 +114,38 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
   }, [])
 
   const handleInstallClick = async () => {
+    console.log('[PWA] Install button clicked, deferredPrompt:', deferredPrompt ? 'available' : 'null')
+    
     if (deferredPrompt) {
-      // Android Chrome install flow
+      // Android Chrome install flow - FORCE the prompt to show
       try {
+        console.log('[PWA] Calling deferredPrompt.prompt()...')
+        // This will show the browser's install prompt
         await deferredPrompt.prompt()
+        
+        console.log('[PWA] Prompt shown, waiting for user choice...')
+        // Wait for user's choice
         const choiceResult = await deferredPrompt.userChoice
+        
+        console.log('[PWA] User choice:', choiceResult.outcome)
 
         if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt')
-          setDeferredPrompt(null)
-          setIsVisible(false)
+          console.log('[PWA] ✅ User accepted the install prompt')
+          // Don't clear deferredPrompt yet - wait for appinstalled event
           localStorage.removeItem(STORAGE_KEY)
         } else {
-          // User dismissed - store dismissal timestamp but keep button visible
-          // This allows users to try again later
+          console.log('[PWA] ❌ User dismissed the install prompt')
+          // User dismissed - but keep deferredPrompt so they can try again
+          // Don't clear it - browsers allow retrying
           localStorage.setItem(STORAGE_KEY, JSON.stringify({
             timestamp: Date.now(),
           }))
-          // Keep button visible even after dismissal so user can try again
-          setDeferredPrompt(null) // Clear deferred prompt but keep button visible
         }
       } catch (error) {
-        console.error('Error during installation:', error)
-        // If prompt fails, keep button visible for manual install attempt
+        console.error('[PWA] Error showing install prompt:', error)
+        // Prompt might have been used already or browser blocked it
+        // Fall back to manual instructions
+        showManualInstructions()
       }
     } else if (isIOS) {
       // iOS Safari instructions
