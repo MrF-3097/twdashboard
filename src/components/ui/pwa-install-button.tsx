@@ -22,7 +22,7 @@ interface PwaInstallButtonProps {
 
 export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [isVisible, setIsVisible] = useState(false)
+  const [isVisible, setIsVisible] = useState(true) // Always visible for now
   const [isIOS, setIsIOS] = useState(false)
 
   useEffect(() => {
@@ -35,13 +35,14 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
     const isIOSStandalone = (window.navigator as any).standalone === true
 
-    if (isStandalone || isIOSStandalone) {
-      // App is already installed, don't show button
-      setIsVisible(false)
-      // Clear any stored dismissal data
-      localStorage.removeItem(STORAGE_KEY)
-      return
-    }
+    // Always show button for now - comment out the installed check
+    // if (isStandalone || isIOSStandalone) {
+    //   // App is already installed, don't show button
+    //   setIsVisible(false)
+    //   // Clear any stored dismissal data
+    //   localStorage.removeItem(STORAGE_KEY)
+    //   return
+    // }
 
     // Check if user previously dismissed and if dismissal has expired
     const dismissedData = localStorage.getItem(STORAGE_KEY)
@@ -75,20 +76,12 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
 
-    // Always show button on Android if app is not installed (for manual install)
-    // This ensures users can always install even if they dismissed the prompt
+    // Always show button - force visibility
+    setIsVisible(true)
+    
+    // Keep the checkInstallability function for future use but always set visible
     const checkInstallability = () => {
-      // Check if it's Android Chrome/Edge (supports PWA install)
-      const currentUserAgent = window.navigator.userAgent.toLowerCase()
-      const isAndroid = /android/i.test(currentUserAgent)
-      const isChrome = /chrome/i.test(currentUserAgent) && !/edg/i.test(currentUserAgent)
-      const isEdge = /edg/i.test(currentUserAgent)
-      const isSamsung = /samsungbrowser/i.test(currentUserAgent)
-      
-      if (isAndroid && (isChrome || isEdge || isSamsung) && !isStandalone) {
-        // Always show button on Android - force manual install option
-        setIsVisible(true)
-      }
+      setIsVisible(true) // Always show
     }
 
     // Check immediately and after a delay
@@ -100,7 +93,8 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
     // Handle successful installation
     const handleAppInstalled = () => {
       setDeferredPrompt(null)
-      setIsVisible(false)
+      // Keep button visible even after installation for now
+      // setIsVisible(false)
       localStorage.removeItem(STORAGE_KEY)
     }
 
@@ -176,9 +170,10 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
     }
   }
 
-  if (!isVisible) {
-    return null
-  }
+  // Always show button for now
+  // if (!isVisible) {
+  //   return null
+  // }
 
   return (
     <Button
