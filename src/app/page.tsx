@@ -29,6 +29,7 @@ import { QuestDropdown } from '@/components/modules/quest-dropdown'
 import { GamifiedLeaderboard } from '@/components/modules/leaderboard/gamified-leaderboard'
 import { useAuth } from '@/hooks/use-auth'
 import { useTransactions } from '@/hooks/use-commissions'
+import { PwaInstallButton } from '@/components/ui/pwa-install-button'
 
 // Typing Animation Component
 function TypingAnimation() {
@@ -308,6 +309,9 @@ export default function Dashboard() {
         {/* Mobile Home View */}
         {mobileTab === 'home' && (
           <div className="md:hidden bg-[#0F172A]">
+            <div className="px-4 pt-4 pb-2">
+              <PwaInstallButton inline />
+            </div>
             <MobileStatsBar 
               transactions={salesCount}
               currentMonthCommission={monthCommission}

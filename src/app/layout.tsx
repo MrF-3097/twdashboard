@@ -3,7 +3,6 @@ import { Inter, Montserrat } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
-import { PwaInstallButton } from '@/components/ui/pwa-install-button'
 
 const inter = Inter({ subsets: ['latin'] })
 const montserrat = Montserrat({ 
@@ -54,7 +53,6 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} ${montserrat.variable} dark`}>
         <ServiceWorkerRegister />
-        <PwaInstallButton />
         {children}
         <Toaster />
       </body>

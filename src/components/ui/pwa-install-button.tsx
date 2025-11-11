@@ -16,7 +16,11 @@ interface BeforeInstallPromptEvent extends Event {
 const STORAGE_KEY = 'pwa_install_dismissed'
 const DISMISS_EXPIRY_DAYS = 7 // Show button again after 7 days if dismissed
 
-export const PwaInstallButton = () => {
+interface PwaInstallButtonProps {
+  inline?: boolean
+}
+
+export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isVisible, setIsVisible] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
@@ -180,7 +184,7 @@ export const PwaInstallButton = () => {
     <Button
       onClick={handleInstallClick}
       size="sm"
-      className="fixed top-20 right-4 z-50 shadow-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold transition-all duration-300 hover:scale-105 border-2 border-white/20"
+      className={`${inline ? 'w-full' : 'fixed top-20 right-4'} z-50 shadow-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold transition-all duration-300 hover:scale-105 border-2 border-white/20`}
       aria-label="Download App"
     >
       <Download className="h-4 w-4 mr-2" />
