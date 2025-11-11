@@ -282,50 +282,50 @@ export const NewsFeed = () => {
     <section className="w-full relative min-h-screen overflow-hidden">
       {/* Simple Dark Background */}
       <div className="absolute inset-0 bg-slate-900 overflow-hidden">
-        {/* Animated Stock-Exchange Chart Lines - Subtle background overlay */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <svg 
-            className="absolute inset-0 w-full h-full" 
-            preserveAspectRatio="none" 
-            viewBox="0 0 1200 800"
-            style={{ mixBlendMode: 'screen' }}
-          >
-            {/* Stock chart lines - subtle background overlay */}
-            {[
-              { d: "M0,150 L120,130 L240,170 L360,100 L480,200 L600,50 L720,250 L840,80 L960,300 L1080,120 L1200,280", delay: 0, duration: 12 },
-              { d: "M0,250 L100,230 L200,270 L300,200 L400,300 L500,150 L600,350 L700,100 L800,400 L900,180 L1000,450 L1100,220 L1200,500", delay: -2, duration: 15 },
-              { d: "M0,350 L130,330 L260,370 L390,300 L520,400 L650,250 L780,450 L910,200 L1040,550 L1170,280 L1200,600", delay: -4, duration: 11 },
-              { d: "M0,450 L110,430 L220,470 L330,400 L440,500 L550,350 L660,550 L770,300 L880,600 L990,380 L1100,650 L1200,250", delay: -6, duration: 14 },
-              { d: "M0,550 L90,530 L180,570 L270,500 L360,600 L450,450 L540,650 L630,400 L720,700 L810,350 L900,750 L990,480 L1080,800 L1170,300 L1200,550", delay: -1, duration: 13 },
-              { d: "M0,650 L120,630 L240,670 L360,600 L480,700 L600,550 L720,750 L840,500 L960,800 L1080,450 L1200,680", delay: -3, duration: 16 },
-              { d: "M0,100 L80,80 L160,120 L240,50 L320,150 L400,30 L480,200 L560,10 L640,250 L720,60 L800,300 L880,90 L960,350 L1040,40 L1120,400 L1200,150", delay: -5, duration: 10 },
-              { d: "M0,750 L95,730 L190,770 L285,700 L380,800 L475,650 L570,780 L665,600 L760,750 L855,550 L950,720 L1045,480 L1140,760 L1200,400", delay: -7, duration: 17 },
-              { d: "M0,200 L140,180 L280,220 L420,150 L560,250 L700,100 L840,300 L980,80 L1120,400 L1200,180", delay: -0.5, duration: 11.5 },
-              { d: "M0,500 L105,480 L210,520 L315,450 L420,550 L525,400 L630,600 L735,350 L840,650 L945,300 L1050,700 L1155,250 L1200,600", delay: -2.5, duration: 13.5 },
-              { d: "M0,300 L115,280 L230,320 L345,250 L460,350 L575,200 L690,400 L805,150 L920,450 L1035,100 L1150,500 L1200,220", delay: -4.5, duration: 12.5 },
-              { d: "M0,600 L125,580 L250,620 L375,550 L500,650 L625,500 L750,700 L875,450 L1000,750 L1125,400 L1200,680", delay: -6.5, duration: 15.5 },
-              { d: "M0,400 L85,380 L170,420 L255,350 L340,450 L425,300 L510,500 L595,250 L680,550 L765,200 L850,600 L935,150 L1020,650 L1105,100 L1200,500", delay: -1.5, duration: 14.5 },
-              { d: "M0,700 L135,680 L270,720 L405,650 L540,750 L675,600 L810,780 L945,550 L1080,800 L1215,450 L1200,720", delay: -3.5, duration: 16.5 },
-              { d: "M0,50 L75,30 L150,70 L225,20 L300,100 L375,10 L450,150 L525,40 L600,200 L675,60 L750,250 L825,80 L900,300 L975,50 L1050,350 L1125,30 L1200,400", delay: -5.5, duration: 9.5 },
-            ].map((line, index) => (
-              <path
-                key={index}
-                d={line.d}
-                fill="none"
-                stroke="#FDE047"
-                strokeWidth="0.5"
-                opacity="0.3"
-                className="animate-stock-chart-random"
-                style={{
-                  animationDelay: `${line.delay}s`,
-                  animationDuration: `${line.duration}s`,
-                }}
-              />
-            ))}
-          </svg>
-        </div>
         {/* Subtle pattern overlay */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(186,230,253,0.05),transparent_60%)]" />
+      </div>
+
+      {/* Animated Stock Chart Lines - Above background, behind notifications */}
+      <div className="absolute inset-0 pointer-events-none z-[1]" style={{ overflow: 'hidden' }}>
+        {[
+          // Random positioned chart lines - irregular placement
+          { d: "M-50,200 L50,180 L150,220 L250,160 L350,240 L450,140 L550,260 L650,120 L750,280 L850,100 L950,300", x: '5%', y: '15%', delay: 0, duration: 12, width: '30%' },
+          { d: "M-30,400 L70,380 L170,420 L270,360 L370,440 L470,340 L570,460 L670,320 L770,480", x: '60%', y: '25%', delay: -2, duration: 15, width: '25%' },
+          { d: "M-40,600 L60,580 L160,620 L260,560 L360,640 L460,540 L560,660 L660,520 L760,680", x: '15%', y: '45%', delay: -4, duration: 11, width: '28%' },
+          { d: "M-20,300 L80,280 L180,320 L280,260 L380,340 L480,240 L580,360 L680,220 L780,380", x: '70%', y: '35%', delay: -6, duration: 14, width: '22%' },
+          { d: "M-60,500 L40,480 L140,520 L240,460 L340,540 L440,440 L540,560 L640,420 L740,580", x: '10%', y: '55%', delay: -1, duration: 13, width: '35%' },
+          { d: "M-35,700 L65,680 L165,720 L265,660 L365,740 L465,640 L565,760 L665,620 L765,780", x: '55%', y: '65%', delay: -3, duration: 16, width: '30%' },
+          { d: "M-25,150 L75,130 L175,170 L275,110 L375,190 L475,90 L575,210 L675,70 L775,230", x: '80%', y: '10%', delay: -5, duration: 10, width: '20%' },
+          { d: "M-45,550 L55,530 L155,570 L255,510 L355,590 L455,490 L555,610 L655,470 L755,630", x: '25%', y: '70%', delay: -7, duration: 17, width: '32%' },
+          { d: "M-15,250 L85,230 L185,270 L285,210 L385,290 L485,190 L585,310 L685,170 L785,330", x: '45%', y: '20%', delay: -0.5, duration: 11.5, width: '26%' },
+          { d: "M-55,450 L45,430 L145,470 L245,410 L345,490 L445,390 L545,510 L645,370 L745,530", x: '75%', y: '50%', delay: -2.5, duration: 13.5, width: '24%' },
+          { d: "M-30,350 L70,330 L170,370 L270,310 L370,390 L470,290 L570,410 L670,270 L770,430", x: '5%', y: '40%', delay: -4.5, duration: 12.5, width: '30%' },
+          { d: "M-40,650 L60,630 L160,670 L260,610 L360,690 L460,590 L560,710 L660,570 L760,730", x: '50%', y: '75%', delay: -6.5, duration: 15.5, width: '28%' },
+        ].map((line, index) => (
+          <svg
+            key={index}
+            className="absolute animate-stock-chart-random"
+            style={{
+              left: line.x,
+              top: line.y,
+              width: line.width,
+              height: 'auto',
+              animationDelay: `${line.delay}s`,
+              animationDuration: `${line.duration}s`,
+            }}
+            viewBox="0 0 800 100"
+            preserveAspectRatio="none"
+          >
+            <path
+              d={line.d}
+              fill="none"
+              stroke="#FDE047"
+              strokeWidth="0.5"
+              opacity="0.3"
+            />
+          </svg>
+        ))}
       </div>
 
       {/* Hero Section - Baby Blue Gradient */}

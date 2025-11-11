@@ -105,7 +105,8 @@ async function correctPerspective(file: File, angle: number = 0): Promise<ArrayB
     console.log(`   • Crop from: (${cropLeft}, ${cropTop})`);
     console.log(`   • Effect: Zoomed-in view with no blank corners`);
     
-    processedBuffer = await sharp(zoomedBuffer as Buffer)
+    // @ts-expect-error - Buffer type compatibility issue with sharp
+    processedBuffer = await sharp(zoomedBuffer)
       .extract({
         left: cropLeft,
         top: cropTop,
@@ -122,5 +123,6 @@ async function correctPerspective(file: File, angle: number = 0): Promise<ArrayB
     .jpeg({ quality: 95 })
     .toBuffer();
   
+  // @ts-expect-error - Buffer type compatibility issue
   return finalBuffer;
 }
