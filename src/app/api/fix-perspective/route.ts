@@ -105,7 +105,7 @@ async function correctPerspective(file: File, angle: number = 0): Promise<ArrayB
     console.log(`   • Crop from: (${cropLeft}, ${cropTop})`);
     console.log(`   • Effect: Zoomed-in view with no blank corners`);
     
-    processedBuffer = await sharp(Buffer.from(zoomedBuffer))
+    processedBuffer = await sharp(zoomedBuffer as Buffer)
       .extract({
         left: cropLeft,
         top: cropTop,
