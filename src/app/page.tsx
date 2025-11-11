@@ -291,14 +291,14 @@ export default function Dashboard() {
         agentName={agentName}
         onLogout={logout}
         variant={
-          mobileTab === 'leaderboard' ? 'stats' :
+          (mobileTab === 'leaderboard' ? 'stats' :
           mobileTab === 'profile' ? 'profile' :
           mobileTab === 'news' ? 'news' :
           mobileTab === 'home' ? 'default' :
           selectedModule === 'portfolio' ? 'portfolio' :
           selectedModule === 'real-estate' ? 'imobiliare' :
           selectedModule === 'documents' ? 'documents' :
-          'default'
+          'default') as 'default' | 'portfolio' | 'profile' | 'stats' | 'imobiliare' | 'documents' | 'news'
         }
       />
       )}
