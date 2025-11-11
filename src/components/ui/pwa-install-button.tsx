@@ -181,8 +181,8 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
         'Browser-ul dvs. nu suportă instalarea aplicației sau aplicația este deja instalată.\n\n' +
         'Your browser does not support app installation or the app is already installed.'
       )
-      }
     }
+  }
   }
 
   // Always show button for now

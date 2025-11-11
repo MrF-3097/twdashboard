@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:https": "node scripts/dev-https.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -44,6 +45,7 @@
     "react-dom": "^18",
     "react-dropzone": "^14.3.8",
     "replicate": "^1.2.0",
+    "selfsigned": "^2.4.1",
     "sharp": "^0.34.4",
     "swr": "^2.3.6",
     "tailwind-merge": "^2.0.0",
