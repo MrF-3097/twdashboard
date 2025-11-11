@@ -291,7 +291,7 @@ export default function Dashboard() {
         agentName={agentName}
         onLogout={logout}
         variant={(() => {
-          const tab = mobileTab
+          const tab = mobileTab as 'home' | 'tools' | 'leaderboard' | 'profile' | 'news'
           if (tab === 'leaderboard') return 'stats'
           if (tab === 'profile') return 'profile'
           if (tab === 'news') return 'news'
