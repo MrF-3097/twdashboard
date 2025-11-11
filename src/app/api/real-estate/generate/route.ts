@@ -1,15 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { AdGenerationRequest, AdGenerationResponse } from '@/types'
+import fs from 'fs'
+import path from 'path'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
+// Token pricing: GPT-4o-mini costs $0.15 per 1M input tokens and $0.60 per 1M output tokens
+// For simplicity, we'll use average cost: ~$0.30 per 1M tokens (mixed input/output)
+// 1 RON ≈ 0.20 USD (approximate), so 1M tokens ≈ 1.5 RON
+const TOKEN_COST_PER_MILLION = 1.5 // RON
+
+function getTokenUsageFilePath() {
+  return path.join(process.cwd(), 'data', 'token-usage.json')
+}
+
+function readTokenUsage() {
+  try {
+    const filePath = getTokenUsageFilePath()
+    if (!fs.existsSync(filePath)) {
+      return []
+    }
+    const data = fs.readFileSync(filePath, 'utf-8')
+    return JSON.parse(data)
+  } catch (error) {
+    console.error('Error reading token usage:', error)
+    return []
+  }
+}
+
+function writeTokenUsage(data: any[]) {
+  try {
+    const filePath = getTokenUsageFilePath()
+    const dir = path.dirname(filePath)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2))
+  } catch (error) {
+    console.error('Error writing token usage:', error)
+  }
+}
+
+function recordTokenUsage(agentId: number, agentName: string, tokensUsed: number, costInRON: number) {
+  const usage = readTokenUsage()
+  const timestamp = new Date().toISOString()
+  
+  usage.push({
+    agentId,
+    agentName,
+    tokensUsed,
+    costInRON,
+    timestamp
+  })
+  
+  writeTokenUsage(usage)
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body: AdGenerationRequest = await request.json()
-    const { property, tone, aiRules } = body
+    const body: AdGenerationRequest & { agentId?: number; agentName?: string } = await request.json()
+    const { property, tone, aiRules, agentId, agentName } = body
 
     // Validate required fields
     if (!property.location || !property.price || !property.details) {
@@ -131,10 +184,19 @@ Generate the ad now using a DISTINCTLY ${tone} voice.
     const adText = completion.choices[0]?.message?.content || ''
     const wordCount = adText.split(' ').length
 
+    // Track token usage
+    const tokensUsed = completion.usage?.total_tokens || 0
+    const costInRON = (tokensUsed / 1_000_000) * TOKEN_COST_PER_MILLION
+    
+    if (agentId && agentName) {
+      recordTokenUsage(agentId, agentName, tokensUsed, costInRON)
+    }
+
     // Debug logging
     console.log('OpenAI Response:', completion)
     console.log('Generated adText:', adText)
     console.log('Word count:', wordCount)
+    console.log('Tokens used:', tokensUsed, 'Cost (RON):', costInRON.toFixed(4))
 
     const response: AdGenerationResponse = {
       id: Date.now().toString(),

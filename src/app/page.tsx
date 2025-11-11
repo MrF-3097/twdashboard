@@ -2,31 +2,31 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { MobileStatsBar } from '@/components/layout/mobile-stats-bar'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
-import { MobileDashboardHeader } from '@/components/layout/mobile-dashboard-header'
 import { MonthlyKPICard } from '@/components/layout/monthly-kpi-card'
 import { YTDCard } from '@/components/layout/ytd-card'
 import { TransactionStats } from '@/components/layout/transaction-stats'
 import { CommissionChart } from '@/components/layout/commission-chart'
-import { QuickActions } from '@/components/layout/quick-actions'
+import { CommissionComparisonChart } from '@/components/layout/commission-comparison-chart'
 import { MobileModuleGrid } from '@/components/modules/mobile-module-grid'
 import { LoginModal } from '@/components/ui/login-modal'
+import { LoginAnimation } from '@/components/ui/login-animation'
 import { ProfilePage } from '@/components/pages/profile-page'
 import { DocumentConverter } from '@/components/modules/document-converter'
 import { RealEstateGenerator } from '@/components/modules/real-estate-generator'
 import { PrinterDriver } from '@/components/modules/printer-driver'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText, Building2, Printer, Sparkles, TrendingUp, Wand2, Target, Users } from 'lucide-react'
+import { FileText, Building2, Printer, Sparkles, TrendingUp, Wand2, Target, Users, FolderOpen } from 'lucide-react'
 import { ImageEditor } from '@/components/modules/image-editor'
 import { AgentRanking } from '@/components/modules/agent-ranking'
 import { PhotoFixer } from '@/components/modules/photo-fixer'
+import { Portfolio } from '@/components/modules/portfolio'
+import { NewsFeed } from '@/components/pages/news-feed'
+import { QuestDropdown } from '@/components/modules/quest-dropdown'
 import { GamifiedLeaderboard } from '@/components/modules/leaderboard/gamified-leaderboard'
-import { QuestSystem } from '@/components/modules/quest-system'
-import { DynamicQuestSystem } from '@/components/modules/dynamic-quest-system'
 import { useAuth } from '@/hooks/use-auth'
 import { useTransactions } from '@/hooks/use-commissions'
 
@@ -61,12 +61,22 @@ function TypingAnimation() {
 export default function Dashboard() {
   const router = useRouter()
   const [selectedModule, setSelectedModule] = useState('documents')
-  const [mobileTab, setMobileTab] = useState<'home' | 'tools' | 'leaderboard' | 'profile'>('home')
+  const [mobileTab, setMobileTab] = useState<'home' | 'tools' | 'leaderboard' | 'profile' | 'news'>('home')
   const [showProfile, setShowProfile] = useState(false)
   const [monthlyTarget, setMonthlyTarget] = useState(16000)
   const [salesCount, setSalesCount] = useState(0)
+  const [showLoginAnimation, setShowLoginAnimation] = useState(true) // Start with animation shown
   
   const { isLoggedIn, agentData, isLoading, login, logout } = useAuth()
+
+  // Show animation for 1 second on initial page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLoginAnimation(false)
+    }, 2100) // Match animation duration (2.1 seconds)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Live commissions data for mobile dashboard KPIs
   const now = new Date()
@@ -193,7 +203,17 @@ export default function Dashboard() {
   })()
 
   const handleLogin = (agent: any) => {
+    // Show login animation and login immediately
+    setShowLoginAnimation(true)
     login(agent)
+    // Hide animation after animation completes
+    setTimeout(() => {
+      setShowLoginAnimation(false)
+    }, 2100) // Match animation duration (2.1 seconds)
+  }
+
+  const handleAnimationComplete = () => {
+    setShowLoginAnimation(false)
   }
 
   const handleProfileClick = () => {
@@ -204,11 +224,7 @@ export default function Dashboard() {
     setShowProfile(false)
   }
 
-  const handleMobileTabChange = (tab: 'home' | 'tools' | 'leaderboard' | 'profile' | 'admin') => {
-    if (tab === 'admin') {
-      router.push('/admin')
-      return
-    }
+  const handleMobileTabChange = (tab: 'home' | 'tools' | 'leaderboard' | 'profile' | 'news') => {
     setMobileTab(tab)
     if (tab === 'profile') {
       setShowProfile(true)
@@ -222,24 +238,15 @@ export default function Dashboard() {
     setMobileTab('tools')
   }
 
-  const handleQuickAction = (actionId: string) => {
-    // Map quick actions to modules
-    const actionModuleMap: Record<string, string> = {
-      'add-client': 'documents',
-      'upload-contract': 'documents', 
-      'generate-report': 'real-estate',
-      'legal-support': 'documents'
-    }
-    
-    const moduleId = actionModuleMap[actionId] || 'documents'
-    setSelectedModule(moduleId)
-    setMobileTab('tools')
+  // Show login animation if triggered (even if logged in)
+  if (showLoginAnimation) {
+    return <LoginAnimation onComplete={handleAnimationComplete} />
   }
 
   // Show loading spinner while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
         <div className="text-center">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-white mx-auto mb-4"></div>
           <p className="text-white/70">Se încarcă...</p>
@@ -261,25 +268,45 @@ export default function Dashboard() {
           onTabChange={handleMobileTabChange}
           activeModule={selectedModule}
           onModuleSelect={handleModuleSelect}
+          variant="profile"
         />
       </>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] pb-24 md:pb-0">
-      <Header onProfileClick={handleProfileClick} />
+    <div className={`min-h-screen pb-24 md:pb-0 ${mobileTab === 'news' ? 'bg-transparent' : 'bg-[#0F172A]'}`}>
+      {/* Commission Comparison Chart - Replace hero section in stats tab */}
+      {mobileTab === 'leaderboard' ? (
+        <CommissionComparisonChart />
+      ) : mobileTab === 'news' ? (
+        <NewsFeed />
+      ) : (
+        /* Hero Section - Commission Generated - Full Width */
+        <MonthlyKPICard 
+        currentAmount={monthCommission || agentData?.currentMonthCommission || 0}
+        previousAmount={agentData?.previousMonthCommission || 0}
+        targetAmount={monthlyTarget}
+        recentTransactions={recentTransactions}
+        agentName={agentName}
+        onLogout={logout}
+        variant={
+          mobileTab === 'profile' ? 'profile' :
+          mobileTab === 'leaderboard' ? 'stats' :
+          mobileTab === 'news' ? 'news' :
+          mobileTab === 'home' ? 'default' :
+          selectedModule === 'portfolio' ? 'portfolio' :
+          selectedModule === 'real-estate' ? 'imobiliare' :
+          selectedModule === 'documents' ? 'documents' :
+          'default'
+        }
+      />
+      )}
       
       <main className="container mx-auto px-0 md:px-4 py-0 md:py-8">
         {/* Mobile Home View */}
         {mobileTab === 'home' && (
-          <div className="md:hidden h-[calc(100vh-56px-80px)] overflow-y-auto bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155]">
-            <MobileDashboardHeader 
-              onSwitchProfile={handleProfileClick}
-              agentName={agentData?.name || "Alex Munteanu"}
-              agentRole={agentData?.role || "Broker Associate"}
-              agentAvatar={agentData?.avatar}
-            />
+          <div className="md:hidden bg-[#0F172A]">
             <MobileStatsBar 
               transactions={salesCount}
               currentMonthCommission={monthCommission}
@@ -291,13 +318,6 @@ export default function Dashboard() {
                 router.push('/properties')
               }}
             />
-            <MonthlyKPICard 
-              currentAmount={monthCommission || agentData?.currentMonthCommission || 0}
-              previousAmount={agentData?.previousMonthCommission || 0}
-              targetAmount={monthlyTarget}
-              recentTransactions={recentTransactions}
-              agentName={agentName}
-            />
             <YTDCard 
               ytdAmount={ytdCommission || agentData?.ytdCommission || 0}
               annualTarget={agentData?.annualTarget || 120000}
@@ -307,193 +327,23 @@ export default function Dashboard() {
               propertiesCount={agentData?.propertiesCount || 0}
             />
             <CommissionChart monthlyData={monthlyCommissionData} />
-            <DynamicQuestSystem currentAgent={agentData} />
-            <QuickActions onActionClick={handleQuickAction} />
+            <QuestDropdown />
           </div>
         )}
 
         {/* Mobile Leaderboard View */}
         {mobileTab === 'leaderboard' && (
-          <div className="md:hidden px-3 py-4 h-[calc(100vh-56px-80px)] overflow-y-auto bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155]">
-            <h2 className="text-2xl font-black text-white mb-4">Clasament</h2>
+          <div className="md:hidden px-3 py-4 bg-[#0F172A] min-h-screen">
             <GamifiedLeaderboard />
           </div>
         )}
 
-        {/* Desktop Hero Section - Always visible on desktop */}
-        <div className="mb-4 md:mb-8 text-center px-4 hidden md:block">
-          <div className="mb-4 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm shadow-lg">
-              <Sparkles className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-white">
-            Instrumente Profesionale
-          </h1>
-          <p className="mx-auto max-w-2xl text-lg text-white/80">
-            Optimizați-vă fluxul de lucru cu instrumente puternice de conversie documente, 
-            anunțuri imobiliare generate de AI, editare și expansiune imagini cu AI.
-          </p>
-        </div>
-
-        {/* Target Modules Section */}
-        <div className="px-3 md:px-0 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Target Solo */}
-            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] p-6 shadow-xl">
-              {/* Background pattern */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Target className="h-4 w-4 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white">Target Solo</h3>
-                </div>
-                
-                <p className="text-[13px] text-[#CBD5E1] mb-4">Setează și urmărește țintele personale pentru performanță individuală</p>
-                
-                {/* Mock Target Data */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-white">€12,480</div>
-                    <div className="text-[11px] text-[#CBD5E1]">Comision Luna</div>
-                    <div className="text-[10px] text-[#94A3B8]">Target: €16,000</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-white">37</div>
-                    <div className="text-[11px] text-[#CBD5E1]">Tranzacții</div>
-                    <div className="text-[10px] text-[#94A3B8]">Target: 50</div>
-                  </div>
-                </div>
-                
-                {/* Progress Bars */}
-                <div className="space-y-3 mb-4">
-                  <div>
-                    <div className="flex justify-between text-[11px] mb-1">
-                      <span className="text-[#CBD5E1]">Progres Comision</span>
-                      <span className="text-white font-semibold">78%</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-[#34D399] to-[#10B981] h-2 rounded-full" style={{width: '78%'}}></div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-[11px] mb-1">
-                      <span className="text-[#CBD5E1]">Progres Tranzacții</span>
-                      <span className="text-white font-semibold">74%</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-[#34D399] to-[#10B981] h-2 rounded-full" style={{width: '74%'}}></div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Quick Actions */}
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-white/20 hover:bg-white/30 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">
-                    Setează Target
-                  </button>
-                  <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">
-                    Vezi Istoric
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Target de Grup */}
-            <div className="relative overflow-hidden rounded-[20px] bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] p-6 shadow-xl">
-              {/* Background pattern */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Users className="h-4 w-4 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white">Target de Grup</h3>
-                </div>
-                
-                <p className="text-[13px] text-[#CBD5E1] mb-4">Colaborare și urmărire ținte pentru echipe și grupuri de agenți</p>
-                
-                {/* Mock Group Target Data */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-white">€84,250</div>
-                    <div className="text-[11px] text-[#CBD5E1]">Comision Echipă</div>
-                    <div className="text-[10px] text-[#94A3B8]">Target: €120,000</div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-xl font-bold text-white">156</div>
-                    <div className="text-[11px] text-[#CBD5E1]">Tranzacții Echipă</div>
-                    <div className="text-[10px] text-[#94A3B8]">Target: 200</div>
-                  </div>
-                </div>
-                
-                {/* Progress Bars */}
-                <div className="space-y-3 mb-4">
-                  <div>
-                    <div className="flex justify-between text-[11px] mb-1">
-                      <span className="text-[#CBD5E1]">Progres Comision Echipă</span>
-                      <span className="text-white font-semibold">70%</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-[#34D399] to-[#10B981] h-2 rounded-full" style={{width: '70%'}}></div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-[11px] mb-1">
-                      <span className="text-[#CBD5E1]">Progres Tranzacții Echipă</span>
-                      <span className="text-white font-semibold">78%</span>
-                    </div>
-                    <div className="w-full bg-white/20 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-[#34D399] to-[#10B981] h-2 rounded-full" style={{width: '78%'}}></div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Team Stats */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 mb-4">
-                  <div className="text-[12px] font-medium text-[#CBD5E1] mb-2">Top Performeri Echipă</div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[11px] text-[#CBD5E1]">Alex Munteanu</span>
-                      <span className="text-[11px] font-semibold text-white">€12,480</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[11px] text-[#CBD5E1]">Maria Popescu</span>
-                      <span className="text-[11px] font-semibold text-white">€11,200</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[11px] text-[#CBD5E1]">Ion Ionescu</span>
-                      <span className="text-[11px] font-semibold text-white">€9,850</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Quick Actions */}
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-white/20 hover:bg-white/30 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">
-                    Setează Target Echipă
-                  </button>
-                  <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors backdrop-blur-sm">
-                    Vezi Echipă
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Main Content Tabs - Visible on desktop always, on mobile only when tools tab active */}
-        <div className={`${mobileTab === 'tools' ? 'block' : 'hidden'} md:block ${mobileTab === 'tools' ? 'h-[calc(100vh-56px-80px)] overflow-y-auto' : ''} md:h-auto md:overflow-visible`}>
+        <div className={`${mobileTab === 'tools' ? 'block' : 'hidden'} md:block`}>
         <Tabs value={selectedModule} onValueChange={setSelectedModule} className="w-full px-3 md:px-0">
 
           {/* Desktop Tabs */}
-          <TabsList className="hidden md:grid w-full grid-cols-6 mb-8 relative overflow-hidden">
+          <TabsList className="hidden md:grid w-full grid-cols-7 mb-8 relative overflow-hidden">
             <TabsTrigger 
               value="documents" 
               className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
@@ -542,6 +392,14 @@ export default function Dashboard() {
               <span className="hidden md:inline">Expansiune Imagini</span>
               <span className="md:hidden">Expansiune</span>
             </TabsTrigger>
+            <TabsTrigger 
+              value="portfolio" 
+              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
+            >
+              <FolderOpen className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-300" />
+              <span className="hidden md:inline">Portofoliu</span>
+              <span className="md:hidden">Portofoliu</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent 
@@ -573,8 +431,8 @@ export default function Dashboard() {
             <Card className="transform transition-all duration-500 hover:shadow-lg hover:scale-[1.02] border-0 md:border shadow-lg md:shadow-sm">
               <CardHeader className="pb-3 md:pb-6">
                 <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 md:bg-transparent">
-                    <Building2 className="h-4 w-4 md:h-5 md:w-5 text-purple-600 transition-transform duration-300 hover:rotate-12" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 md:bg-transparent">
+                    <Building2 className="h-4 w-4 md:h-5 md:w-5 text-green-600 transition-transform duration-300 hover:rotate-12" />
                   </div>
                   <span className="hidden md:inline">Generator Anunțuri Imobiliare cu AI</span>
                 </CardTitle>
@@ -676,6 +534,28 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
 
+          <TabsContent 
+            value="portfolio" 
+            className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+          >
+            <Card className="transform transition-all duration-500 hover:shadow-lg hover:scale-[1.02] border-0 md:border shadow-lg md:shadow-sm">
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 md:bg-transparent">
+                    <FolderOpen className="h-4 w-4 md:h-5 md:w-5 text-indigo-600 transition-transform duration-300 hover:rotate-12" />
+                  </div>
+                  <span className="hidden md:inline">Portofoliu Proprietăți</span>
+                </CardTitle>
+                <CardDescription className="hidden md:block">
+                  Vizualizează și filtrează toate proprietățile din portofoliul tău
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Portfolio />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
         </div>
 
@@ -689,6 +569,15 @@ export default function Dashboard() {
         onTabChange={handleMobileTabChange}
         activeModule={selectedModule}
         onModuleSelect={handleModuleSelect}
+        variant={
+          mobileTab === 'profile' ? 'profile' :
+          mobileTab === 'leaderboard' ? 'stats' :
+          mobileTab === 'home' ? 'default' :
+          selectedModule === 'portfolio' ? 'portfolio' :
+          selectedModule === 'real-estate' ? 'imobiliare' :
+          selectedModule === 'documents' ? 'documents' :
+          'default'
+        }
       />
     </div>
   )

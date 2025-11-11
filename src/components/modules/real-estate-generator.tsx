@@ -27,6 +27,7 @@ import {
   X
 } from 'lucide-react'
 import { AdGenerationRequest, AdGenerationResponse } from '@/types'
+import { useAuth } from '@/hooks/use-auth'
 
 /**
  * Interface for the expanded image response from the Bria AI API
@@ -71,6 +72,7 @@ export function RealEstateGenerator() {
   const [expandedImageResult, setExpandedImageResult] = useState<ExpandedImageResult | null>(null)
   
   const { toast } = useToast()
+  const { agentData } = useAuth()
 
 
   const generateAd = async () => {
@@ -86,7 +88,7 @@ export function RealEstateGenerator() {
     setIsGenerating(true)
 
     try {
-      const request: AdGenerationRequest = {
+      const request: AdGenerationRequest & { agentId?: number; agentName?: string } = {
         property: {
           location,
           price,
@@ -94,7 +96,9 @@ export function RealEstateGenerator() {
           details: propertyDetails
         },
         tone,
-        aiRules
+        aiRules,
+        agentId: agentData?.id,
+        agentName: agentData?.name
       }
 
       // Call the real API
@@ -284,14 +288,14 @@ export function RealEstateGenerator() {
                 {...getRootProps()}
                 className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
                   isDragActive 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-muted-foreground/25 hover:border-primary/50'
+                    ? 'border-[#10B981] bg-[#10B981]/5' 
+                    : 'border-muted-foreground/25 hover:border-[#10B981]/50'
                 }`}
               >
                 <input {...getInputProps()} />
                 <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 {isDragActive ? (
-                  <p className="text-sm text-primary">Eliberați pentru a încărca...</p>
+                  <p className="text-sm text-[#10B981]">Eliberați pentru a încărca...</p>
                 ) : (
                   <>
                     <p className="text-sm font-medium mb-2">
@@ -325,8 +329,8 @@ export function RealEstateGenerator() {
                 </div>
 
                 {/* Info about automatic expansion */}
-                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                  <p className="text-sm text-primary">
+                <div className="bg-[#10B981]/5 border border-[#10B981]/20 rounded-lg p-3">
+                  <p className="text-sm text-[#10B981]">
                     ℹ️ Imaginea va fi extinsă automat cu <strong>10% în toate direcțiile</strong> pentru a crea mai mult spațiu în jurul proprietății.
                   </p>
                 </div>
@@ -350,7 +354,7 @@ export function RealEstateGenerator() {
                 <Button
                   onClick={handleExpandImage}
                   disabled={isExpandingImage}
-                  className="w-full bg-primary hover:bg-primary/90"
+                  className="w-full bg-[#10B981] hover:bg-[#34D399] text-white"
                 >
                   {isExpandingImage ? (
                     <>
@@ -502,7 +506,7 @@ export function RealEstateGenerator() {
             <Button 
               onClick={generateAd} 
               disabled={isGenerating}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+              className="w-full bg-[#10B981] hover:bg-[#34D399] text-white"
               size="lg"
             >
               {isGenerating ? (
@@ -555,7 +559,7 @@ export function RealEstateGenerator() {
                 </div>
                 <div className="space-y-1">
                   <span className="text-muted-foreground text-xs">Extinsă (+10%):</span>
-                  <p className="font-medium text-primary">
+                  <p className="font-medium text-[#10B981]">
                     {expandedImageResult.extendedSize.width}x{expandedImageResult.extendedSize.height}
                   </p>
                 </div>
@@ -604,7 +608,7 @@ export function RealEstateGenerator() {
               <ScrollArea className="h-96">
                 <div className="space-y-4">
                   {generatedAds.map((ad) => (
-                    <Card key={ad.id} className="border-l-4 border-l-primary">
+                    <Card key={ad.id} className="border-l-4 border-l-[#10B981]">
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">

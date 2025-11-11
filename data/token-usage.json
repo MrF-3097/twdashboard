@@ -1,0 +1,32 @@
+[
+  {
+    "agentId": 7643,
+    "agentName": "Alina Tarita",
+    "tokensUsed": 882,
+    "costInRON": 0.001323,
+    "timestamp": "2025-11-07T10:34:38.139Z"
+  },
+  {
+    "agentId": 7643,
+    "agentName": "Alina Tarita",
+    "tokensUsed": 682,
+    "costInRON": 0.001023,
+    "timestamp": "2025-11-07T10:35:45.541Z"
+  },
+  {
+    "agentId": 7633,
+    "agentName": "Sorin Băcilă",
+    "tokensUsed": 804,
+    "costInRON": 0.001206,
+    "timestamp": "2025-11-07T11:24:53.065Z"
+  },
+  {
+    "agentId": 7633,
+    "agentName": "Sorin Băcilă",
+    "tokensUsed": 829,
+    "costInRON": 0.0012435,
+    "timestamp": "2025-11-07T11:25:05.334Z"
+  }
+]
+
+

@@ -159,13 +159,13 @@ export const PwaInstallButton = () => {
           '1. Tap the menu button (three dots) in the top right corner\n' +
           '2. Select "Install app" or "Add to Home screen"\n' +
           '3. Confirm installation'
-        )
-      } else {
-        // Browser doesn't support installation
-        alert(
-          'Browser-ul dvs. nu suportă instalarea aplicației sau aplicația este deja instalată.\n\n' +
-          'Your browser does not support app installation or the app is already installed.'
-        )
+      )
+    } else {
+      // Browser doesn't support installation
+      alert(
+        'Browser-ul dvs. nu suportă instalarea aplicației sau aplicația este deja instalată.\n\n' +
+        'Your browser does not support app installation or the app is already installed.'
+      )
       }
     }
   }

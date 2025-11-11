@@ -45,8 +45,16 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
   }
 
   const formatSurface = (surface?: number | null) => {
-    if (!surface) return 'N/A'
+    if (!surface || surface === 0) return null
     return `${Math.round(surface)} m²`
+  }
+
+  // Get surface area: use surface_useable only
+  const getSurface = () => {
+    if (property.surface_useable && property.surface_useable > 0) {
+      return formatSurface(property.surface_useable)
+    }
+    return null
   }
 
   const getPropertyTitle = () => {
@@ -142,7 +150,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
     const price = formatPrice(property.price_sale, property.price_rent)
     const rooms = property.bedrooms || 0
     const baths = property.bathrooms || 0
-    const surface = formatSurface(property.surface_total)
+    const surface = getSurface() || 'N/A'
     const location = getLocation()
     const propertyUrl = generatePropertyUrl()
     
@@ -195,7 +203,7 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
 
         {/* Price */}
         <div className="mb-4">
-          <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
+          <p className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-[#8870D0] to-blue-400">
             {formatPrice(property.price_sale, property.price_rent)}
           </p>
         </div>
@@ -219,10 +227,10 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
           )}
 
           {/* Surface Area */}
-          {property.surface_total !== undefined && property.surface_total !== null && (
+          {getSurface() && (
             <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-700/50">
               <Square className="h-4 w-4 text-green-400" />
-              <span className="text-xs font-semibold text-white">{formatSurface(property.surface_total)}</span>
+              <span className="text-xs font-semibold text-white">{getSurface()}</span>
             </div>
           )}
         </div>

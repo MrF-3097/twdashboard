@@ -62,15 +62,15 @@
 @media (max-width: 768px) {
   html, body {
     overflow-x: hidden;
-    position: fixed;
     width: 100%;
-    height: 100%;
+    min-height: 100%;
   }
   
   body {
-    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     background: #0F172A;
+    position: relative;
   }
   
   /* Prevent zoom on input focus (iOS) */
@@ -92,4 +92,261 @@
   .safe-area-spacing {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
+}
+
+/* Floating Circle Navigation Bar Animations */
+@keyframes floatUp {
+  0% {
+    bottom: 8px;
+    transform: scale(0.9);
+  }
+  50% {
+    bottom: 32px;
+  }
+  100% {
+    bottom: 28px;
+    transform: scale(1.15);
+  }
+}
+
+/* Login Animation Effects */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes gradient-text {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.animate-gradient-text {
+  background-size: 200% 200%;
+  animation: gradient-text 3s ease infinite;
+}
+
+/* Text appear animation for login screen */
+@keyframes textAppear {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.8);
+    filter: blur(10px);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(-5px) scale(1.05);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes textFadeOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.95);
+  }
+}
+
+/* Static blue-to-navy gradient for icons */
+.animate-gradient-blue {
+  background-image: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1e40af 100%);
+}
+
+/* Lava lamp blob animations for commission card - cell-like floating movement */
+@keyframes lava-blob-1 {
+  0% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.6;
+  }
+  20% {
+    transform: translate(80px, -50px) scale(1.2, 0.85) rotate(15deg);
+    opacity: 0.7;
+  }
+  40% {
+    transform: translate(-60px, 70px) scale(0.8, 1.15) rotate(-20deg);
+    opacity: 0.5;
+  }
+  60% {
+    transform: translate(100px, 40px) scale(1.1, 0.9) rotate(25deg);
+    opacity: 0.65;
+  }
+  80% {
+    transform: translate(-40px, -80px) scale(0.9, 1.2) rotate(-15deg);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.6;
+  }
+}
+
+@keyframes lava-blob-2 {
+  0% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.5;
+  }
+  25% {
+    transform: translate(-90px, -70px) scale(1.25, 0.8) rotate(-25deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(70px, 90px) scale(0.75, 1.25) rotate(30deg);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translate(-50px, 60px) scale(1.15, 0.85) rotate(-18deg);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.5;
+  }
+}
+
+@keyframes lava-blob-3 {
+  0% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.55;
+  }
+  30% {
+    transform: translate(60px, -90px) scale(1.3, 0.7) rotate(35deg);
+    opacity: 0.7;
+  }
+  60% {
+    transform: translate(-80px, 50px) scale(0.7, 1.3) rotate(-30deg);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.55;
+  }
+}
+
+@keyframes lava-blob-4 {
+  0% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.6;
+  }
+  20% {
+    transform: translate(-70px, -100px) scale(1.15, 0.85) rotate(-22deg);
+    opacity: 0.7;
+  }
+  40% {
+    transform: translate(90px, -30px) scale(0.85, 1.2) rotate(28deg);
+    opacity: 0.5;
+  }
+  60% {
+    transform: translate(-30px, 80px) scale(1.1, 0.9) rotate(-12deg);
+    opacity: 0.65;
+  }
+  80% {
+    transform: translate(50px, -60px) scale(0.95, 1.15) rotate(18deg);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.6;
+  }
+}
+
+.animate-lava-blob-1 {
+  animation: lava-blob-1 20s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: 50% 50%;
+  filter: blur(40px);
+}
+
+.animate-lava-blob-2 {
+  animation: lava-blob-2 25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: -5s;
+  transform-origin: 50% 50%;
+  filter: blur(45px);
+}
+
+.animate-lava-blob-3 {
+  animation: lava-blob-3 15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: -8s;
+  transform-origin: 50% 50%;
+  filter: blur(35px);
+}
+
+.animate-lava-blob-4 {
+  animation: lava-blob-4 22s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: -12s;
+  transform-origin: 50% 50%;
+  filter: blur(40px);
+}
+
+@keyframes lava-blob-5 {
+  0% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.5;
+  }
+  25% {
+    transform: translate(65px, -75px) scale(1.2, 0.8) rotate(20deg);
+    opacity: 0.65;
+  }
+  50% {
+    transform: translate(-55px, 85px) scale(0.8, 1.2) rotate(-25deg);
+    opacity: 0.45;
+  }
+  75% {
+    transform: translate(75px, 20px) scale(1.1, 0.9) rotate(15deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(0, 0) scale(1, 1) rotate(0deg);
+    opacity: 0.5;
+  }
+}
+
+.animate-lava-blob-5 {
+  animation: lava-blob-5 18s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation-delay: -7s;
+  transform-origin: 50% 50%;
+  filter: blur(38px);
+}
+
+/* Stock-exchange chart line animations - random appearance and disappearance */
+@keyframes stock-chart-random {
+  0% {
+    opacity: 0;
+    stroke-dasharray: 0, 2000;
+  }
+  10% {
+    opacity: 0.5;
+    stroke-dasharray: 2000, 0;
+  }
+  90% {
+    opacity: 0.5;
+    stroke-dasharray: 2000, 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dasharray: 0, 2000;
+  }
+}
+
+.animate-stock-chart-random {
+  animation: stock-chart-random ease-in-out infinite;
 }

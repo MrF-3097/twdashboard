@@ -140,7 +140,7 @@ export async function GET(
     // Debug: Log some details if count is 0 but we expect more
     if (salesCount === 0 && salesProperties.length > 0) {
       console.log(`⚠️ Debug: Found ${salesProperties.length} total sales properties, but none for agent ${agentId}`)
-      console.log(`   Sample agent IDs in sales properties:`, [...new Set(Array.from(salesProperties.slice(0, 10).map((p: any) => p.agent?.id)))])
+      console.log(`   Sample agent IDs in sales properties:`, Array.from(new Set(Array.from(salesProperties.slice(0, 10).map((p: any) => p.agent?.id)))))
     }
     
     return NextResponse.json({

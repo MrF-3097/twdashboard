@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { CheckCircle2, Circle, Users, User, Home, Building2, Award, Eye } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
@@ -48,6 +48,12 @@ const QUEST_CONFIG: Record<string, { title: string; icon: React.ReactNode; color
     color: 'from-yellow-400 to-yellow-600',
     defaultTarget: 1,
   },
+  'vanzare-grup': {
+    title: 'Vânzare Grup',
+    icon: <Building2 className="h-6 w-6" />,
+    color: 'from-green-400 to-green-600',
+    defaultTarget: 3,
+  },
   'vizionare': {
     title: 'Vizionări',
     icon: <Eye className="h-6 w-6" />,
@@ -58,7 +64,7 @@ const QUEST_CONFIG: Record<string, { title: string; icon: React.ReactNode; color
 
 // Define which quests are individual vs group (same as admin panel)
 const INDIVIDUAL_QUESTS = ['proprietati-preluate', 'vanzare', 'chirie', 'vizionare']
-const GROUP_QUESTS = ['colaborare', 'exclusivitate']
+const GROUP_QUESTS = ['colaborare', 'exclusivitate', 'vanzare-grup']
 
 export const QuestSystem = () => {
   const { agentData } = useAuth()
@@ -68,194 +74,228 @@ export const QuestSystem = () => {
   const [error, setError] = useState<string | null>(null)
 
   // Fetch quest progress from API and merge with all possible quests
-  useEffect(() => {
-    const fetchQuestProgress = async () => {
-      if (!agentData?.id) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        setLoading(true)
-        setError(null)
-
-        const response = await fetch(`/api/quests/progress?agentId=${agentData.id}`, {
-          cache: 'no-store', // Always fetch fresh data to see admin changes
-        })
-        const result = await response.json()
-
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to fetch quest progress')
-        }
-
-        // Find the current agent's quest data
-        // Normalize names for comparison (case-insensitive, remove diacritics)
-        const normalizeName = (name: string) => {
-          return name
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-            .trim()
-        }
-
-        const agentQuestData = result.data?.find((agent: any) => {
-          // Match by ID first (most reliable) - handle both number and string
-          const agentIdMatch = Number(agent.agentId) === Number(agentData.id)
-          if (agentIdMatch) {
-            console.log('✅ Matched by ID:', { agentId: agent.agentId, agentDataId: agentData.id })
-            return true
-          }
-          // Fallback to name matching (normalized)
-          if (agent.agentName && agentData.name) {
-            const nameMatch = normalizeName(agent.agentName) === normalizeName(agentData.name)
-            if (nameMatch) {
-              console.log('✅ Matched by name:', { 
-                dbName: agent.agentName, 
-                agentDataName: agentData.name,
-                normalizedDb: normalizeName(agent.agentName),
-                normalizedData: normalizeName(agentData.name),
-              })
-              return true
-            }
-          }
-          return false
-        })
-
-        // Debug logging
-        console.log('🔍 Quest System - Agent Matching:', {
-          agentDataId: agentData.id,
-          agentDataName: agentData.name,
-          availableAgents: result.data?.map((a: any) => ({
-            id: a.agentId,
-            name: a.agentName,
-            individualCount: a.individual?.length || 0,
-            groupCount: a.group?.length || 0,
-          })),
-          matchedAgent: agentQuestData ? {
-            id: agentQuestData.agentId,
-            name: agentQuestData.agentName,
-            individualCount: agentQuestData.individual?.length || 0,
-            groupCount: agentQuestData.group?.length || 0,
-          } : null,
-        })
-
-        // Create maps of existing quests for quick lookup
-        const existingIndividualQuests = new Map<string, any>()
-        const existingGroupQuests = new Map<string, any>()
-
-        if (agentQuestData) {
-          agentQuestData.individual?.forEach((quest: any) => {
-            existingIndividualQuests.set(quest.questId, quest)
-          })
-          agentQuestData.group?.forEach((quest: any) => {
-            existingGroupQuests.set(quest.questId, quest)
-          })
-        }
-
-        // Merge existing quests with all possible individual quests
-        const individual = INDIVIDUAL_QUESTS.map(questId => {
-          const existing = existingIndividualQuests.get(questId)
-          const config = QUEST_CONFIG[questId] || {
-            title: questId,
-            icon: <Award className="h-6 w-6" />,
-            color: 'from-gray-400 to-gray-600',
-            defaultTarget: 1,
-          }
-
-          const questData = existing || {
-            questId,
-            currentProgress: 0,
-            targetProgress: config.defaultTarget,
-            completed: false,
-          }
-
-          return {
-            id: questId,
-            title: config.title,
-            subtitle: `${questData.currentProgress}/${questData.targetProgress} ${config.title.toLowerCase()}`,
-            completed: questData.completed,
-            currentProgress: questData.currentProgress,
-            targetProgress: questData.targetProgress,
-            icon: config.icon,
-            color: config.color,
-          }
-        })
-
-        // Merge existing quests with all possible group quests
-        const group = GROUP_QUESTS.map(questId => {
-          const existing = existingGroupQuests.get(questId)
-          const config = QUEST_CONFIG[questId] || {
-            title: questId,
-            icon: <Award className="h-6 w-6" />,
-            color: 'from-gray-400 to-gray-600',
-            defaultTarget: 1,
-          }
-
-          const questData = existing || {
-            questId,
-            currentProgress: 0,
-            targetProgress: config.defaultTarget,
-            completed: false,
-          }
-
-          return {
-            id: questId,
-            title: config.title,
-            subtitle: `${questData.currentProgress}/${questData.targetProgress} ${config.title.toLowerCase()}`,
-            completed: questData.completed,
-            currentProgress: questData.currentProgress,
-            targetProgress: questData.targetProgress,
-            icon: config.icon,
-            color: config.color,
-          }
-        })
-
-        setIndividualQuests(individual)
-        setGroupQuests(group)
-      } catch (err) {
-        console.error('Error fetching quest progress:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load quests')
-        
-        // Even on error, show all quests with default values
-        const individual = INDIVIDUAL_QUESTS.map(questId => {
-          const config = QUEST_CONFIG[questId]
-          return {
-            id: questId,
-            title: config.title,
-            subtitle: `0/${config.defaultTarget} ${config.title.toLowerCase()}`,
-            completed: false,
-            currentProgress: 0,
-            targetProgress: config.defaultTarget,
-            icon: config.icon,
-            color: config.color,
-          }
-        })
-        const group = GROUP_QUESTS.map(questId => {
-          const config = QUEST_CONFIG[questId]
-          return {
-            id: questId,
-            title: config.title,
-            subtitle: `0/${config.defaultTarget} ${config.title.toLowerCase()}`,
-            completed: false,
-            currentProgress: 0,
-            targetProgress: config.defaultTarget,
-            icon: config.icon,
-            color: config.color,
-          }
-        })
-        setIndividualQuests(individual)
-        setGroupQuests(group)
-      } finally {
-        setLoading(false)
-      }
+  const fetchQuestProgress = useCallback(async () => {
+    if (!agentData?.id) {
+      setLoading(false)
+      return
     }
 
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch quest progress from database
+      const response = await fetch(`/api/quests/progress?agentId=${agentData.id}`, {
+        cache: 'no-store',
+      })
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch quest progress')
+      }
+
+      console.log('📥 Quest System - API Response:', {
+        success: result.success,
+        dataLength: result.data?.length || 0,
+        allAgents: result.data?.map((a: any) => ({
+          agentId: a.agentId,
+          agentName: a.agentName,
+          individualCount: a.individual?.length || 0,
+          groupCount: a.group?.length || 0,
+          individual: a.individual?.map((q: any) => `${q.questId}:${q.completed}`) || [],
+          group: a.group?.map((q: any) => `${q.questId}:${q.completed}`) || [],
+        })) || [],
+      })
+
+      // Find the current agent's quest data
+      // Normalize names for comparison (case-insensitive, remove diacritics)
+      const normalizeName = (name: string) => {
+        return name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+          .trim()
+      }
+
+      const agentQuestData = result.data?.find((agent: any) => {
+        // Match by ID first (most reliable) - handle both number and string
+        const agentIdMatch = Number(agent.agentId) === Number(agentData.id)
+        if (agentIdMatch) {
+          console.log('✅ Matched by ID:', { agentId: agent.agentId, agentDataId: agentData.id })
+          return true
+        }
+        // Fallback to name matching (normalized)
+        if (agent.agentName && agentData.name) {
+          const nameMatch = normalizeName(agent.agentName) === normalizeName(agentData.name)
+          if (nameMatch) {
+            console.log('✅ Matched by name:', { 
+              dbName: agent.agentName, 
+              agentDataName: agentData.name,
+              normalizedDb: normalizeName(agent.agentName),
+              normalizedData: normalizeName(agentData.name),
+            })
+            return true
+          }
+        }
+        return false
+      })
+
+      // Debug logging
+      console.log('🔍 Quest System - Agent Matching:', {
+        agentDataId: agentData.id,
+        agentDataName: agentData.name,
+        availableAgents: result.data?.map((a: any) => ({
+          id: a.agentId,
+          name: a.agentName,
+          individualCount: a.individual?.length || 0,
+          groupCount: a.group?.length || 0,
+        })),
+        matchedAgent: agentQuestData ? {
+          id: agentQuestData.agentId,
+          name: agentQuestData.agentName,
+          individualCount: agentQuestData.individual?.length || 0,
+          groupCount: agentQuestData.group?.length || 0,
+        } : null,
+      })
+
+      // Create maps of existing quests for quick lookup
+      const existingIndividualQuests = new Map<string, any>()
+      const existingGroupQuests = new Map<string, any>()
+
+      if (agentQuestData) {
+        console.log('📦 Raw agentQuestData:', {
+          agentId: agentQuestData.agentId,
+          agentName: agentQuestData.agentName,
+          individualRaw: agentQuestData.individual,
+          groupRaw: agentQuestData.group,
+          individualLength: agentQuestData.individual?.length || 0,
+          groupLength: agentQuestData.group?.length || 0,
+        })
+
+        agentQuestData.individual?.forEach((quest: any) => {
+          console.log('  → Individual quest:', quest)
+          existingIndividualQuests.set(quest.questId, quest)
+        })
+        agentQuestData.group?.forEach((quest: any) => {
+          console.log('  → Group quest:', quest)
+          existingGroupQuests.set(quest.questId, quest)
+        })
+      } else {
+        console.warn('⚠️ No agentQuestData found for agent:', agentData.id, agentData.name)
+      }
+
+      // Merge existing quests with all possible individual quests
+      const individual = INDIVIDUAL_QUESTS.map(questId => {
+        const existing = existingIndividualQuests.get(questId)
+        const config = QUEST_CONFIG[questId] || {
+          title: questId,
+          icon: <Award className="h-6 w-6" />,
+          color: 'from-gray-400 to-gray-600',
+          defaultTarget: 1,
+        }
+
+        const questData = existing || {
+          questId,
+          currentProgress: 0,
+          targetProgress: config.defaultTarget,
+          completed: false,
+        }
+
+        return {
+          id: questId,
+          title: config.title,
+          subtitle: `${questData.currentProgress}/${questData.targetProgress} ${config.title.toLowerCase()}`,
+          completed: questData.completed,
+          currentProgress: questData.currentProgress,
+          targetProgress: questData.targetProgress,
+          icon: config.icon,
+          color: config.color,
+        }
+      })
+
+      // Merge existing quests with all possible group quests
+      const group = GROUP_QUESTS.map(questId => {
+        const existing = existingGroupQuests.get(questId)
+        const config = QUEST_CONFIG[questId] || {
+          title: questId,
+          icon: <Award className="h-6 w-6" />,
+          color: 'from-gray-400 to-gray-600',
+          defaultTarget: 1,
+        }
+
+        const questData = existing || {
+          questId,
+          currentProgress: 0,
+          targetProgress: config.defaultTarget,
+          completed: false,
+        }
+
+        return {
+          id: questId,
+          title: config.title,
+          subtitle: `${questData.currentProgress}/${questData.targetProgress} ${config.title.toLowerCase()}`,
+          completed: questData.completed,
+          currentProgress: questData.currentProgress,
+          targetProgress: questData.targetProgress,
+          icon: config.icon,
+          color: config.color,
+        }
+      })
+
+        console.log('📊 Quest System - Setting quests:', {
+          individualQuests: individual.map(q => ({ id: q.id, completed: q.completed, progress: `${q.currentProgress}/${q.targetProgress}` })),
+          groupQuests: group.map(q => ({ id: q.id, completed: q.completed, progress: `${q.currentProgress}/${q.targetProgress}` })),
+        })
+
+        setIndividualQuests(individual)
+        setGroupQuests(group)
+    } catch (err) {
+      console.error('Error fetching quest progress:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load quests')
+      
+      // Even on error, show all quests with default values
+      const individual = INDIVIDUAL_QUESTS.map(questId => {
+        const config = QUEST_CONFIG[questId]
+        return {
+          id: questId,
+          title: config.title,
+          subtitle: `0/${config.defaultTarget} ${config.title.toLowerCase()}`,
+          completed: false,
+          currentProgress: 0,
+          targetProgress: config.defaultTarget,
+          icon: config.icon,
+          color: config.color,
+        }
+      })
+      const group = GROUP_QUESTS.map(questId => {
+        const config = QUEST_CONFIG[questId]
+        return {
+          id: questId,
+          title: config.title,
+          subtitle: `0/${config.defaultTarget} ${config.title.toLowerCase()}`,
+          completed: false,
+          currentProgress: 0,
+          targetProgress: config.defaultTarget,
+          icon: config.icon,
+          color: config.color,
+        }
+      })
+      setIndividualQuests(individual)
+      setGroupQuests(group)
+    } finally {
+      setLoading(false)
+    }
+  }, [agentData?.id, agentData?.name])
+
+  useEffect(() => {
     fetchQuestProgress()
 
-    // Refresh every 10 seconds (more frequent to catch admin changes quickly)
-    const interval = setInterval(fetchQuestProgress, 10000)
+    // Refresh every 15 seconds to catch admin updates
+    const interval = setInterval(() => {
+      fetchQuestProgress()
+    }, 15000)
     return () => clearInterval(interval)
-  }, [agentData?.id, agentData?.name])
+  }, [fetchQuestProgress])
 
   const calculateProgress = (quests: Quest[]) => {
     return quests.filter(q => q.completed).length
@@ -313,38 +353,92 @@ export const QuestSystem = () => {
   const QuarteredPieChart = ({ completed, total, size = 100 }: { completed: number; total: number; size?: number }) => {
     const radius = (size / 2) - 6
     const center = size / 2
+    const strokeWidth = 6
+    const circumference = 2 * Math.PI * radius
+    const percentage = (completed / total) * 100
+    const strokeDashoffset = circumference - (percentage / 100) * circumference
     
     return (
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="transform -rotate-90">
-          {/* Draw 4 quarters */}
-          {[0, 1, 2, 3].map((quarter) => {
-            const isCompleted = quarter < completed
-            const startAngle = (quarter * 90) * (Math.PI / 180)
-            const endAngle = ((quarter + 1) * 90) * (Math.PI / 180)
-            
-            const x1 = center + radius * Math.cos(startAngle)
-            const y1 = center + radius * Math.sin(startAngle)
-            const x2 = center + radius * Math.cos(endAngle)
-            const y2 = center + radius * Math.sin(endAngle)
-            
-            const largeArcFlag = 0
-            const path = `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`
-            
-            return (
-              <path
-                key={quarter}
-                d={path}
-                fill={isCompleted ? `hsl(${220 - quarter * 30}, 70%, 60%)` : '#f3f4f6'}
-                stroke="white"
-                strokeWidth="3"
-                className="transition-all duration-500"
-              />
-            )
-          })}
+          <defs>
+            <linearGradient id="blue-green-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#10b981" />
+            </linearGradient>
+          </defs>
+          {/* Background circle - incomplete portion */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="transparent"
+            stroke="rgba(71, 85, 105, 0.4)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Progress circle - completed portion with gradient */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="transparent"
+            stroke="url(#blue-green-gradient)"
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xl font-black text-white">{completed}/4</span>
+          <span className="text-xl font-black text-white">{completed}/{total}</span>
+        </div>
+      </div>
+    )
+  }
+
+  const ThreeSplitPieChart = ({ completed, total, size = 100 }: { completed: number; total: number; size?: number }) => {
+    const radius = (size / 2) - 6
+    const center = size / 2
+    const strokeWidth = 6
+    const circumference = 2 * Math.PI * radius
+    const percentage = (completed / total) * 100
+    const strokeDashoffset = circumference - (percentage / 100) * circumference
+    
+    return (
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="transform -rotate-90">
+          <defs>
+            <linearGradient id="blue-green-gradient-3" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#10b981" />
+            </linearGradient>
+          </defs>
+          {/* Background circle - incomplete portion */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="transparent"
+            stroke="rgba(71, 85, 105, 0.4)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Progress circle - completed portion with gradient */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="transparent"
+            stroke="url(#blue-green-gradient-3)"
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-xl font-black text-white">{completed}/{total}</span>
         </div>
       </div>
     )
@@ -462,7 +556,7 @@ export const QuestSystem = () => {
               <p className="text-xs text-white/70">Obiectivele grupului</p>
             </div>
           </div>
-          <QuarteredPieChart completed={groupProgress} total={4} />
+          <ThreeSplitPieChart completed={groupProgress} total={3} />
         </div>
 
         <div className="space-y-2">

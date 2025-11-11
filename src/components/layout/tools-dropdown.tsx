@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ChevronDown, FileText, Building2, Printer, Image, TrendingUp, Wand2 } from 'lucide-react'
+import { ChevronDown, FileText, Building2, Printer, Image, TrendingUp, Wand2, FolderOpen } from 'lucide-react'
 
 interface ToolsDropdownProps {
   activeModule: string
@@ -20,6 +20,7 @@ export const ToolsDropdown = ({ activeModule, onModuleSelect, isOpen, onToggle }
     { id: 'image-editor', icon: Image, label: 'Imagini', shortLabel: 'Img' },
     { id: 'agent-ranking', icon: TrendingUp, label: 'Ranking', shortLabel: 'Rank' },
     { id: 'photo-fixer', icon: Wand2, label: 'Expansiune', shortLabel: 'Exp' },
+    { id: 'portfolio', icon: FolderOpen, label: 'Portofoliu', shortLabel: 'Port' },
   ]
 
   const activeTool = tools.find(tool => tool.id === activeModule)
@@ -77,14 +78,16 @@ export const ToolsDropdown = ({ activeModule, onModuleSelect, isOpen, onToggle }
                   }}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-[8px] transition-colors ${
                     isActive 
-                      ? 'bg-blue-600/20 text-blue-400' 
+                      ? tool.id === 'real-estate'
+                        ? 'bg-[#10B981]/20 text-[#10B981]'
+                        : 'bg-blue-600/20 text-blue-400'
                       : 'hover:bg-slate-700 text-white'
                   }`}
                 >
-                  <Icon size={16} className={isActive ? 'text-blue-400' : 'text-slate-300'} />
+                  <Icon size={16} className={isActive ? (tool.id === 'real-estate' ? 'text-[#10B981]' : 'text-blue-400') : 'text-slate-300'} />
                   <span className="text-[13px] font-medium">{tool.label}</span>
                   {isActive && (
-                    <div className="ml-auto w-2 h-2 bg-blue-400 rounded-full" />
+                    <div className={`ml-auto w-2 h-2 rounded-full ${tool.id === 'real-estate' ? 'bg-[#10B981]' : 'bg-blue-400'}`} />
                   )}
                 </button>
               )

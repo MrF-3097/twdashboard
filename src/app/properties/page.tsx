@@ -10,13 +10,13 @@ import { useAuth } from '@/hooks/use-auth'
 
 export default function PropertiesPage() {
   const router = useRouter()
-  const { agentData } = useAuth()
+  const { agentData, isLoading: authLoading } = useAuth()
   const { properties, isLoading, isError, totalCount } = useProperties()
   
   // Filter properties by logged-in agent
   const agentProperties = React.useMemo(() => {
-    if (!agentData?.id) {
-      console.log('⚠️ [PropertiesPage] No agent data, returning empty array')
+    // Wait for auth to finish loading before filtering
+    if (authLoading || !agentData?.id) {
       return []
     }
     
@@ -31,17 +31,6 @@ export default function PropertiesPage() {
       const propertyAgentId = property.agent?.id || property.agent
       const matches = propertyAgentId === agentData.id
       
-      if (!matches && properties.length > 0) {
-        console.log('❌ [PropertiesPage] Property does NOT match agent', {
-          propertyId: property.id,
-          propertyTitle: property.title || property.name,
-          propertyAgent: property.agent,
-          propertyAgentId: propertyAgentId,
-          loggedInAgentId: agentData.id,
-          match: matches,
-        })
-      }
-      
       return matches
     })
     
@@ -52,7 +41,7 @@ export default function PropertiesPage() {
     })
     
     return filtered
-  }, [properties, agentData?.id, agentData?.name])
+  }, [properties, agentData?.id, authLoading])
 
   console.log('🏠 [PropertiesPage] Component rendered', {
     propertiesCount: properties.length,
@@ -78,7 +67,7 @@ export default function PropertiesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] pb-24 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] pb-24 md:pb-0 overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-700">
         <div className="container mx-auto px-4 py-4">

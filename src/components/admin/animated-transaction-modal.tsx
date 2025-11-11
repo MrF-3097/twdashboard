@@ -20,15 +20,16 @@ interface AnimatedTransactionModalProps {
 
 const STEPS = [
   { id: 1, title: 'Agent', description: 'Selectează agentul', icon: User },
-  { id: 2, title: 'Colaborare', description: 'Agenți și splituri', icon: Users },
-  { id: 3, title: 'Detalii', description: 'Valoare și tip', icon: Euro },
-  { id: 4, title: 'Comision', description: 'Calculează comisionul', icon: Percent },
+  { id: 2, title: 'Detalii', description: 'Valoare și tip', icon: Euro },
+  { id: 3, title: 'Comision', description: 'Calculează comisionul', icon: Percent },
+  { id: 4, title: 'Colaborare', description: 'Agenți și splituri', icon: Users },
   { id: 5, title: 'Confirmă', description: 'Verifică și finalizează', icon: CheckCircle },
 ]
 
 interface CollaboratorAgent {
   name: string
-  split: number
+  split: number // Can be percentage or fixed amount depending on splitType
+  splitType: 'percentage' | 'fixed' // How the split is entered
 }
 
 export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactionModalProps) => {
@@ -52,6 +53,38 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
   const [commissionType, setCommissionType] = useState<'percentage' | 'fixed'>('percentage')
 
   // Fetch all agents from REBS API
+  // Update collaborator split types when commission type changes
+  useEffect(() => {
+    if (isCollaborative && collaborators.length > 0 && formData.Comision) {
+      const totalCommission = Number(formData.Comision || 0)
+      if (totalCommission <= 0) return
+      
+      const updated = collaborators.map(collab => {
+        // If commission type is fixed, use fixed splits; if percentage, default to percentage but allow both
+        const newSplitType = commissionType === 'fixed' ? 'fixed' : (collab.splitType || 'percentage')
+        
+        // Convert split value if needed
+        let newSplit = collab.split
+        
+        if (commissionType === 'fixed' && collab.splitType === 'percentage') {
+          // Convert percentage to fixed amount
+          newSplit = (collab.split / 100) * totalCommission
+        } else if (commissionType === 'percentage' && collab.splitType === 'fixed' && totalCommission > 0) {
+          // Convert fixed to percentage
+          newSplit = (collab.split / totalCommission) * 100
+        }
+        
+        return {
+          ...collab,
+          splitType: newSplitType,
+          split: newSplit
+        }
+      })
+      setCollaborators(updated)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commissionType, formData.Comision])
+
   useEffect(() => {
     const fetchAgents = async () => {
       setLoadingAgents(true)
@@ -110,20 +143,39 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       case 1:
         return !!formData.Agent
       case 2:
-        // If collaborative, must have at least 1 collaborator with valid splits
-        if (isCollaborative) {
-          const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
-          return collaborators.length > 0 && totalSplit === 100
-        }
-        return true
-      case 3:
         return !!formData['Valoare Tranzactie'] && !!formData['Tip Tranzactie']
-      case 4:
+      case 3:
         if (commissionType === 'percentage') {
           return !!formData['Comision %']
         } else {
           return !!formData.Comision && Number(formData.Comision) > 0
         }
+      case 4:
+        // If collaborative, must have at least 1 collaborator with valid splits
+        if (isCollaborative) {
+          if (commissionType === 'fixed') {
+            // For fixed commission, splits must sum to total commission
+            const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
+            const totalCommission = Number(formData.Comision || 0)
+            return collaborators.length > 0 && totalSplit === totalCommission && totalCommission > 0
+          } else {
+            // For percentage commission, splits must sum to 100%
+            const totalSplit = collaborators.reduce((sum, c) => {
+              if (c.splitType === 'percentage') {
+                return sum + (c.split || 0)
+              } else {
+                // Convert fixed to percentage for validation
+                const totalCommission = Number(formData.Comision || 0)
+                if (totalCommission > 0) {
+                  return sum + ((c.split || 0) / totalCommission * 100)
+                }
+                return sum
+              }
+            }, 0)
+            return collaborators.length > 0 && Math.abs(totalSplit - 100) < 0.01
+          }
+        }
+        return true
       default:
         return true
     }
@@ -211,141 +263,6 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
         return (
           <div className="space-y-6 p-6">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <Users className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Colaborare</h3>
-                <p className="text-sm text-slate-400">Adaugă agenți și defineste splituri</p>
-              </div>
-            </div>
-
-            {/* Collaboration Toggle */}
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-800 border border-slate-700">
-              <input
-                type="checkbox"
-                id="collaborative"
-                checked={isCollaborative}
-                onChange={(e) => {
-                  setIsCollaborative(e.target.checked)
-                  if (!e.target.checked) {
-                    setCollaborators([])
-                  } else {
-                    // Auto-add the main agent with 100% if starting fresh
-                    setCollaborators([{ name: formData.Agent || '', split: 100 }])
-                  }
-                }}
-                className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-2"
-              />
-              <label htmlFor="collaborative" className="flex-1 text-white font-medium cursor-pointer">
-                Acesta este o colaborare între mai mulți agenți
-              </label>
-            </div>
-
-            {/* Collaborators List */}
-            {isCollaborative && (
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  {collaborators.map((collab, idx) => {
-                    const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
-                    const remainingSplit = 100 - totalSplit + (collab.split || 0)
-                    
-                    return (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex gap-2 items-start"
-                      >
-                        <div className="flex-1 space-y-2">
-                          <Select
-                            value={collab.name}
-                            onValueChange={(value) => {
-                              const updated = [...collaborators]
-                              updated[idx].name = value
-                              setCollaborators(updated)
-                            }}
-                          >
-                            <SelectTrigger className="bg-slate-700 border-slate-600 text-white h-12">
-                              <SelectValue placeholder="Selectează agent" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-700">
-                              {allAgents.map((agent) => (
-                                <SelectItem key={agent.id} value={agent.name} className="text-white hover:bg-slate-700 focus:bg-slate-700">
-                                  {agent.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="relative">
-                            <Input
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={collab.split || ''}
-                              onChange={(e) => {
-                                const updated = [...collaborators]
-                                updated[idx].split = Number(e.target.value) || 0
-                                setCollaborators(updated)
-                              }}
-                              placeholder="Split %"
-                              className="bg-slate-700 border-slate-600 text-white h-12"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
-                          </div>
-                        </div>
-                        {collaborators.length > 1 && (
-                          <Button
-                            onClick={() => setCollaborators(collaborators.filter((_, i) => i !== idx))}
-                            variant="ghost"
-                            size="icon"
-                            className="h-12 w-12 text-red-400 hover:text-red-300 hover:bg-red-500/20"
-                          >
-                            <XIcon className="h-5 w-5" />
-                          </Button>
-                        )}
-                      </motion.div>
-                    )
-                  })}
-                </div>
-
-                {/* Add Collaborator Button */}
-                {collaborators.length < allAgents.length && (
-                  <Button
-                    onClick={() => setCollaborators([...collaborators, { name: '', split: 0 }])}
-                    variant="outline"
-                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    + Adaugă Agent
-                  </Button>
-                )}
-
-                {/* Split Summary */}
-                {collaborators.length > 0 && (() => {
-                  const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
-                  return (
-                    <div className="p-4 rounded-xl bg-slate-800 border border-slate-700">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-400 text-sm">Total Split:</span>
-                        <span className={`text-lg font-bold ${totalSplit === 100 ? 'text-green-400' : 'text-red-400'}`}>
-                          {totalSplit}%
-                        </span>
-                      </div>
-                      {totalSplit !== 100 && (
-                        <p className="text-xs text-red-400 mt-2">⚠️ Splitul trebuie să fie exact 100%</p>
-                      )}
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
-          </div>
-        )
-
-      case 3:
-        return (
-          <div className="space-y-6 p-6">
-            <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                 <Euro className="h-6 w-6 text-white" />
               </div>
@@ -389,7 +306,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
           </div>
         )
 
-      case 4:
+      case 3:
         return (
           <div className="space-y-6 p-6">
             <div className="flex items-center gap-3 mb-6">
@@ -520,6 +437,258 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
           </div>
         )
 
+      case 4:
+        return (
+          <div className="space-y-6 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">Colaborare</h3>
+                <p className="text-sm text-slate-400">Adaugă agenți și defineste splituri</p>
+              </div>
+            </div>
+
+            {/* Collaboration Toggle */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-800 border border-slate-700">
+              <input
+                type="checkbox"
+                id="collaborative"
+                checked={isCollaborative}
+                onChange={(e) => {
+                  setIsCollaborative(e.target.checked)
+                  if (!e.target.checked) {
+                    setCollaborators([])
+                  } else {
+                    // Auto-add the main agent with appropriate split based on commission type
+                    if (commissionType === 'fixed') {
+                      const totalCommission = Number(formData.Comision || 0)
+                      setCollaborators([{ 
+                        name: formData.Agent || '', 
+                        split: totalCommission,
+                        splitType: 'fixed'
+                      }])
+                    } else {
+                      setCollaborators([{ 
+                        name: formData.Agent || '', 
+                        split: 100,
+                        splitType: 'percentage'
+                      }])
+                    }
+                  }
+                }}
+                className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-2"
+              />
+              <label htmlFor="collaborative" className="flex-1 text-white font-medium cursor-pointer">
+                Acesta este o colaborare între mai mulți agenți
+              </label>
+            </div>
+
+            {/* Collaborators List */}
+            {isCollaborative && (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  {collaborators.map((collab, idx) => {
+                    const totalCommission = Number(formData.Comision || 0)
+                    const collabSplitType = collab.splitType || (commissionType === 'fixed' ? 'fixed' : 'percentage')
+                    
+                    // Calculate percentage for display when using fixed split
+                    const splitPercentage = collabSplitType === 'fixed' && totalCommission > 0
+                      ? ((collab.split || 0) / totalCommission * 100).toFixed(2)
+                      : collab.split
+                    
+                    return (
+                      <motion.div
+                        key={idx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex gap-2 items-start"
+                      >
+                        <div className="flex-1 space-y-2">
+                          <Select
+                            value={collab.name}
+                            onValueChange={(value) => {
+                              const updated = [...collaborators]
+                              updated[idx].name = value
+                              setCollaborators(updated)
+                            }}
+                          >
+                            <SelectTrigger className="bg-slate-700 border-slate-600 text-white h-12">
+                              <SelectValue placeholder="Selectează agent" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-slate-700">
+                              {allAgents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.name} className="text-white hover:bg-slate-700 focus:bg-slate-700">
+                                  {agent.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          
+                          {/* Split Type Toggle - Only show when commission type is percentage */}
+                          {commissionType === 'percentage' && (
+                            <div className="flex gap-2 p-1 bg-slate-800 rounded-lg border border-slate-700">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...collaborators]
+                                  updated[idx].splitType = 'percentage'
+                                  // Keep current value if it's already percentage, otherwise convert
+                                  if (collab.splitType === 'fixed') {
+                                    updated[idx].split = (collab.split / totalCommission) * 100
+                                  }
+                                  setCollaborators(updated)
+                                }}
+                                className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
+                                  collabSplitType === 'percentage'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                %
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...collaborators]
+                                  updated[idx].splitType = 'fixed'
+                                  // Convert percentage to fixed amount
+                                  if (collab.splitType === 'percentage') {
+                                    updated[idx].split = (collab.split / 100) * totalCommission
+                                  }
+                                  setCollaborators(updated)
+                                }}
+                                className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-all ${
+                                  collabSplitType === 'fixed'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                €
+                              </button>
+                            </div>
+                          )}
+                          
+                          {/* Split Input */}
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              step={collabSplitType === 'fixed' ? '0.01' : '0.01'}
+                              min="0"
+                              max={collabSplitType === 'fixed' ? totalCommission : '100'}
+                              value={collab.split || ''}
+                              onChange={(e) => {
+                                const updated = [...collaborators]
+                                updated[idx].split = Number(e.target.value) || 0
+                                setCollaborators(updated)
+                              }}
+                              placeholder={collabSplitType === 'fixed' ? 'Suma în €' : 'Split %'}
+                              className="bg-slate-700 border-slate-600 text-white h-12"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
+                              {collabSplitType === 'fixed' ? '€' : '%'}
+                            </span>
+                          </div>
+                          
+                          {/* Show percentage as info when using fixed split */}
+                          {collabSplitType === 'fixed' && totalCommission > 0 && (
+                            <div className="text-xs text-slate-400 px-2">
+                              ≈ {splitPercentage}% din comisionul total
+                            </div>
+                          )}
+                        </div>
+                        {collaborators.length > 1 && (
+                          <Button
+                            onClick={() => setCollaborators(collaborators.filter((_, i) => i !== idx))}
+                            variant="ghost"
+                            size="icon"
+                            className="h-12 w-12 text-red-400 hover:text-red-300 hover:bg-red-500/20"
+                          >
+                            <XIcon className="h-5 w-5" />
+                          </Button>
+                        )}
+                      </motion.div>
+                    )
+                  })}
+                </div>
+
+                {/* Add Collaborator Button */}
+                {collaborators.length < allAgents.length && (
+                  <Button
+                    onClick={() => {
+                      const defaultSplitType = commissionType === 'fixed' ? 'fixed' : 'percentage'
+                      const defaultSplit = commissionType === 'fixed' ? 0 : 0
+                      setCollaborators([...collaborators, { name: '', split: defaultSplit, splitType: defaultSplitType }])
+                    }}
+                    variant="outline"
+                    className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    + Adaugă Agent
+                  </Button>
+                )}
+
+                {/* Split Summary */}
+                {collaborators.length > 0 && (() => {
+                  const totalCommission = Number(formData.Comision || 0)
+                  
+                  if (commissionType === 'fixed') {
+                    const totalSplit = collaborators.reduce((sum, c) => sum + (c.split || 0), 0)
+                    const isValid = totalSplit === totalCommission && totalCommission > 0
+                    
+                    return (
+                      <div className="p-4 rounded-xl bg-slate-800 border border-slate-700">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 text-sm">Total Split:</span>
+                          <span className={`text-lg font-bold ${isValid ? 'text-green-400' : 'text-red-400'}`}>
+                            €{totalSplit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-slate-400 text-xs">Comision Total:</span>
+                          <span className="text-slate-300 text-sm">
+                            €{totalCommission.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        {!isValid && (
+                          <p className="text-xs text-red-400 mt-2">
+                            ⚠️ Splitul trebuie să fie exact €{totalCommission.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  } else {
+                    const totalSplit = collaborators.reduce((sum, c) => {
+                      if (c.splitType === 'percentage') {
+                        return sum + (c.split || 0)
+                      } else {
+                        // Convert fixed to percentage
+                        return sum + ((c.split || 0) / totalCommission * 100)
+                      }
+                    }, 0)
+                    const isValid = Math.abs(totalSplit - 100) < 0.01
+                    
+                    return (
+                      <div className="p-4 rounded-xl bg-slate-800 border border-slate-700">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-400 text-sm">Total Split:</span>
+                          <span className={`text-lg font-bold ${isValid ? 'text-green-400' : 'text-red-400'}`}>
+                            {totalSplit.toFixed(2)}%
+                          </span>
+                        </div>
+                        {!isValid && (
+                          <p className="text-xs text-red-400 mt-2">⚠️ Splitul trebuie să fie exact 100%</p>
+                        )}
+                      </div>
+                    )
+                  }
+                })()}
+              </div>
+            )}
+          </div>
+        )
+
+
       case 5:
         return (
           <div className="space-y-6 p-6">
@@ -609,7 +778,19 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
 
                   {/* Collaborators breakdown */}
                   {collaborators.map((collab, idx) => {
-                    const agentCommission = (formData.Comision || 0) * (collab.split / 100)
+                    const totalCommission = Number(formData.Comision || 0)
+                    const collabSplitType = collab.splitType || (commissionType === 'fixed' ? 'fixed' : 'percentage')
+                    
+                    // Calculate agent commission based on split type
+                    const agentCommission = collabSplitType === 'fixed' 
+                      ? collab.split 
+                      : (totalCommission * (collab.split / 100))
+                    
+                    // Calculate percentage for display
+                    const splitPercentage = collabSplitType === 'fixed' && totalCommission > 0
+                      ? ((collab.split / totalCommission) * 100).toFixed(2)
+                      : collab.split.toFixed(2)
+                    
                     return (
                       <div key={idx} className="p-4 rounded-xl bg-slate-800 border border-slate-700">
                         <div className="space-y-2">
@@ -619,8 +800,18 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-slate-400 text-sm">Split:</span>
-                            <span className="text-white font-semibold">{collab.split}%</span>
+                            <span className="text-white font-semibold">
+                              {collabSplitType === 'fixed' 
+                                ? `€${collab.split.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : `${collab.split}%`}
+                            </span>
                           </div>
+                          {collabSplitType === 'fixed' && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-400 text-xs">Echivalent:</span>
+                              <span className="text-slate-500 text-xs">{splitPercentage}%</span>
+                            </div>
+                          )}
                           <div className="h-px bg-slate-700 my-2" />
                           <div className="flex justify-between items-center pt-1">
                             <span className="text-slate-400 text-sm font-medium">Comision Agent:</span>
@@ -659,7 +850,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
         
         // Submit each collaborator's transaction
         const promises = collaborators.map(collab => {
-          const agentCommission = (formData.Comision || 0) * (collab.split / 100)
+          const totalCommission = Number(formData.Comision || 0)
+          const collabSplitType = collab.splitType || (commissionType === 'fixed' ? 'fixed' : 'percentage')
+          
+          // Calculate agent commission based on split type
+          const agentCommission = collabSplitType === 'fixed' 
+            ? collab.split 
+            : (totalCommission * (collab.split / 100))
+          
           const agentComisionPct = agentCommission / (formData['Valoare Tranzactie'] || 1)
           
           return fetch('/api/admin/add-transaction', {

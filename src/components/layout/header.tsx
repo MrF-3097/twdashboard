@@ -14,7 +14,7 @@ export function Header({ onProfileClick, streak = 7 }: HeaderProps) {
   return (
     <>
       <PwaInstallButton />
-      <header className="sticky top-0 z-50 w-full bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] border-b border-white/20 md:bg-gradient-to-br md:from-[#1E293B] md:via-[#334155] md:to-[#475569] md:backdrop-blur md:supports-[backdrop-filter]:bg-gradient-to-br md:supports-[backdrop-filter]:from-[#1E293B] md:supports-[backdrop-filter]:via-[#334155] md:supports-[backdrop-filter]:to-[#475569]">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full bg-transparent backdrop-blur-md border-b border-white/10">
         <div className="container flex h-14 md:h-16 items-center justify-between px-3 md:px-4">
           {/* Mobile - Minimal Logo */}
           <div className="flex items-center space-x-2 md:space-x-3 md:hidden">

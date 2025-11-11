@@ -1,9 +1,15 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Montserrat } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
+import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
 
 const inter = Inter({ subsets: ['latin'] })
+const montserrat = Montserrat({ 
+  subsets: ['latin'],
+  variable: '--font-montserrat',
+  weight: ['400', '500', '600', '700', '800', '900'],
+})
 
 export const metadata: Metadata = {
   title: 'Tower Imob - Instrumente Documente & Imobiliare',
@@ -45,7 +51,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Tower Imob" />
       </head>
-      <body className={`${inter.className} dark`}>
+      <body className={`${inter.className} ${montserrat.variable} dark`}>
+        <ServiceWorkerRegister />
         {children}
         <Toaster />
       </body>

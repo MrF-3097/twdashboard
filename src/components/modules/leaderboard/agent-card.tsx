@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown, Trophy, Star, Award, Zap } from 'lucide-react'
 import type { Agent } from '@/types'
 import { Card } from '@/components/ui/card'
+import { useAuth } from '@/hooks/use-auth'
 
 interface AgentCardProps {
   agent: Agent
@@ -28,19 +29,21 @@ const getRankIcon = (rank: number) => {
 const getRankBackground = (rank: number) => {
   switch (rank) {
     case 1:
-      return 'bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] border-yellow-500/30'
+      return 'bg-transparent border-yellow-500/30'
     case 2:
-      return 'bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] border-gray-400/30'
+      return 'bg-transparent border-gray-400/30'
     case 3:
-      return 'bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] border-orange-700/30'
+      return 'bg-transparent border-orange-700/30'
     default:
-      return 'bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569] border-white/20'
+      return 'bg-transparent border-white/20'
   }
 }
 
 export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, rankChange }) => {
+  const { agentData } = useAuth()
   const rank = agent.rank || index + 1
   const isTopThree = rank <= 3
+  const isCurrentUser = agentData?.name === agent.name || agentData?.id === agent.id
 
   return (
     <motion.div
@@ -55,10 +58,28 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
       <div
         className={`relative overflow-hidden cursor-pointer transition-all duration-300 ${getRankBackground(
           rank
-        )} hover:shadow-xl rounded-[20px] shadow-xl`}
+        )} hover:border-white/30 rounded-2xl border ${isCurrentUser ? 'ring-2 ring-yellow-400/50 ring-offset-2 ring-offset-transparent' : ''}`}
       >
         {/* Background pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.2),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(71,85,105,0.1),transparent_50%)]" />
+        
+        {/* Glow effect for current user */}
+        {isCurrentUser && (
+          <motion.div
+            className="absolute inset-0 opacity-40 z-10"
+            animate={{
+              boxShadow: [
+                '0 0 20px rgba(253, 224, 71, 0.4)',
+                '0 0 30px rgba(253, 224, 71, 0.6)',
+                '0 0 20px rgba(253, 224, 71, 0.4)',
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+            style={{
+              background: 'radial-gradient(circle at center, rgba(253, 224, 71, 0.2) 0%, transparent 70%)',
+            }}
+          />
+        )}
         
         {/* Rank change indicator */}
         {rankChange && rankChange !== 'same' && (
@@ -79,7 +100,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({ agent, index, onClick, ran
         )}
 
         {/* Glow effect for top positions */}
-        {isTopThree && (
+        {isTopThree && !isCurrentUser && (
           <motion.div
             className="absolute inset-0 opacity-30 z-10"
             animate={{

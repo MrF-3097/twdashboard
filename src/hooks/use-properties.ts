@@ -13,6 +13,7 @@ const propertySchema = z.object({
   bedrooms: z.number().optional().nullable(), // Dormitoare
   bathrooms: z.number().optional().nullable(), // Nr. băi
   surface_total: z.number().optional().nullable(), // S. totală (mp)
+  surface_useable: z.number().optional().nullable(), // S. utilă (mp) - suprafata utila
   availability: z.union([z.number(), z.string()]).optional().nullable(), // Valabilitate (1 = Activă) - can be number or string
   address: z.string().optional().nullable(),
   city: z.string().optional().nullable(),

@@ -20,7 +20,7 @@ export const MobileModuleGrid = ({ onModuleSelect }: MobileModuleGridProps) => {
       id: 'real-estate',
       icon: Building2,
       emoji: '🏠',
-      color: 'from-purple-400 to-purple-600',
+      color: 'from-[#10B981] to-[#34D399]',
       bgLight: 'bg-gradient-to-br from-[#1E293B] via-[#334155] to-[#475569]',
     },
     {

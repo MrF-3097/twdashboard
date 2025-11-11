@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Agent, AgentStats, LeaderboardRankChange } from '@/types'
 import { useLeaderboard } from './use-commissions'
 import type { LeaderboardRow } from '@/types/commissions'
@@ -22,6 +22,7 @@ export const useAgentLeaderboard = (
   const [error, setError] = useState<string | null>(null)
   const [rankChanges, setRankChanges] = useState<LeaderboardRankChange[]>([])
   const [rebsAgents, setRebsAgents] = useState<any[]>([])
+  const previousAgentsRef = useRef<Agent[]>([])
   
   // Fetch commission spreadsheet data
   const { data: commissionData, error: commissionError, isLoading: commissionLoading, refresh } = useLeaderboard()
@@ -146,15 +147,16 @@ export const useAgentLeaderboard = (
         setAgents([])
         setStats(null)
         setIsLoading(false)
+        previousAgentsRef.current = []
         return
       }
 
       // Process commission spreadsheet data
       const processedAgents = processAgentData(commissionData.rows)
 
-      // Detect rank changes
-      if (agents.length > 0) {
-        const changes = detectRankChanges(agents, processedAgents)
+      // Detect rank changes using ref to avoid dependency loop
+      if (previousAgentsRef.current.length > 0) {
+        const changes = detectRankChanges(previousAgentsRef.current, processedAgents)
         if (changes.length > 0) {
           setRankChanges(changes)
           // Clear rank changes after 5 seconds
@@ -162,6 +164,8 @@ export const useAgentLeaderboard = (
         }
       }
 
+      // Update ref before setting state
+      previousAgentsRef.current = processedAgents
       setAgents(processedAgents)
       setStats(calculateStats(processedAgents))
       setIsLoading(false)
@@ -170,7 +174,7 @@ export const useAgentLeaderboard = (
       console.error('Error processing agents:', err)
       setIsLoading(false)
     }
-  }, [commissionData, commissionError, commissionLoading, agents, processAgentData, detectRankChanges])
+  }, [commissionData, commissionError, commissionLoading, processAgentData, detectRankChanges])
 
   const refetch = useCallback(async () => {
     setIsLoading(true)

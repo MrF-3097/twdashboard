@@ -129,6 +129,7 @@ export async function PUT(request: NextRequest) {
         'chirie': 1,
         'colaborare': 1,
         'exclusivitate': 1,
+        'vanzare-grup': 3,
         'vizionare': 5,
       }
 

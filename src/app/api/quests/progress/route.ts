@@ -69,15 +69,26 @@ export async function GET(request: NextRequest) {
       }>
     }> = {}
     
+    // Group by agentId only (more reliable than agentId-agentName combo)
+    // Then use the most recent agentName for display
     for (const record of records) {
-      const key = `${record.agentId}-${record.agentName}`
+      const agentId = record.agentId
       
-      if (!grouped[key]) {
-        grouped[key] = {
+      if (!grouped[agentId]) {
+        grouped[agentId] = {
           agentId: record.agentId,
-          agentName: record.agentName,
+          agentName: record.agentName, // Use first encountered name
           individual: [],
           group: [],
+        }
+      }
+      
+      // Update agentName if we find a newer record (more reliable)
+      // This handles cases where agentName might have slight variations
+      if (record.lastUpdatedAt && grouped[agentId].agentName !== record.agentName) {
+        const existingDate = records.find(r => r.agentId === agentId && r.agentName === grouped[agentId].agentName)?.lastUpdatedAt
+        if (!existingDate || (record.lastUpdatedAt > existingDate)) {
+          grouped[agentId].agentName = record.agentName
         }
       }
       
@@ -90,9 +101,9 @@ export async function GET(request: NextRequest) {
       }
       
       if (record.questType === 'individual') {
-        grouped[key].individual.push(questData)
+        grouped[agentId].individual.push(questData)
       } else {
-        grouped[key].group.push(questData)
+        grouped[agentId].group.push(questData)
       }
     }
     
@@ -114,12 +125,20 @@ export async function GET(request: NextRequest) {
       })),
     })
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: responseData,
       count: records.length,
       timestamp: new Date().toISOString(),
     })
+
+    // Prevent caching to ensure fresh data
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    response.headers.set('Surrogate-Control', 'no-store')
+
+    return response
   } catch (error) {
     console.error('❌ Error fetching quest progress:', error)
     return NextResponse.json(
