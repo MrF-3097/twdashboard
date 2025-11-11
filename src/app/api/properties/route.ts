@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         console.log(`🔄 Trying REBS API method: ${method.url.includes('api_key') ? 'GET parameter' : 'Authorization header'}`)
         
         // Fetch all properties with pagination
-        const allPropertiesData = await fetchAllProperties(REBS_API_BASE, method.headers)
+        const allPropertiesData = await fetchAllProperties(REBS_API_BASE, method.headers as Record<string, string>)
         
         console.log(`✅ Successfully fetched ALL properties from REBS API: ${allPropertiesData.objects.length} active properties`)
         
