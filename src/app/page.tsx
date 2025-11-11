@@ -291,8 +291,8 @@ export default function Dashboard() {
         agentName={agentName}
         onLogout={logout}
         variant={
-          mobileTab === 'profile' ? 'profile' :
           mobileTab === 'leaderboard' ? 'stats' :
+          mobileTab === 'profile' ? 'profile' :
           mobileTab === 'news' ? 'news' :
           mobileTab === 'home' ? 'default' :
           selectedModule === 'portfolio' ? 'portfolio' :
