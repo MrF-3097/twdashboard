@@ -1,9 +1,9 @@
 // Service Worker for Tower Imob PWA
-// Version: 1.0.0
+// Version: 1.1.0
 // This ensures PWA updates work correctly on Android
 // Update the version number when deploying to force service worker update
 
-const VERSION = '1.0.0'
+const VERSION = '1.1.0'
 const CACHE_NAME = `tower-imob-${VERSION}`
 const STATIC_CACHE_NAME = `tower-imob-static-${VERSION}`
 const DYNAMIC_CACHE_NAME = `tower-imob-dynamic-${VERSION}`
