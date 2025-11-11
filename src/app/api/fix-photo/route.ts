@@ -168,6 +168,6 @@ async function processPhoto(
   
   console.log('✅ Photo processing complete')
   
-  return finalBuffer
+  return finalBuffer as any;
 }
 
