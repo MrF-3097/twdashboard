@@ -562,7 +562,9 @@ export default function Dashboard() {
 
       </main>
 
-      <Footer className="hidden md:block" />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
       
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav 
