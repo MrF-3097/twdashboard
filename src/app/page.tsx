@@ -290,16 +290,17 @@ export default function Dashboard() {
         recentTransactions={recentTransactions}
         agentName={agentName}
         onLogout={logout}
-        variant={
-          (mobileTab === 'leaderboard' ? 'stats' :
-          mobileTab === 'profile' ? 'profile' :
-          mobileTab === 'news' ? 'news' :
-          mobileTab === 'home' ? 'default' :
-          selectedModule === 'portfolio' ? 'portfolio' :
-          selectedModule === 'real-estate' ? 'imobiliare' :
-          selectedModule === 'documents' ? 'documents' :
-          'default') as 'default' | 'portfolio' | 'profile' | 'stats' | 'imobiliare' | 'documents' | 'news'
-        }
+        variant={(() => {
+          const tab = mobileTab
+          if (tab === 'leaderboard') return 'stats'
+          if (tab === 'profile') return 'profile'
+          if (tab === 'news') return 'news'
+          if (tab === 'home') return 'default'
+          if (selectedModule === 'portfolio') return 'portfolio'
+          if (selectedModule === 'real-estate') return 'imobiliare'
+          if (selectedModule === 'documents') return 'documents'
+          return 'default'
+        })()}
       />
       )}
       
