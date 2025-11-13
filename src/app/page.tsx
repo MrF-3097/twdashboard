@@ -15,10 +15,10 @@ import { MonthlyKPICard } from '@/components/layout/monthly-kpi-card'
 import { YTDCard } from '@/components/layout/ytd-card'
 import { TransactionStats } from '@/components/layout/transaction-stats'
 import { CommissionChart } from '@/components/layout/commission-chart'
-import dynamic from 'next/dynamic'
+import nextDynamic from 'next/dynamic'
 
 // Dynamically import chart component with SSR disabled to prevent window is not defined errors
-const CommissionComparisonChart = dynamic(
+const CommissionComparisonChart = nextDynamic(
   () => import('@/components/layout/commission-comparison-chart').then(mod => ({ default: mod.CommissionComparisonChart })),
   { ssr: false }
 )
