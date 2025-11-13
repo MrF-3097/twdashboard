@@ -4,7 +4,10 @@ import { useMemo, useEffect, useState } from 'react'
 import { useTransactions } from '@/hooks/use-commissions'
 import { useAuth } from '@/hooks/use-auth'
 import { TrendingUp } from 'lucide-react'
-import HorizonLineChart from '@/components/charts/horizon-line-chart'
+import dynamic from 'next/dynamic'
+
+// Dynamically import chart component with SSR disabled to prevent window is not defined errors
+const HorizonLineChart = dynamic(() => import('@/components/charts/horizon-line-chart'), { ssr: false })
 
 interface DayData {
   day: number
