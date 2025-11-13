@@ -38,11 +38,25 @@ export async function POST(request: NextRequest) {
     
     console.log(`✅ [API] Inserted transaction with ID: ${inserted.id}`)
 
+    // Invalidate leaderboard cache by returning updated timestamp
+    const updatedAt = new Date().toISOString()
+
     console.log('✅ [API] Returning success response')
     return NextResponse.json({
       success: true,
-      data: { id: inserted.id, transaction: inserted },
+      data: { 
+        id: inserted.id, 
+        transaction: inserted,
+        updated_at: updatedAt,
+      },
       message: 'Transaction added successfully',
+      // Include timestamp so external systems know when to refresh
+      cache_invalidated: true,
+    }, {
+      headers: {
+        // Signal that leaderboard data has changed
+        'X-Leaderboard-Updated': updatedAt,
+      },
     })
 
   } catch (error) {

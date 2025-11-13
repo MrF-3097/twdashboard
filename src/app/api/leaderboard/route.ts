@@ -247,7 +247,10 @@ export async function GET(request: NextRequest) {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        // Reduced cache time to ensure changes are visible quickly
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=10',
+        // Add ETag for cache validation
+        'ETag': `"${response.meta.updated_at}"`,
       },
     })
 

@@ -905,6 +905,23 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       // Success - refresh leaderboard, reset and close
       await refreshLeaderboard()
       
+      // Notify external systems (optional - for webhook support)
+      try {
+        await fetch('/api/leaderboard/webhook', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'transaction_added',
+            data: { count: isCollaborative ? collaborators.length : 1 },
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(() => {
+          // Ignore webhook errors - it's optional
+        })
+      } catch (err) {
+        // Ignore webhook errors
+      }
+      
       setFormData({
         Agent: '',
         'Valoare Tranzactie': '',
