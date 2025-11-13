@@ -1,5 +1,98 @@
 # Agent Dashboard Minimal
 
+## Francesco 12.11.2025 : Client Request Modal with REBS CRM Integration
+
+Summary
+- **New FAB entry**: Added "Adaugă Cerere" (Add Request) entry to the mobile bottom navigation FAB menu, accessible alongside existing module entries (Imobiliare, Documente, etc.).
+- **Multi-step request modal**: Implemented animated step-by-step modal (`add-request-modal.tsx`) for collecting client request information, similar to the "Adaugă tranzacție" modal in admin dashboard.
+- **REBS CRM integration**: Created API endpoint (`/api/rebs/add-request`) that maps form data to REBS CRM API format and submits leads using the logged-in agent's credentials.
+- **Form fields**: Modal collects Nume, Prenume, Telefon, Email, Tip Contact, Tip Proprietate, Camere min/max, Buget min/max, and Comentarii Generale (free text).
+- **Data mapping**: Form data is intelligently mapped to REBS API requirements - combines Nume/Prenume into `name`, embeds all property details in `message` field, sets `lead_source` to 'Dashboard Agent'.
+- **Bug fixes**: Fixed infinite loop issue in agent detail modal using `useRef` and `useCallback` to prevent redundant state updates.
+- **Debug improvements**: Made debug panel minimizable in leaderboard component and hidden PWA checker components in production.
+
+Why These Changes
+- Agents need a quick way to add client requests/leads directly from the mobile dashboard.
+- REBS CRM requires specific field format (only accepts `name`, `phone`, `email`, `lead_source`, `message`), so form data must be mapped and embedded in message field.
+- Previous modal implementation had infinite loop bug causing "Maximum update depth exceeded" errors when clicking agent cards.
+- Debug panels were blocking the UI and needed to be minimizable or hidden.
+
+Technical Implementation
+- **New Component** (`src/components/modules/add-request-modal.tsx`):
+  - 5-step animated modal using Radix UI Dialog, Modal components, and Framer Motion.
+  - Steps: Contact Info → Property Details → Budget → Rooms → Additional Info.
+  - Form validation with `canProceedToNextStep` logic for each step.
+  - Mobile optimizations: Reduced padding (`px-3 md:px-6`), spacing (`gap-2 md:gap-4`), font sizes (`text-sm md:text-base`), and component heights.
+  - Success/error messaging with animated transitions.
+  - Integrates with `useAuth` hook to automatically get logged-in agent name.
+- **API Endpoint** (`src/app/api/rebs/add-request/route.ts`):
+  - `POST /api/rebs/add-request`: Receives form data and maps to REBS API format.
+  - Combines `nume` and `prenume` into `fullName` for `name` field.
+  - Constructs detailed `message` string containing: agent info, contact type, property type, room range, budget range, general comments.
+  - Sends only allowed fields to REBS: `name`, `phone`, `email`, `lead_source`, `message`.
+  - Validates required fields (`nume`, `prenume`).
+  - Uses `export const dynamic = 'force-dynamic'` for server-side rendering.
+- **Mobile Navigation** (`src/components/layout/mobile-bottom-nav.tsx`):
+  - Added `onAddRequest?: () => void` prop to `MobileBottomNavProps`.
+  - Added `{ id: 'add-request', icon: UserPlus, label: 'Adaugă Cerere', isAction: true }` to `tools` array.
+  - Modified `handleToolSelect` to check for `isAction` flag and call `onAddRequest()` callback.
+- **Main Dashboard** (`src/app/page.tsx`):
+  - Added `showAddRequestModal` state and `setShowAddRequestModal` to control modal visibility.
+  - Passed `onAddRequest={() => setShowAddRequestModal(true)}` to `MobileBottomNav` component.
+  - Integrated `AddRequestModal` component with controlled open state.
+- **Bug Fixes**:
+  - **Agent Detail Modal** (`src/components/modules/leaderboard/agent-detail-modal.tsx`):
+    - Used `useRef` for `isOpenRef` and `onCloseRef` to track state without causing re-renders.
+    - Refined `handleOpenChange` to only call `onClose` on user-initiated close events.
+    - Synchronously updated `isOpenRef.current = false` before calling `onCloseRef.current()` to prevent re-triggering.
+  - **Leaderboard Debug Panel** (`src/components/modules/leaderboard/gamified-leaderboard.tsx`):
+    - Added `isDebugMinimized` state and toggle button to make debug panel minimizable.
+    - Debug panel collapses to small button in bottom-right corner when minimized.
+  - **PWA Components** (`src/app/layout.tsx`):
+    - Removed `PWAInstallabilityChecker` and `ForceInstallCheck` components from rendering in development mode.
+
+API Integration Details
+- **REBS API Endpoint**: `POST https://rebs-api-url/leads` (configured via environment variables).
+- **Required Fields**: Only `name`, `phone`, `email`, `lead_source`, `message` are accepted by REBS API.
+- **Field Mapping**:
+  - `name`: Combined from `nume` + `prenume`.
+  - `phone`: Direct mapping from `telefon`.
+  - `email`: Direct mapping from form field (optional).
+  - `lead_source`: Hardcoded to 'Dashboard Agent'.
+  - `message`: Comprehensive string containing all form data:
+    - Agent name (from logged-in user)
+    - Contact type (Tip Contact)
+    - Property type (Tip Proprietate)
+    - Room range (Camere min - max)
+    - Budget range (Buget min - max)
+    - General comments (Comentarii Generale)
+- **Error Handling**: API route validates required fields and returns appropriate error messages if validation fails or REBS API call fails.
+
+Mobile Optimizations
+- **Modal Layout**: Reduced padding and spacing for mobile devices (`px-3 md:px-6`, `gap-2 md:gap-4`).
+- **Typography**: Smaller font sizes on mobile (`text-sm md:text-base` for inputs, `text-xs md:text-sm` for labels).
+- **Step Indicators**: Smaller step indicators on mobile with reduced icon sizes.
+- **Buttons**: Changed "Înapoi" to "←" and "Adaugă Cerere" to "Adaugă" on small screens for space efficiency.
+- **Button Placement**: Removed `ModalFooter` and moved navigation/submit buttons directly inside `ModalContent` with top border for better mobile UX.
+- **Contact Step**: Reduced fields in Step 1 to only essential ones (Nume*, Prenume*, Telefon), moved Email and Tip Contact to Step 2.
+
+UI Changes
+- **FAB Menu**: New "Adaugă Cerere" entry appears in mobile bottom navigation FAB menu.
+- **Request Modal**: New 5-step animated modal with progress indicator, step-by-step navigation, and form validation.
+- **Success/Error States**: Animated success message with checkmark icon and error message display.
+- **Debug Panel**: Minimizable debug panel in leaderboard (collapses to small button when minimized).
+- **PWA Components**: Hidden PWA checker and force install check components in production.
+
+Result
+- Agents can now quickly add client requests/leads directly from mobile dashboard via FAB menu.
+- All form data is properly mapped and submitted to REBS CRM using logged-in agent credentials.
+- Modal provides smooth, step-by-step user experience with proper validation and mobile optimizations.
+- Fixed infinite loop bug in agent detail modal, preventing "Maximum update depth exceeded" errors.
+- Debug panel no longer blocks UI view, can be minimized when not needed.
+- Cleaner production environment without PWA debug components.
+
+---
+
 ## Francesco 19.01.2025 : Admin Quest Management Interface
 
 Summary
