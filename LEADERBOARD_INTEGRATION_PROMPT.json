@@ -1,0 +1,366 @@
+{
+  "project_context": {
+    "name": "Agent Dashboard Leaderboard Integration",
+    "description": "This document contains all information needed to build a separate leaderboard display that syncs with the main Agent Dashboard",
+    "use_case": "Display leaderboard on Smart TV or separate port/project",
+    "source_project": "Agent Dashboard Minimal",
+    "target_project": "Separate Leaderboard Display"
+  },
+  "api_endpoint": {
+    "url": "http://your-dashboard-server:3000/api/leaderboard",
+    "method": "GET",
+    "cors_enabled": true,
+    "cache_duration_seconds": 5,
+    "update_frequency": "Changes appear within 5 seconds of admin updates"
+  },
+  "query_parameters": {
+    "since": {
+      "type": "string (ISO date)",
+      "required": false,
+      "description": "Filter transactions since this date (e.g., '2025-01-01T00:00:00Z')",
+      "example": "?since=2025-01-01T00:00:00Z"
+    },
+    "agent": {
+      "type": "string",
+      "required": false,
+      "description": "Filter by specific agent name",
+      "example": "?agent=Maria%20Popescu"
+    },
+    "limit": {
+      "type": "number",
+      "required": false,
+      "description": "Limit number of results returned",
+      "example": "?limit=10"
+    },
+    "include_stats": {
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "Include statistics in response",
+      "example": "?include_stats=false"
+    }
+  },
+  "response_structure": {
+    "success": {
+      "type": "boolean",
+      "description": "Whether the request was successful"
+    },
+    "data": {
+      "agents": {
+        "type": "array",
+        "description": "Array of agent objects with leaderboard data",
+        "item_structure": {
+          "id": {
+            "type": "number | string",
+            "description": "Unique identifier (hash of agent name)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Full name of the agent"
+          },
+          "rank": {
+            "type": "number",
+            "description": "Current rank in leaderboard (1 = top performer)"
+          },
+          "email": {
+            "type": "string | null",
+            "description": "Email address from REBS CRM"
+          },
+          "phone": {
+            "type": "string | null",
+            "description": "Phone number from REBS CRM"
+          },
+          "avatar": {
+            "type": "string | null",
+            "description": "Avatar URL from REBS CRM"
+          },
+          "profile_picture": {
+            "type": "string | null",
+            "description": "Profile picture URL from REBS CRM"
+          },
+          "closed_transactions": {
+            "type": "number",
+            "description": "Number of closed transactions"
+          },
+          "total_value": {
+            "type": "number",
+            "description": "Total value of all transactions (EUR)"
+          },
+          "total_commission": {
+            "type": "number",
+            "description": "Total commission earned (EUR)"
+          },
+          "xp": {
+            "type": "number",
+            "description": "Experience points (1 XP per euro of commission)"
+          },
+          "level": {
+            "type": "number",
+            "description": "Agent level (level up every 1000 XP)"
+          },
+          "active_listings": {
+            "type": "number | null",
+            "description": "Number of active property listings"
+          },
+          "position": {
+            "type": "string | null",
+            "description": "Job position from REBS CRM"
+          },
+          "first_name": {
+            "type": "string | null",
+            "description": "First name from REBS CRM"
+          },
+          "last_name": {
+            "type": "string | null",
+            "description": "Last name from REBS CRM"
+          }
+        }
+      },
+      "stats": {
+        "type": "object",
+        "description": "Overall leaderboard statistics",
+        "structure": {
+          "total_agents": {
+            "type": "number",
+            "description": "Total number of agents in leaderboard"
+          },
+          "total_transactions": {
+            "type": "number",
+            "description": "Sum of all closed transactions"
+          },
+          "total_sales_value": {
+            "type": "number",
+            "description": "Sum of all transaction values (EUR)"
+          },
+          "total_commission": {
+            "type": "number",
+            "description": "Sum of all commissions (EUR)"
+          },
+          "top_performer": {
+            "type": "object | null",
+            "description": "Agent object for rank #1 (same structure as agents array items)"
+          },
+          "updated_at": {
+            "type": "string (ISO date)",
+            "description": "Timestamp of last update"
+          }
+        }
+      }
+    },
+    "meta": {
+      "count": {
+        "type": "number",
+        "description": "Number of agents returned"
+      },
+      "updated_at": {
+        "type": "string (ISO date)",
+        "description": "Timestamp of API response"
+      }
+    }
+  },
+  "response_headers": {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10",
+    "ETag": "Timestamp-based ETag for cache validation"
+  },
+  "integration_requirements": {
+    "polling_interval": {
+      "recommended": 5000,
+      "minimum": 5000,
+      "maximum": 10000,
+      "unit": "milliseconds",
+      "description": "Poll API every 5-10 seconds for near real-time updates"
+    },
+    "error_handling": {
+      "required": true,
+      "description": "Implement retry logic with exponential backoff",
+      "retry_attempts": 3,
+      "backoff_strategy": "exponential"
+    },
+    "cache_validation": {
+      "method": "ETag",
+      "description": "Use If-None-Match header with ETag for efficient updates",
+      "benefit": "Reduces bandwidth when data hasn't changed"
+    }
+  },
+  "code_examples": {
+    "typescript_basic": {
+      "language": "TypeScript",
+      "description": "Basic polling implementation",
+      "code": "const POLL_INTERVAL = 5000;\n\nasync function fetchLeaderboard() {\n  try {\n    const response = await fetch('http://your-dashboard-server:3000/api/leaderboard');\n    const data = await response.json();\n    \n    if (data.success) {\n      updateDisplay(data.data.agents, data.data.stats);\n    }\n  } catch (error) {\n    console.error('Failed to fetch leaderboard:', error);\n  }\n}\n\nsetInterval(fetchLeaderboard, POLL_INTERVAL);\nfetchLeaderboard(); // Initial fetch"
+    },
+    "react_hook": {
+      "language": "TypeScript/React",
+      "description": "React hook for leaderboard data",
+      "code": "import { useEffect, useState } from 'react';\n\nconst API_URL = 'http://your-dashboard-server:3000/api/leaderboard';\nconst POLL_INTERVAL = 5000;\n\ninterface Agent {\n  id: string | number;\n  name: string;\n  rank: number;\n  closed_transactions: number;\n  total_value: number;\n  total_commission: number;\n  xp: number;\n  level: number;\n  avatar?: string;\n  email?: string;\n  phone?: string;\n}\n\ninterface Stats {\n  total_agents: number;\n  total_transactions: number;\n  total_sales_value: number;\n  total_commission: number;\n  top_performer: Agent | null;\n  updated_at: string;\n}\n\nexport function useLeaderboard() {\n  const [agents, setAgents] = useState<Agent[]>([]);\n  const [stats, setStats] = useState<Stats | null>(null);\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState<string | null>(null);\n\n  useEffect(() => {\n    let intervalId: NodeJS.Timeout;\n\n    const fetchData = async () => {\n      try {\n        const response = await fetch(API_URL);\n        const data = await response.json();\n        \n        if (data.success) {\n          setAgents(data.data.agents);\n          setStats(data.data.stats);\n          setError(null);\n        } else {\n          setError(data.error || 'Failed to fetch leaderboard');\n        }\n      } catch (err) {\n        setError(err instanceof Error ? err.message : 'Network error');\n      } finally {\n        setLoading(false);\n      }\n    };\n\n    fetchData();\n    intervalId = setInterval(fetchData, POLL_INTERVAL);\n\n    return () => {\n      if (intervalId) clearInterval(intervalId);\n    };\n  }, []);\n\n  return { agents, stats, loading, error };\n}"
+    },
+    "etag_optimization": {
+      "language": "TypeScript",
+      "description": "Using ETag for efficient cache validation",
+      "code": "let lastETag: string | null = null;\n\nasync function fetchLeaderboardWithETag() {\n  const headers: HeadersInit = {};\n  if (lastETag) {\n    headers['If-None-Match'] = lastETag;\n  }\n  \n  const response = await fetch('http://your-dashboard-server:3000/api/leaderboard', { headers });\n  \n  if (response.status === 304) {\n    // Not modified - no update needed\n    return;\n  }\n  \n  const etag = response.headers.get('ETag');\n  if (etag) {\n    lastETag = etag;\n  }\n  \n  const data = await response.json();\n  if (data.success) {\n    updateDisplay(data.data.agents, data.data.stats);\n  }\n}"
+    },
+    "error_retry": {
+      "language": "TypeScript",
+      "description": "Error handling with retry logic",
+      "code": "async function fetchWithRetry(url: string, retries = 3): Promise<any> {\n  for (let i = 0; i < retries; i++) {\n    try {\n      const response = await fetch(url);\n      if (response.ok) {\n        return await response.json();\n      }\n      throw new Error(`HTTP ${response.status}`);\n    } catch (error) {\n      if (i === retries - 1) throw error;\n      // Exponential backoff: 1s, 2s, 4s\n      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));\n    }\n  }\n}"
+    }
+  },
+  "gamification_rules": {
+    "xp_calculation": {
+      "formula": "1 XP per euro of commission",
+      "example": "Commission: 1250€ = 1250 XP"
+    },
+    "level_calculation": {
+      "formula": "floor(XP / 1000) + 1",
+      "example": "XP: 1250 = Level 2, XP: 5000 = Level 6"
+    },
+    "ranking": {
+      "metric": "total_commission",
+      "order": "descending",
+      "description": "Agents ranked by total commission earned (highest first)"
+    }
+  },
+  "synchronization_flow": {
+    "step_1": {
+      "action": "Admin adds transaction",
+      "location": "Main dashboard at /admin",
+      "endpoint": "/api/admin/add-transaction"
+    },
+    "step_2": {
+      "action": "Transaction saved to database",
+      "description": "Immediate database write"
+    },
+    "step_3": {
+      "action": "API reads fresh data",
+      "description": "No cache on database queries"
+    },
+    "step_4": {
+      "action": "External leaderboard polls API",
+      "frequency": "Every 5-10 seconds"
+    },
+    "step_5": {
+      "action": "Changes visible",
+      "timeline": "Within 5 seconds maximum"
+    }
+  },
+  "display_recommendations": {
+    "for_smart_tv": {
+      "polling_interval": 5000,
+      "display_refresh": "Update UI immediately when new data arrives",
+      "animations": "Smooth transitions for rank changes",
+      "layout": "Large, readable text for TV viewing distance"
+    },
+    "key_metrics_to_display": [
+      "Rank (prominent)",
+      "Agent name",
+      "Total commission (EUR)",
+      "XP and Level",
+      "Closed transactions count",
+      "Avatar/profile picture"
+    ],
+    "optional_metrics": [
+      "Total sales value",
+      "Email/Phone (if needed)",
+      "Position",
+      "Active listings"
+    ]
+  },
+  "error_scenarios": {
+    "network_error": {
+      "handling": "Retry with exponential backoff",
+      "max_retries": 3,
+      "fallback": "Show cached data if available"
+    },
+    "api_error": {
+      "handling": "Check response.success flag",
+      "display": "Show error message to user",
+      "continue_polling": true
+    },
+    "timeout": {
+      "handling": "Increase timeout or reduce polling frequency",
+      "recommendation": "Use fetch with timeout wrapper"
+    }
+  },
+  "testing_checklist": {
+    "verify_api_access": "Test API endpoint is reachable",
+    "verify_data_structure": "Check response matches expected format",
+    "verify_polling": "Confirm updates appear within 5-10 seconds",
+    "verify_error_handling": "Test behavior when API is unavailable",
+    "verify_sync": "Add transaction in admin, verify it appears in display",
+    "verify_performance": "Ensure polling doesn't cause performance issues"
+  },
+  "configuration_template": {
+    "api_base_url": "http://your-dashboard-server:3000",
+    "polling_interval_ms": 5000,
+    "enable_etag": true,
+    "retry_attempts": 3,
+    "retry_backoff_ms": 1000,
+    "timeout_ms": 10000,
+    "display_config": {
+      "show_avatars": true,
+      "show_xp_level": true,
+      "show_transaction_count": true,
+      "show_total_value": false,
+      "max_agents_displayed": null,
+      "highlight_top_three": true
+    }
+  },
+  "example_response": {
+    "success": true,
+    "data": {
+      "agents": [
+        {
+          "id": 1234,
+          "name": "Maria Popescu",
+          "rank": 1,
+          "email": "maria.popescu@rebs.ro",
+          "phone": "+40 722 123 456",
+          "avatar": "https://example.com/avatar.jpg",
+          "closed_transactions": 28,
+          "total_value": 3500000,
+          "total_commission": 12500,
+          "xp": 12500,
+          "level": 13,
+          "active_listings": 12,
+          "position": "Senior Agent",
+          "first_name": "Maria",
+          "last_name": "Popescu"
+        }
+      ],
+      "stats": {
+        "total_agents": 8,
+        "total_transactions": 150,
+        "total_sales_value": 20000000,
+        "total_commission": 85000,
+        "top_performer": { "/* agent object */" },
+        "updated_at": "2025-11-12T15:30:00.000Z"
+      }
+    },
+    "meta": {
+      "count": 8,
+      "updated_at": "2025-11-12T15:30:00.000Z"
+    }
+  },
+  "important_notes": [
+    "API reads directly from database - no cache on DB queries",
+    "Changes from admin dashboard appear within 5 seconds",
+    "Use polling interval of 5-10 seconds for best balance",
+    "ETag support allows efficient cache validation",
+    "CORS is enabled - can access from any origin",
+    "All monetary values are in EUR",
+    "Ranking is based on total_commission (descending)",
+    "XP and Level are calculated automatically",
+    "Avatar URLs may be null - provide fallback UI"
+  ],
+  "next_steps": [
+    "1. Set API_BASE_URL to your dashboard server address",
+    "2. Implement polling with 5-10 second interval",
+    "3. Create UI components to display agent data",
+    "4. Add error handling and retry logic",
+    "5. Test synchronization with admin dashboard",
+    "6. Optimize for Smart TV display (large text, clear layout)"
+  ]
+}
+
