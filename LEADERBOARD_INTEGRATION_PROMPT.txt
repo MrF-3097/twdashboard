@@ -1,0 +1,133 @@
+INTEGRATION PROMPT FOR SEPARATE LEADERBOARD PROJECT
+====================================================
+
+I need to build a leaderboard display that syncs with the Agent Dashboard API. Here's all the information you need:
+
+API ENDPOINT:
+- URL: http://your-dashboard-server:3000/api/leaderboard
+- Method: GET
+- CORS: Enabled (can access from any origin)
+- Cache: 5 seconds (changes appear within 5 seconds)
+
+QUERY PARAMETERS:
+- since (optional): Filter transactions since date (ISO format)
+- agent (optional): Filter by agent name
+- limit (optional): Limit number of results
+- include_stats (optional, default: true): Include statistics
+
+RESPONSE STRUCTURE:
+{
+  "success": boolean,
+  "data": {
+    "agents": [
+      {
+        "id": number|string,
+        "name": string,
+        "rank": number (1 = top),
+        "email": string|null,
+        "phone": string|null,
+        "avatar": string|null,
+        "profile_picture": string|null,
+        "closed_transactions": number,
+        "total_value": number (EUR),
+        "total_commission": number (EUR),
+        "xp": number (1 XP per euro commission),
+        "level": number (floor(XP/1000) + 1),
+        "active_listings": number|null,
+        "position": string|null,
+        "first_name": string|null,
+        "last_name": string|null
+      }
+    ],
+    "stats": {
+      "total_agents": number,
+      "total_transactions": number,
+      "total_sales_value": number (EUR),
+      "total_commission": number (EUR),
+      "top_performer": object|null,
+      "updated_at": string (ISO date)
+    }
+  },
+  "meta": {
+    "count": number,
+    "updated_at": string (ISO date)
+  }
+}
+
+INTEGRATION REQUIREMENTS:
+1. Poll API every 5-10 seconds (recommended: 5 seconds)
+2. Implement error handling with retry logic (3 attempts, exponential backoff)
+3. Use ETag header for efficient cache validation (optional but recommended)
+4. Display key metrics: Rank, Name, Commission, XP, Level, Transactions, Avatar
+
+GAMIFICATION RULES:
+- XP = 1 per euro of commission (e.g., 1250€ commission = 1250 XP)
+- Level = floor(XP / 1000) + 1 (e.g., 1250 XP = Level 2)
+- Ranking: Based on total_commission (descending order)
+
+SYNCHRONIZATION:
+- Admin adds transaction → Saved to database immediately
+- API reads from database → No cache on DB queries
+- External display polls API → Every 5-10 seconds
+- Changes visible → Within 5 seconds maximum
+
+REACT HOOK EXAMPLE:
+```typescript
+import { useEffect, useState } from 'react';
+
+const API_URL = 'http://your-dashboard-server:3000/api/leaderboard';
+const POLL_INTERVAL = 5000;
+
+export function useLeaderboard() {
+  const [agents, setAgents] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const fetchData = async () => {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+        
+        if (data.success) {
+          setAgents(data.data.agents);
+          setStats(data.data.stats);
+          setError(null);
+        } else {
+          setError(data.error || 'Failed to fetch leaderboard');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Network error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    intervalId = setInterval(fetchData, POLL_INTERVAL);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
+  return { agents, stats, loading, error };
+}
+```
+
+TASK:
+Build a leaderboard display component that:
+1. Uses the useLeaderboard hook (or similar polling mechanism)
+2. Displays agents in rank order
+3. Shows: Rank, Name, Avatar, Commission (EUR), XP, Level, Transactions
+4. Updates automatically every 5 seconds
+5. Handles errors gracefully
+6. Is optimized for Smart TV display (large text, clear layout)
+7. Highlights top 3 performers
+8. Shows loading and error states
+
+The display should stay synchronized with the main dashboard - when admin adds transactions, they should appear within 5-10 seconds.
+
