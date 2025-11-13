@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Download } from 'lucide-react'
+import { PwaInstallModal } from './pwa-install-modal'
 import { Button } from '@/components/ui/button'
 
 interface BeforeInstallPromptEvent extends Event {
@@ -21,11 +22,14 @@ interface PwaInstallButtonProps {
 }
 
 export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
+  const [open, setOpen] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isVisible, setIsVisible] = useState(true) // Always visible for now
   const [isIOS, setIsIOS] = useState(false)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    
     // Check if running on iOS
     const userAgent = window.navigator.userAgent.toLowerCase()
     const isIOSDevice = /iphone|ipad|ipod/.test(userAgent)
@@ -45,7 +49,7 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
     // }
 
     // Check if user previously dismissed and if dismissal has expired
-    const dismissedData = localStorage.getItem(STORAGE_KEY)
+    const dismissedData = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
     if (dismissedData) {
       try {
         const { timestamp } = JSON.parse(dismissedData)
@@ -56,7 +60,9 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
         }
       } catch (e) {
         // Invalid data, clear it
-        localStorage.removeItem(STORAGE_KEY)
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(STORAGE_KEY)
+        }
       }
     }
 
@@ -67,14 +73,26 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
 
     // Handle Android install prompt - CRITICAL: prevent default and store it
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('[PWA Install Button] ===== beforeinstallprompt EVENT CAPTURED =====')
+      console.log('[PWA Install Button] Timestamp:', new Date().toISOString())
+      console.log('[PWA Install Button] Event:', e)
+      console.log('[PWA Install Button] Event type:', e.type)
+      console.log('[PWA Install Button] Event target:', e.target)
+      
       e.preventDefault() // Prevent the browser's default install prompt
       const promptEvent = e as BeforeInstallPromptEvent
+      console.log('[PWA Install Button] promptEvent.platforms:', promptEvent.platforms)
+      console.log('[PWA Install Button] promptEvent.prompt:', typeof promptEvent.prompt)
+      
       setDeferredPrompt(promptEvent)
       setIsVisible(true)
       // Store the prompt event so we can use it later
-      console.log('[PWA] Install prompt event captured, ready to show')
+      console.log('[PWA Install Button] Install prompt event captured, ready to show')
+      console.log('[PWA Install Button] deferredPrompt state updated')
       // Clear dismissal flag when prompt is available again
-      localStorage.removeItem(STORAGE_KEY)
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY)
+      }
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -98,10 +116,15 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
 
     // Handle successful installation
     const handleAppInstalled = () => {
+      console.log('[PWA Install Button] ===== appinstalled EVENT FIRED =====')
+      console.log('[PWA Install Button] Timestamp:', new Date().toISOString())
+      console.log('[PWA Install Button] App successfully installed!')
       setDeferredPrompt(null)
       // Keep button visible even after installation for now
       // setIsVisible(false)
-      localStorage.removeItem(STORAGE_KEY)
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY)
+      }
     }
 
     window.addEventListener('appinstalled', handleAppInstalled)
@@ -114,6 +137,46 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
   }, [])
 
   const handleInstallClick = async () => {
+    console.log('[PWA Install Button] ===== BUTTON CLICKED =====')
+    console.log('[PWA Install Button] Timestamp:', new Date().toISOString())
+    console.log('[PWA Install Button] deferredPrompt available:', deferredPrompt ? 'YES' : 'NO')
+    console.log('[PWA Install Button] isIOS:', isIOS)
+    console.log('[PWA Install Button] isVisible:', isVisible)
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      console.log('[PWA Install Button] Window/Navigator not available')
+      setOpen(true)
+      return
+    }
+    
+    console.log('[PWA Install Button] User Agent:', navigator.userAgent)
+    console.log('[PWA Install Button] Is Secure Context:', window.isSecureContext)
+    console.log('[PWA Install Button] Display Mode:', window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser')
+    console.log('[PWA Install Button] Service Worker Support:', 'serviceWorker' in navigator)
+    
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      console.log('[PWA Install Button] Service Worker Controller:', navigator.serviceWorker.controller.scriptURL)
+    } else {
+      console.log('[PWA Install Button] No Service Worker Controller - waiting...')
+      // Wait a bit for service worker to register
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      if (navigator.serviceWorker.controller) {
+        console.log('[PWA Install Button] Service Worker Controller now available:', navigator.serviceWorker.controller.scriptURL)
+      } else {
+        console.log('[PWA Install Button] Still no Service Worker Controller')
+      }
+    }
+    
+    if (deferredPrompt) {
+      console.log('[PWA Install Button] deferredPrompt.platforms:', deferredPrompt.platforms)
+    }
+    
+    console.log('[PWA Install Button] Opening modal...')
+    setOpen(true)
+    return
+  }
+
+  // Legacy fallback path (kept for completeness)
+  const __legacyInstall = async () => {
     console.log('[PWA] Install button clicked, deferredPrompt:', deferredPrompt ? 'available' : 'null')
     
     if (deferredPrompt) {
@@ -132,20 +195,33 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
         if (choiceResult.outcome === 'accepted') {
           console.log('[PWA] ✅ User accepted the install prompt')
           // Don't clear deferredPrompt yet - wait for appinstalled event
-          localStorage.removeItem(STORAGE_KEY)
+          if (typeof localStorage !== 'undefined') {
+            localStorage.removeItem(STORAGE_KEY)
+          }
         } else {
           console.log('[PWA] ❌ User dismissed the install prompt')
           // User dismissed - but keep deferredPrompt so they can try again
           // Don't clear it - browsers allow retrying
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            timestamp: Date.now(),
-          }))
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+              timestamp: Date.now(),
+            }))
+          }
         }
       } catch (error) {
         console.error('[PWA] Error showing install prompt:', error)
         // Prompt might have been used already or browser blocked it
         // Fall back to manual instructions
-        showManualInstructions()
+        alert(
+          'Pentru a instala această aplicație pe Android:\n\n' +
+          '1. Apăsați butonul meniu (trei puncte) în colțul din dreapta sus al browser-ului\n' +
+          '2. Selectați "Instalează aplicația" sau "Add to Home screen"\n' +
+          '3. Confirmați instalarea\n\n' +
+          'To install this app on Android:\n\n' +
+          '1. Tap the menu button (three dots) in the top right corner\n' +
+          '2. Select "Install app" or "Add to Home screen"\n' +
+          '3. Confirm installation'
+        )
       }
     } else if (isIOS) {
       // iOS Safari instructions
@@ -161,6 +237,7 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
       )
     } else {
       // Android manual installation instructions (when prompt was dismissed)
+      if (typeof window === 'undefined') return
       const userAgent = window.navigator.userAgent.toLowerCase()
       const isAndroid = /android/i.test(userAgent)
       
@@ -191,16 +268,19 @@ export const PwaInstallButton = ({ inline = false }: PwaInstallButtonProps) => {
   // }
 
   return (
-    <Button
-      onClick={handleInstallClick}
-      size="sm"
-      className={`${inline ? 'w-full' : 'fixed top-20 right-4'} z-50 shadow-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold transition-all duration-300 hover:scale-105 border-2 border-white/20`}
-      aria-label="Download App"
-    >
-      <Download className="h-4 w-4 mr-2" />
-      <span className="hidden sm:inline">Descarcă App</span>
-      <span className="sm:hidden">App</span>
-    </Button>
+    <>
+      <Button
+        onClick={handleInstallClick}
+        size="sm"
+        className={`${inline ? 'w-full' : 'fixed top-20 right-4'} z-50 shadow-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold transition-all duration-300 hover:scale-105 border-2 border-white/20`}
+        aria-label="Download App"
+      >
+        <Download className="h-4 w-4 mr-2" />
+        <span className="hidden sm:inline">Descarcă App</span>
+        <span className="sm:hidden">App</span>
+      </Button>
+      {open ? <PwaInstallModal open={open} onClose={() => setOpen(false)} /> : null}
+    </>
   )
 }
 

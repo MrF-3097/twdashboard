@@ -39,6 +39,10 @@ export const useAuth = () => {
   // Load cached authentication data on mount
   useEffect(() => {
     const loadCachedAuth = () => {
+      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        setAuthState(prev => ({ ...prev, isLoading: false }))
+        return
+      }
       try {
         const cachedData = localStorage.getItem(STORAGE_KEY)
         if (cachedData) {
@@ -76,7 +80,9 @@ export const useAuth = () => {
     }
     
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(authData))
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(authData))
+      }
       setAuthState({
         isLoggedIn: true,
         agentData,
@@ -95,7 +101,9 @@ export const useAuth = () => {
 
   const logout = () => {
     try {
-      localStorage.removeItem(STORAGE_KEY)
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY)
+      }
     } catch (error) {
       console.error('Error clearing auth data from localStorage:', error)
     }
@@ -115,7 +123,9 @@ export const useAuth = () => {
       }
       
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(authData))
+        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(authData))
+        }
       } catch (error) {
         console.error('Error refreshing session:', error)
       }

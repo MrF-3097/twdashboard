@@ -134,8 +134,8 @@ export const MobileStatsBar = ({
               <p className="text-4xl font-bold text-white leading-tight">{formatCurrency(totalValueSold)}</p>
               <p className="text-sm text-slate-400 font-medium mt-0.5">Valoare</p>
             </div>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </div>

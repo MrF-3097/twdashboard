@@ -32,7 +32,14 @@ export const TransactionModal = ({ isOpen, onClose }: TransactionModalProps) => 
   const [loadingAgents, setLoadingAgents] = useState(false)
   const { refresh: refreshLeaderboard } = useLeaderboard()
   
-  const [formData, setFormData] = useState<Partial<Transaction>>({
+  const [formData, setFormData] = useState<{
+    Agent?: string
+    'Valoare Tranzactie'?: number | string
+    'Tip Tranzactie'?: 'Vanzare' | 'Inchiriere'
+    'Comision %'?: number | string
+    Comision?: number | string
+    Timestamp?: string
+  }>({
     Agent: '',
     'Valoare Tranzactie': '',
     'Tip Tranzactie': 'Vanzare',

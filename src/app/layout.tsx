@@ -3,6 +3,10 @@ import { Inter, Montserrat } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
+import dynamic from 'next/dynamic'
+
+// Dynamically import debug components to avoid SSR issues
+const OnScreenDebugPanel = dynamic(() => import('@/components/debug/on-screen-debug-panel').then(mod => ({ default: mod.OnScreenDebugPanel })), { ssr: false })
 
 const inter = Inter({ subsets: ['latin'] })
 const montserrat = Montserrat({ 
@@ -50,12 +54,34 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Tower Imob" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then((registration) => {
+                      console.log('[SW Script] Service Worker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                      console.error('[SW Script] Service Worker registration failed:', error);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
-      <body className={`${inter.className} ${montserrat.variable} dark`}>
-        <ServiceWorkerRegister />
-        {children}
-        <Toaster />
-      </body>
+              <body className={`${inter.className} ${montserrat.variable} dark`}>
+                <ServiceWorkerRegister />
+                {children}
+                <Toaster />
+                {process.env.NODE_ENV === 'development' && (
+                  <>
+                    <OnScreenDebugPanel />
+                  </>
+                )}
+              </body>
     </html>
   )
 }

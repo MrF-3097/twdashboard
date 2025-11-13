@@ -42,7 +42,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
   const [isCollaborative, setIsCollaborative] = useState(false)
   const [collaborators, setCollaborators] = useState<CollaboratorAgent[]>([])
   
-  const [formData, setFormData] = useState<Partial<Transaction>>({
+  const [formData, setFormData] = useState<{
+    Agent?: string
+    'Valoare Tranzactie'?: number | string
+    'Tip Tranzactie'?: 'Vanzare' | 'Inchiriere'
+    'Comision %'?: number | string
+    Comision?: number | string
+    Timestamp?: string
+  }>({
     Agent: '',
     'Valoare Tranzactie': '',
     'Tip Tranzactie': 'Vanzare',
@@ -376,7 +383,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                     />
                   </div>
 
-                  {formData.Comision && formData.Comision > 0 && (
+                  {formData.Comision && Number(formData.Comision) > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -412,7 +419,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                     />
                   </div>
 
-                  {formData['Comision %'] && formData['Comision %'] > 0 && formData['Valoare Tranzactie'] && (
+                  {formData['Comision %'] && Number(formData['Comision %']) > 0 && formData['Valoare Tranzactie'] && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -858,7 +865,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
             ? collab.split 
             : (totalCommission * (collab.split / 100))
           
-          const agentComisionPct = agentCommission / (formData['Valoare Tranzactie'] || 1)
+          const agentComisionPct = agentCommission / (Number(formData['Valoare Tranzactie']) || 1)
           
           return fetch('/api/admin/add-transaction', {
             method: 'POST',

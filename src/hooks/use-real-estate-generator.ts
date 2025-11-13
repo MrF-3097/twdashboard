@@ -8,12 +8,9 @@ import { useToast } from '@/components/ui/use-toast'
 export function useRealEstateGenerator() {
   const [property, setProperty] = useState<PropertyDetails>({
     location: '',
-    size: '',
     price: '',
-    rooms: '',
-    amenities: [],
     propertyType: 'apartment',
-    condition: 'good'
+    details: ''
   })
   
   const [keywords, setKeywords] = useState<string[]>([])
@@ -38,16 +35,17 @@ export function useRealEstateGenerator() {
   }, [])
 
   const toggleAmenity = useCallback((amenity: string) => {
+    // Amenities are stored in details field
     setProperty(prev => ({
       ...prev,
-      amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity]
+      details: prev.details.includes(amenity)
+        ? prev.details.replace(amenity, '').trim()
+        : `${prev.details} ${amenity}`.trim()
     }))
   }, [])
 
   const generateAd = useCallback(async () => {
-    if (!property.location || !property.size || !property.price) {
+    if (!property.location || !property.price) {
       toast({
         title: "Missing information",
         description: "Please fill in location, size, and price fields.",
@@ -61,9 +59,8 @@ export function useRealEstateGenerator() {
     try {
       const request: AdGenerationRequest = {
         property,
-        keywords,
-        wordLimit,
-        tone
+        tone,
+        aiRules: keywords.join(', ')
       }
 
       // Use mock API for development
@@ -118,12 +115,9 @@ export function useRealEstateGenerator() {
   const resetForm = useCallback(() => {
     setProperty({
       location: '',
-      size: '',
       price: '',
-      rooms: '',
-      amenities: [],
       propertyType: 'apartment',
-      condition: 'good'
+      details: ''
     })
     setKeywords([])
     setWordLimit(150)

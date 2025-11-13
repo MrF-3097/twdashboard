@@ -93,7 +93,7 @@ const fetcher = async (url: string): Promise<PropertiesResponse> => {
 
 export const useProperties = () => {
   const { data, error, isLoading, mutate } = useSWR<PropertiesResponse>(
-    '/api/properties',
+    typeof window !== 'undefined' ? '/api/properties' : null,
     fetcher,
     {
       revalidateOnFocus: true,

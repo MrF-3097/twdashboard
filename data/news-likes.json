@@ -70,9 +70,10 @@
       "Alina Tarita",
       "Sorin Băcilă",
       "Andrei Fârțonea",
-      "Petru Vidrean"
+      "Petru Vidrean",
+      "Francesco Fârțonea"
     ],
-    "totalLikes": 4,
+    "totalLikes": 5,
     "reactions": [
       {
         "emoji": "❤️",
@@ -89,6 +90,75 @@
       {
         "emoji": "👏",
         "agentName": "Petru Vidrean"
+      },
+      {
+        "emoji": "🍾",
+        "agentName": "Francesco Fârțonea"
+      }
+    ]
+  },
+  "2025-10-31T14:56:09.933Z-10": {
+    "itemId": "2025-10-31T14:56:09.933Z-10",
+    "likedBy": [
+      "Francesco Fârțonea"
+    ],
+    "totalLikes": 1,
+    "reactions": [
+      {
+        "emoji": "❤️",
+        "agentName": "Francesco Fârțonea"
+      }
+    ]
+  },
+  "2025-10-31T14:56:09.933Z-9": {
+    "itemId": "2025-10-31T14:56:09.933Z-9",
+    "likedBy": [
+      "Francesco Fârțonea"
+    ],
+    "totalLikes": 1,
+    "reactions": [
+      {
+        "emoji": "🤩",
+        "agentName": "Francesco Fârțonea"
+      }
+    ]
+  },
+  "2025-10-31T14:56:09.933Z-11": {
+    "itemId": "2025-10-31T14:56:09.933Z-11",
+    "likedBy": [
+      "Francesco Fârțonea"
+    ],
+    "totalLikes": 1,
+    "reactions": [
+      {
+        "emoji": "👏",
+        "agentName": "Francesco Fârțonea"
+      }
+    ]
+  },
+  "2025-10-31T14:56:09.933Z-12": {
+    "itemId": "2025-10-31T14:56:09.933Z-12",
+    "likedBy": [
+      "Francesco Fârțonea"
+    ],
+    "totalLikes": 1,
+    "reactions": [
+      {
+        "emoji": "🍾",
+        "agentName": "Francesco Fârțonea"
+      }
+    ]
+  },
+  "2025-11-10T15:40:58.723Z-2": {
+    "itemId": "2025-11-10T15:40:58.723Z-2",
+    "likedBy": [
+      "Francesco Fârțonea"
+    ],
+    "totalLikes": 1,
+    "reactions": [
+      {
+        "emoji": "🍾",
+        "agentName": "Francesco Fârțonea"
       }
     ]
   }

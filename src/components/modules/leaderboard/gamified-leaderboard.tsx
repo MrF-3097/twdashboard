@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Trophy, TrendingUp, Users, DollarSign, RefreshCcw, Volume2, VolumeX, Shuffle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trophy, TrendingUp, Users, DollarSign, RefreshCcw, Volume2, VolumeX, Shuffle, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useAgentLeaderboard } from '@/hooks/use-agent-leaderboard'
 import { AgentCard } from './agent-card'
 import { AgentDetailModal } from './agent-detail-modal'
@@ -25,6 +25,14 @@ export const GamifiedLeaderboard: React.FC = () => {
   const [previousTopAgent, setPreviousTopAgent] = useState<Agent | null>(null)
   const [showControls, setShowControls] = useState(false)
   const [showStats, setShowStats] = useState(false)
+  const [debugLogs, setDebugLogs] = useState<Array<{ time: number; message: string }>>([])
+  const [isDebugMinimized, setIsDebugMinimized] = useState(true)
+
+  const addDebugLog = useCallback((message: string) => {
+    const log = { time: Date.now(), message }
+    setDebugLogs((prev) => [...prev.slice(-9), log]) // Keep last 10 logs
+    console.log(message)
+  }, [])
 
   // Handle rank changes with sound effects
   useEffect(() => {
@@ -53,9 +61,20 @@ export const GamifiedLeaderboard: React.FC = () => {
   }, [agents, previousTopAgent, soundEnabled])
 
   const handleAgentClick = (agent: Agent) => {
+    addDebugLog(`[Click] Agent: ${agent.name}`)
     setSelectedAgent(agent)
     setIsModalOpen(true)
   }
+
+  const handleCloseModal = useCallback(() => {
+    addDebugLog(`[Close] isModalOpen: ${isModalOpen}, agent: ${selectedAgent?.name}`)
+    setIsModalOpen(false)
+    // Clear selected agent after animation completes
+    setTimeout(() => {
+      addDebugLog('[Close] Clearing selectedAgent')
+      setSelectedAgent(null)
+    }, 300)
+  }, [isModalOpen, selectedAgent, addDebugLog])
 
   const handleRefresh = () => {
     refetch()
@@ -87,6 +106,38 @@ export const GamifiedLeaderboard: React.FC = () => {
 
   return (
     <div className="space-y-4 md:space-y-6">
+      {/* Debug Panel - Minimizable */}
+      {debugLogs.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-50">
+          {isDebugMinimized ? (
+            <button
+              onClick={() => setIsDebugMinimized(false)}
+              className="bg-black/90 text-white text-xs px-3 py-2 rounded-lg border border-yellow-500 hover:bg-black shadow-lg"
+              aria-label="Show Debug Logs"
+            >
+              <span className="text-yellow-400">🐛 Debug ({debugLogs.length})</span>
+            </button>
+          ) : (
+            <div className="bg-black/90 text-white text-xs p-3 rounded-lg max-w-xs max-h-48 overflow-y-auto border border-yellow-500 shadow-lg">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-bold text-yellow-400">Debug Logs:</div>
+                <button
+                  onClick={() => setIsDebugMinimized(true)}
+                  className="text-white/70 hover:text-white ml-2"
+                  aria-label="Minimize Debug Panel"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {debugLogs.map((log, idx) => (
+                <div key={idx} className="mb-1 font-mono text-[10px]">
+                  {new Date(log.time).toLocaleTimeString()}: {log.message}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {/* Confetti Effect */}
       <Confetti show={showConfetti} onComplete={() => setShowConfetti(false)} />
 
@@ -401,7 +452,7 @@ export const GamifiedLeaderboard: React.FC = () => {
       <AgentDetailModal
         agent={selectedAgent}
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseModal}
       />
     </div>
   )

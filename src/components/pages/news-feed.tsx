@@ -127,18 +127,18 @@ export const NewsFeed = () => {
         let transactionDate: Date
         if (t.Timestamp) {
           transactionDate = new Date(t.Timestamp)
-        } else if (t['Data Tranzactie']) {
-          transactionDate = new Date(t['Data Tranzactie'])
-        } else if (t.Date) {
-          transactionDate = new Date(t.Date)
+        } else if ((t as any)['Data Tranzactie']) {
+          transactionDate = new Date((t as any)['Data Tranzactie'])
+        } else if ((t as any).Date) {
+          transactionDate = new Date((t as any).Date)
         } else {
           transactionDate = new Date()
         }
 
         // Determine transaction type (Sale or Rental)
         // closed_transaction_type: 2 = Vânzare, 1 = Închiriere
-        const closedTransactionType = t['closed_transaction_type'] || t['Tip Tranzactie'] || t['Transaction Type']
-        const transactionType = closedTransactionType === 1 || 
+        const closedTransactionType = (t as any)['closed_transaction_type'] || t['Tip Tranzactie'] || (t as any)['Transaction Type']
+        const transactionType: 'Vanzare' | 'Chirie' = closedTransactionType === 1 || 
                                 closedTransactionType === 'Chirie' || 
                                 closedTransactionType === 'Rental' || 
                                 closedTransactionType === 'Închiriere'
@@ -146,17 +146,17 @@ export const NewsFeed = () => {
           : 'Vanzare'
 
         return {
-          id: `${t.Timestamp || t['Data Tranzactie'] || Date.now()}-${index}`,
+          id: `${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`,
           agentName,
           agentAvatar: rebsAgent?.profile_picture || rebsAgent?.avatar || rebsAgent?.photo,
           transactionValue: valoare,
           commission: Math.round(com),
           transactionType,
-          propertyType: t['Tip Proprietate'] || t['Property Type'],
-          location: t['Locatie'] || t['Location'],
+          propertyType: (t as any)['Tip Proprietate'] || (t as any)['Property Type'],
+          location: (t as any)['Locatie'] || (t as any)['Location'],
           timestamp: transactionDate,
-          reactions: reactionsData[`${t.Timestamp || t['Data Tranzactie'] || Date.now()}-${index}`]?.reactions || [],
-          reactionCounts: reactionsData[`${t.Timestamp || t['Data Tranzactie'] || Date.now()}-${index}`]?.reactionCounts || {}
+          reactions: reactionsData[`${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`]?.reactions || [],
+          reactionCounts: reactionsData[`${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`]?.reactionCounts || {}
         }
       })
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())

@@ -35,10 +35,11 @@ const sortByDateDesc = (a: Transaction, b: Transaction) => {
 }
 
 export const useTransactions = (params?: { since?: string; agent?: string }) => {
-  const key = ['local/transactions', params?.since ?? '', params?.agent ?? '']
+  const key = typeof window !== 'undefined' ? ['local/transactions', params?.since ?? '', params?.agent ?? ''] : null
   const fetcher = async () => {
     // Use local API instead of Google Sheets
-    const url = new URL('/api/transactions-local', window.location.origin)
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+    const url = new URL('/api/transactions-local', origin)
     if (params?.since) url.searchParams.set('since', params.since)
     if (params?.agent) url.searchParams.set('agent', params.agent)
     
@@ -56,7 +57,13 @@ export const useTransactions = (params?: { since?: string; agent?: string }) => 
     const safeRows = parsed.data.rows.map(parseTransaction).sort(sortByDateDesc)
     return { ...parsed.data, rows: safeRows }
   }
-  const { data, error, isLoading, mutate } = useSWR(key, fetcher, { ...swrConfig, refreshInterval: 10000 })
+  const { data, error, isLoading, mutate } = useSWR(key, fetcher, { 
+    ...swrConfig, 
+    refreshInterval: 10000,
+    revalidateOnMount: true,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  })
   return { data, error, isLoading, refresh: mutate }
 }
 
@@ -83,10 +90,11 @@ export const aggregateFromTransactions = (rows: Transaction[]): LeaderboardRow[]
 }
 
 export const useLeaderboard = (params?: { since?: string; agent?: string }) => {
-  const key = ['local/leaderboard', params?.since ?? '', params?.agent ?? '']
+  const key = typeof window !== 'undefined' ? ['local/leaderboard', params?.since ?? '', params?.agent ?? ''] : null
   const fetcher = async () => {
     // Use local API instead of Google Sheets
-    const url = new URL('/api/leaderboard-local', window.location.origin)
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+    const url = new URL('/api/leaderboard-local', origin)
     if (params?.since) url.searchParams.set('since', params.since)
     if (params?.agent) url.searchParams.set('agent', params.agent)
     

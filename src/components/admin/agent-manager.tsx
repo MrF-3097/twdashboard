@@ -12,7 +12,7 @@ export const AgentManager = () => {
   const [newAgent, setNewAgent] = useState('')
 
   // Get unique agents from transactions
-  const agents = [...new Set((transactionsData?.rows || []).map(t => t.Agent))].sort()
+  const agents = Array.from(new Set((transactionsData?.rows || []).map(t => t.Agent))).sort()
 
   const handleAddAgent = async () => {
     if (!newAgent.trim()) return

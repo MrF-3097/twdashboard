@@ -4,6 +4,8 @@ import { transactions } from '@/db/schema'
 import { gte, eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     console.log('🔵 [API] GET /api/leaderboard-local')

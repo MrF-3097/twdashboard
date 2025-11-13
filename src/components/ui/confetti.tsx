@@ -10,6 +10,13 @@ interface ConfettiProps {
 
 export const Confetti: React.FC<ConfettiProps> = ({ show, onComplete }) => {
   const [particles, setParticles] = useState<Array<{ id: number; x: number; color: string }>>([])
+  const [windowHeight, setWindowHeight] = useState(0)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setWindowHeight(window.innerHeight)
+    }
+  }, [])
 
   useEffect(() => {
     if (show) {
@@ -30,7 +37,7 @@ export const Confetti: React.FC<ConfettiProps> = ({ show, onComplete }) => {
     }
   }, [show, onComplete])
 
-  if (!show || particles.length === 0) return null
+  if (!show || particles.length === 0 || windowHeight === 0) return null
 
   return (
     <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
@@ -45,7 +52,7 @@ export const Confetti: React.FC<ConfettiProps> = ({ show, onComplete }) => {
           }}
           initial={{ y: 0, opacity: 1, rotate: 0 }}
           animate={{
-            y: window.innerHeight + 100,
+            y: windowHeight + 100,
             opacity: [1, 1, 0],
             rotate: Math.random() * 720,
             x: (Math.random() - 0.5) * 200,

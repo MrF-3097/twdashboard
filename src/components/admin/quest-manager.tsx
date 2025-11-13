@@ -192,16 +192,19 @@ export const QuestManager = () => {
             name: name || 'Unknown Agent',
             email: email,
           }
-        }).filter((agent: any) => agent !== null) // Remove null entries
+        })
         
-        if (mappedAgents.length === 0) {
+        // Remove null entries and ensure type safety
+        const validAgents = mappedAgents.filter((a) => a !== null) as Agent[]
+        
+        if (validAgents.length === 0) {
           setError('Nu s-au putut procesa agenții din răspuns')
           setAgents([])
           return
         }
         
-        console.log('Mapped agents:', mappedAgents)
-        setAgents(mappedAgents)
+        console.log('Mapped agents:', validAgents)
+        setAgents(validAgents)
         setError(null)
       } catch (err) {
         console.error('Error fetching agents:', err)

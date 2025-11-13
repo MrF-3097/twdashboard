@@ -26,7 +26,19 @@
     "tokensUsed": 829,
     "costInRON": 0.0012435,
     "timestamp": "2025-11-07T11:25:05.334Z"
+  },
+  {
+    "agentId": 9033,
+    "agentName": "Francesco Fârțonea",
+    "tokensUsed": 825,
+    "costInRON": 0.0012374999999999999,
+    "timestamp": "2025-11-12T11:26:14.787Z"
+  },
+  {
+    "agentId": 7633,
+    "agentName": "Sorin Băcilă",
+    "tokensUsed": 917,
+    "costInRON": 0.0013755,
+    "timestamp": "2025-11-12T12:47:10.968Z"
   }
 ]
-
-

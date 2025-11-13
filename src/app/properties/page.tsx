@@ -43,16 +43,18 @@ export default function PropertiesPage() {
     return filtered
   }, [properties, agentData?.id, authLoading])
 
-  console.log('🏠 [PropertiesPage] Component rendered', {
-    propertiesCount: properties.length,
-    agentPropertiesCount: agentProperties.length,
-    agentId: agentData?.id,
-    agentName: agentData?.name,
-    isLoading,
-    isError,
-    totalCount,
-    pathname: typeof window !== 'undefined' ? window.location.pathname : 'server',
-  })
+  if (typeof window !== 'undefined') {
+    console.log('🏠 [PropertiesPage] Component rendered', {
+      propertiesCount: properties.length,
+      agentPropertiesCount: agentProperties.length,
+      agentId: agentData?.id,
+      agentName: agentData?.name,
+      isLoading,
+      isError,
+      totalCount,
+      pathname: window.location.pathname,
+    })
+  }
 
   React.useEffect(() => {
     console.log('🏠 [PropertiesPage] Component mounted/navigated to')
@@ -120,7 +122,7 @@ export default function PropertiesPage() {
               Nu s-au putut încărca proprietățile. Te rugăm să încerci din nou mai târziu.
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => typeof window !== 'undefined' && window.location.reload()}
               className="mt-4 px-6 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors"
             >
               Reîncarcă

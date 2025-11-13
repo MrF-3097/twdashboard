@@ -265,9 +265,9 @@ export const ProfilePage = ({ onBack, agentData, onLogout }: ProfilePageProps) =
           <div className="absolute top-0 left-0 right-0 z-20 pt-4 md:pt-6">
             {/* Back Button - Top Left */}
             <button
-              onClick={onBack}
+            onClick={onBack}
               className="absolute left-4 md:left-8 top-4 md:top-6 flex items-center gap-2 px-3 md:px-4 py-2 md:py-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-lg hover:bg-white/20 transition-all duration-300"
-            >
+          >
               <ArrowLeft className="h-4 w-4 md:h-5 md:w-5 text-white" />
               <span className="hidden md:inline text-sm font-medium text-white">Înapoi</span>
             </button>
@@ -284,17 +284,17 @@ export const ProfilePage = ({ onBack, agentData, onLogout }: ProfilePageProps) =
               </button>
               
               {/* Logout Button */}
-              {onLogout && (
+          {onLogout && (
                 <button
-                  onClick={onLogout}
+              onClick={onLogout}
                   className="flex items-center justify-center h-10 w-10 md:h-11 md:w-11 bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-lg hover:bg-white/20 transition-all duration-300 hover:scale-110"
                   aria-label="Deconectare"
-                >
+            >
                   <LogOut className="h-4 w-4 md:h-5 md:w-5 text-white" />
                 </button>
-              )}
+          )}
             </div>
-          </div>
+        </div>
 
           {/* Lava lamp blob animation overlay */}
           <div className="absolute inset-0 overflow-hidden">
@@ -391,14 +391,14 @@ export const ProfilePage = ({ onBack, agentData, onLogout }: ProfilePageProps) =
                 {/* Profile Image */}
                 <div className="relative">
                   <div className="w-32 h-32 rounded-full border-4 border-white/30 shadow-2xl bg-white overflow-hidden">
-                    <img
-                      src={userData.image}
-                      alt={userData.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
+                  <img
+                    src={userData.image}
+                    alt={userData.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                
+              </div>
+
                 {/* Agent Name - Spotlight */}
                 <div className="flex flex-col items-start gap-2">
                   <h1 className="text-6xl md:text-7xl font-black text-white tracking-tight">
@@ -422,11 +422,11 @@ export const ProfilePage = ({ onBack, agentData, onLogout }: ProfilePageProps) =
                   <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full">
                     <Calendar className="h-4 w-4 text-white" />
                     <span className="text-sm font-medium text-white">Din {userData.joinedDate}</span>
-                  </div>
                 </div>
-                
-                <p className="text-base text-white/70 font-medium">{userData.email}</p>
               </div>
+
+                <p className="text-base text-white/70 font-medium">{userData.email}</p>
+            </div>
             </div>
           </div>
         </div>
@@ -436,38 +436,38 @@ export const ProfilePage = ({ onBack, agentData, onLogout }: ProfilePageProps) =
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Tranzacții */}
           <div className="relative overflow-hidden rounded-2xl bg-transparent border border-white/20 p-6 transition-all duration-300 hover:border-white/30 animate-in slide-in-from-bottom-4 duration-700 delay-100">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                <BarChart3 className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                  <BarChart3 className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">Tranzacții</h3>
               </div>
-              <h3 className="text-lg font-semibold text-white">Tranzacții</h3>
-            </div>
-            <p className="text-4xl font-bold text-white mb-2">{userData.transactions}</p>
-            <p className="text-sm text-white/70">Tranzacții finalizate</p>
+              <p className="text-4xl font-bold text-white mb-2">{userData.transactions}</p>
+              <p className="text-sm text-white/70">Tranzacții finalizate</p>
           </div>
 
           {/* Comision Luna Curentă */}
           <div className="relative overflow-hidden rounded-2xl bg-transparent border border-white/20 p-6 transition-all duration-300 hover:border-white/30 animate-in slide-in-from-bottom-4 duration-700 delay-200">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                <TrendingUp className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">Comision Octombrie</h3>
               </div>
-              <h3 className="text-lg font-semibold text-white">Comision Octombrie</h3>
-            </div>
-            <p className="text-4xl font-bold text-white mb-2">{formatCurrency(userData.currentMonthCommission)} €</p>
-            <p className="text-sm text-white/70">Luna curentă</p>
+              <p className="text-4xl font-bold text-white mb-2">{formatCurrency(userData.currentMonthCommission)} €</p>
+              <p className="text-sm text-white/70">Luna curentă</p>
           </div>
 
           {/* Comision Total */}
           <div className="relative overflow-hidden rounded-2xl bg-transparent border border-white/20 p-6 transition-all duration-300 hover:border-white/30 animate-in slide-in-from-bottom-4 duration-700 delay-300">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                <Award className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
+                  <Award className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-white">Comision Total</h3>
               </div>
-              <h3 className="text-lg font-semibold text-white">Comision Total</h3>
-            </div>
-            <p className="text-4xl font-bold text-white mb-2">{formatCurrency(userData.totalCommission)} €</p>
-            <p className="text-sm text-white/70">Total acumulat</p>
+              <p className="text-4xl font-bold text-white mb-2">{formatCurrency(userData.totalCommission)} €</p>
+              <p className="text-sm text-white/70">Total acumulat</p>
           </div>
         </div>
 

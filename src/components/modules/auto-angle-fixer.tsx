@@ -1234,7 +1234,7 @@ export function AutoAngleFixer() {
     for (let y = patchSize; y < height - patchSize; y += patchSize) {
       for (let x = patchSize; x < width - patchSize; x += patchSize) {
         const patch = extractPatch(data, width, x, y, patchSize)
-        const similarity = calculatePatchSimilarity(patch, data, width, centerX, centerY, radius)
+        const similarity = calculatePatchSimilarity(patch, data, width, height, centerX, centerY, radius)
         
         if (similarity > 0.7) {
           patches.push({x, y, patch, similarity})
@@ -1260,7 +1260,7 @@ export function AutoAngleFixer() {
     return patch
   }
 
-  const calculatePatchSimilarity = (patch: Array<{r: number, g: number, b: number}>, data: Uint8ClampedArray, width: number, centerX: number, centerY: number, radius: number) => {
+  const calculatePatchSimilarity = (patch: Array<{r: number, g: number, b: number}>, data: Uint8ClampedArray, width: number, height: number, centerX: number, centerY: number, radius: number) => {
     // Calculate similarity between patch and surrounding area
     let similarity = 0
     let count = 0

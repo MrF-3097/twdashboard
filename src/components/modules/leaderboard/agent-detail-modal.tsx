@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Trophy,
@@ -33,6 +34,46 @@ export const AgentDetailModal: React.FC<AgentDetailModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const isOpenRef = useRef(isOpen)
+  const onCloseRef = useRef(onClose)
+  const callCountRef = useRef(0)
+
+  // Keep refs up to date
+  useEffect(() => {
+    const logMsg = `[Modal] isOpen changed: ${isOpen}, agent: ${agent?.name}`
+    console.log(logMsg)
+    isOpenRef.current = isOpen
+  }, [isOpen, agent])
+
+  useEffect(() => {
+    onCloseRef.current = onClose
+  }, [onClose])
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    callCountRef.current += 1
+    const callNum = callCountRef.current
+    const logMsg = `[Modal] handleOpenChange #${callNum}: open=${open}, ref=${isOpenRef.current}, prop=${isOpen}, agent=${agent?.name}`
+    console.log(logMsg)
+    
+    // Only handle user-initiated close (ESC, click outside, close button)
+    // If open is false but isOpenRef.current is still true, it means user closed it
+    // If open is false and isOpenRef.current is also false, it's a programmatic close, ignore it
+    if (!open && isOpenRef.current) {
+      console.log(`[Modal] #${callNum} User closed - calling onClose`)
+      // Update ref immediately to prevent re-triggering
+      isOpenRef.current = false
+      // User closed the dialog - call onClose
+      onCloseRef.current()
+    } else if (!open && !isOpenRef.current) {
+      console.log(`[Modal] #${callNum} Programmatic close - IGNORING`)
+    } else if (open) {
+      console.log(`[Modal] #${callNum} Dialog opening`)
+    }
+    // If !open && !isOpenRef.current, it's a programmatic close, do nothing
+    // If open is true, dialog is opening, do nothing (already handled by parent)
+  }, [isOpen, agent])
+
+  // Don't render Dialog if no agent
   if (!agent) return null
 
   const achievements = [
@@ -45,7 +86,7 @@ export const AgentDetailModal: React.FC<AgentDetailModalProps> = ({
   const activeAchievements = achievements.filter((a) => a.condition)
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Agent Profile</DialogTitle>

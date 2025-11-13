@@ -1,5 +1,11 @@
 'use client'
 
+// Disable static generation completely
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+export const runtime = 'edge'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Footer } from '@/components/layout/footer'
@@ -30,6 +36,7 @@ import { GamifiedLeaderboard } from '@/components/modules/leaderboard/gamified-l
 import { useAuth } from '@/hooks/use-auth'
 import { useTransactions } from '@/hooks/use-commissions'
 import { PwaInstallButton } from '@/components/ui/pwa-install-button'
+import { AddRequestModal } from '@/components/modules/add-request-modal'
 
 // Typing Animation Component
 function TypingAnimation() {
@@ -59,7 +66,7 @@ function TypingAnimation() {
   )
 }
 
-export default function Dashboard() {
+function DashboardContent() {
   const router = useRouter()
   const [selectedModule, setSelectedModule] = useState('documents')
   const [mobileTab, setMobileTab] = useState<'home' | 'tools' | 'leaderboard' | 'profile' | 'news'>('home')
@@ -67,6 +74,7 @@ export default function Dashboard() {
   const [monthlyTarget, setMonthlyTarget] = useState(16000)
   const [salesCount, setSalesCount] = useState(0)
   const [showLoginAnimation, setShowLoginAnimation] = useState(true) // Start with animation shown
+  const [showAddRequestModal, setShowAddRequestModal] = useState(false)
   
   const { isLoggedIn, agentData, isLoading, login, logout } = useAuth()
 
@@ -269,7 +277,12 @@ export default function Dashboard() {
           onTabChange={handleMobileTabChange}
           activeModule={selectedModule}
           onModuleSelect={handleModuleSelect}
+          onAddRequest={() => setShowAddRequestModal(true)}
           variant="profile"
+        />
+        <AddRequestModal 
+          isOpen={showAddRequestModal} 
+          onClose={() => setShowAddRequestModal(false)} 
         />
       </>
     )
@@ -576,6 +589,7 @@ export default function Dashboard() {
         onTabChange={handleMobileTabChange}
         activeModule={selectedModule}
         onModuleSelect={handleModuleSelect}
+        onAddRequest={() => setShowAddRequestModal(true)}
         variant={
           mobileTab === 'profile' ? 'profile' :
           mobileTab === 'leaderboard' ? 'stats' :
@@ -586,6 +600,27 @@ export default function Dashboard() {
           'default'
         }
       />
+
+      {/* Add Request Modal */}
+      <AddRequestModal 
+        isOpen={showAddRequestModal} 
+        onClose={() => setShowAddRequestModal(false)} 
+      />
     </div>
   )
+}
+
+export default function Dashboard() {
+  // Prevent SSR execution
+  const [isMounted, setIsMounted] = useState(false)
+  
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+  
+  if (!isMounted) {
+    return null // Return nothing during SSR
+  }
+  
+  return <DashboardContent />
 }

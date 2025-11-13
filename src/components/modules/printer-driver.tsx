@@ -10,7 +10,7 @@ import {
   AlertCircle,
   ChevronDown
 } from 'lucide-react'
-import { PrinterDriver } from '@/types'
+import type { PrinterDriver } from '@/types'
 
 export function PrinterDriver() {
   const [selectedDriver, setSelectedDriver] = useState<PrinterDriver | null>(null)

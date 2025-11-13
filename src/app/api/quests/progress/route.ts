@@ -3,6 +3,8 @@ import { db } from '@/db'
 import { questProgress } from '@/db/schema'
 import { eq, and, or } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/quests/progress
  * Fetches quest progress for a specific agent or all agents
