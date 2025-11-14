@@ -122,17 +122,17 @@ export const ModalBody = ({ children }: ModalBodyProps) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 1 }}
           >
-            <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
+            <div className="flex min-h-full items-center justify-center p-3 sm:p-6">
               <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="relative mx-auto w-full max-w-2xl"
+                className="relative mx-auto w-full max-w-[92vw] sm:max-w-3xl"
               >
                 <button
                   onClick={() => setOpen(false)}
-                  className="absolute right-4 top-4 z-50 rounded-xl border border-slate-600 bg-slate-900/80 p-2 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                  className="absolute right-3 top-3 z-50 rounded-xl border border-slate-600 bg-slate-900/80 p-2 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors sm:right-4 sm:top-4"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -148,7 +148,7 @@ export const ModalBody = ({ children }: ModalBodyProps) => {
 
 export const ModalContent = ({ children }: ModalContentProps) => {
   return (
-    <div className="relative z-50 mx-auto flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-2xl">
+    <div className="relative z-50 mx-auto flex w-full max-w-[92vw] sm:max-w-3xl max-h-[78vh] sm:max-h-[88vh] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl text-sm sm:text-base">
       {children}
     </div>
   );
@@ -156,7 +156,7 @@ export const ModalContent = ({ children }: ModalContentProps) => {
 
 export const ModalFooter = ({ children, className }: ModalFooterProps) => {
   return (
-    <div className={`flex items-center justify-end gap-3 border-t border-slate-700 bg-slate-800/50 p-4 ${className}`}>
+    <div className={`flex flex-wrap items-center justify-end gap-2 border-t border-slate-700 bg-slate-800/70 p-3 sm:flex-nowrap sm:gap-3 sm:p-4 ${className}`}>
       {children}
     </div>
   );

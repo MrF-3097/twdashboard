@@ -350,14 +350,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6 p-6">
+          <div className="space-y-5 p-4 sm:p-6 text-sm sm:text-base">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <User className="h-6 w-6 text-white" />
+                <User className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Selectează Agentul</h3>
-                <p className="text-sm text-slate-400">Agentul care a realizat tranzacția</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white">Selectează Agentul</h3>
+                <p className="text-xs sm:text-sm text-slate-400">Agentul care a realizat tranzacția</p>
               </div>
             </div>
             
@@ -392,14 +392,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
 
       case 2:
         return (
-          <div className="space-y-6 p-6">
+          <div className="space-y-5 p-4 sm:p-6 text-sm sm:text-base">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                <Euro className="h-6 w-6 text-white" />
+                <Euro className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Detalii Tranzacție</h3>
-                <p className="text-sm text-slate-400">Valoare și tipul tranzacției</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white">Detalii Tranzacție</h3>
+                <p className="text-xs sm:text-sm text-slate-400">Valoare și tipul tranzacției</p>
               </div>
             </div>
 
@@ -462,14 +462,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
 
       case 3:
         return (
-          <div className="space-y-6 p-6">
+          <div className="space-y-5 p-4 sm:p-6 text-sm sm:text-base">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-                <Percent className="h-6 w-6 text-white" />
+                <Percent className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Comision</h3>
-                <p className="text-sm text-slate-400">Calculează comisionul automat</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white">Comision</h3>
+                <p className="text-xs sm:text-sm text-slate-400">Calculează comisionul automat</p>
               </div>
             </div>
 
@@ -660,14 +660,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
 
       case 4:
         return (
-          <div className="space-y-6 p-6">
+          <div className="space-y-5 p-4 sm:p-6 text-sm sm:text-base">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <Users className="h-6 w-6 text-white" />
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Colaborare</h3>
-                <p className="text-sm text-slate-400">Adaugă agenți și defineste splituri</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white">Colaborare</h3>
+                <p className="text-xs sm:text-sm text-slate-400">Adaugă agenți și defineste splituri</p>
               </div>
             </div>
 
@@ -912,14 +912,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
 
       case 5:
         return (
-          <div className="space-y-6 p-6">
+          <div className="space-y-5 p-4 sm:p-6 text-sm sm:text-base">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-white" />
+                <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Confirmă Tranzacția</h3>
-                <p className="text-sm text-slate-400">Verifică și finalizează</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white">Confirmă Tranzacția</h3>
+                <p className="text-xs sm:text-sm text-slate-400">Verifică și finalizează</p>
               </div>
             </div>
 
@@ -1186,19 +1186,19 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       <ModalBody>
         <ModalContent>
           {/* Progress Steps */}
-          <div className="border-b border-slate-700 px-4 pb-4 pt-12 sm:px-6 sm:pt-8 sm:pb-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="border-b border-slate-700 px-4 pb-3 pt-10 sm:px-6 sm:pt-8 sm:pb-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               {STEPS.map((step, index) => {
                 const Icon = step.icon
                 const isActive = currentStep === step.id
                 const isCompleted = currentStep > step.id
 
                 return (
-                  <div key={step.id} className="flex-1 flex items-center">
+                  <div key={step.id} className="flex-1 flex items-center min-w-[60px]">
                     <motion.div
                       initial={false}
                       animate={{
-                        scale: isActive ? 1.1 : 1,
+                        scale: isActive ? 1.05 : 0.95,
                         backgroundColor: isActive 
                           ? 'rgb(59 130 246)' 
                           : isCompleted 
@@ -1210,14 +1210,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                             ? 'rgb(74 222 128)' 
                             : 'rgb(100 116 139)',
                       }}
-                      className={`relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 flex items-center justify-center transition-colors ${
                         isCompleted ? 'ring-2 ring-green-500 ring-offset-2 ring-offset-slate-900' : ''
                       }`}
                     >
                       {isCompleted ? (
                         <CheckCircle className="h-5 w-5 text-white" />
                       ) : (
-                        <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                        <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
                       )}
                     </motion.div>
                     {index < STEPS.length - 1 && (
@@ -1226,16 +1226,16 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                         animate={{
                           backgroundColor: isCompleted ? 'rgb(34 197 94)' : 'rgb(100 116 139)',
                         }}
-                        className="flex-1 h-0.5 mx-2"
+                        className="flex-1 h-0.5 mx-1 sm:mx-2"
                       />
                     )}
                   </div>
                 )
               })}
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-500">
+            <div className="flex flex-wrap items-center justify-between text-[11px] sm:text-xs text-slate-500 gap-2">
               {STEPS.map((step) => (
-                <div key={step.id} className="flex-1 text-center">
+                <div key={step.id} className="flex-1 text-center min-w-[60px]">
                   <div className={`font-medium ${currentStep === step.id ? 'text-white' : ''}`}>
                     {step.title}
                   </div>
@@ -1245,12 +1245,12 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
           </div>
 
           {/* Main Content */}
-          <div className="max-h-[55vh] sm:max-h-[60vh] overflow-y-auto px-4 sm:px-6">
+          <div className="max-h-[48vh] sm:max-h-[58vh] overflow-y-auto px-4 sm:px-6 pb-4">
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mx-6 mt-6 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm"
+                className="mx-2 sm:mx-6 mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-xs sm:text-sm"
               >
                 {error}
               </motion.div>
