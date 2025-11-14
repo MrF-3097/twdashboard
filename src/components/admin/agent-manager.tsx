@@ -1,149 +1,38 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Users, ShieldCheck } from 'lucide-react'
+import { useState } from 'react'
+import { Users, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useToast } from '@/components/ui/use-toast'
-
-interface DashboardAgent {
-  id: number
-  name: string
-  email: string
-  phone?: string
-  role: string
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
+import { Label } from '@/components/ui/label'
+import { useTransactions } from '@/hooks/use-commissions'
 
 export const AgentManager = () => {
-  const { toast } = useToast()
-  const [agents, setAgents] = useState<DashboardAgent[]>([])
-  const [loadingAgents, setLoadingAgents] = useState(true)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null)
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [deactivateAgent, setDeactivateAgent] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { data: transactionsData } = useTransactions()
+  const [newAgent, setNewAgent] = useState('')
 
-  const fetchAgents = useCallback(async () => {
-    setLoadingAgents(true)
-    try {
-      const response = await fetch('/api/admin/agents', { cache: 'no-store' })
-      const result = await response.json()
+  // Get unique agents from transactions
+  const agents = Array.from(new Set((transactionsData?.rows || []).map(t => t.Agent))).sort()
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Nu am putut încărca agenții.')
-      }
-
-      setAgents(result.data || [])
-    } catch (error) {
-      console.error('Failed to load agents:', error)
-      toast({
-        title: 'Eroare la încărcare',
-        description: 'Nu am putut încărca lista de agenți.',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoadingAgents(false)
-    }
-  }, [toast])
-
-  useEffect(() => {
-    fetchAgents()
-  }, [fetchAgents])
-
-  useEffect(() => {
-    if (agents.length > 0 && selectedAgentId === null) {
-      setSelectedAgentId(agents[0].id)
-    }
-  }, [agents, selectedAgentId])
-
-  const selectedAgent = useMemo(() => {
-    return agents.find((agent) => agent.id === selectedAgentId) || null
-  }, [agents, selectedAgentId])
-
-  useEffect(() => {
-    setNewPassword('')
-    setConfirmPassword('')
-    setDeactivateAgent(selectedAgent ? !selectedAgent.isActive : false)
-  }, [selectedAgent, isModalOpen])
-
-  const handleOpenModal = () => {
-    if (!selectedAgentId && agents.length > 0) {
-      setSelectedAgentId(agents[0].id)
-    }
-    setIsModalOpen(true)
-  }
-
-  const handleUpdateAgent = async () => {
-    if (!selectedAgentId) {
-      toast({
-        title: 'Selectează un agent',
-        description: 'Alege agentul pe care vrei să îl modifici.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    if (!newPassword || newPassword.length < 8) {
-      toast({
-        title: 'Parolă prea scurtă',
-        description: 'Parola trebuie să conțină cel puțin 8 caractere.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: 'Parolele nu coincid',
-        description: 'Completează aceeași parolă în ambele câmpuri.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    setIsSubmitting(true)
+  const handleAddAgent = async () => {
+    if (!newAgent.trim()) return
 
     try {
-      const response = await fetch(`/api/admin/agents/${selectedAgentId}`, {
-        method: 'PUT',
+      const response = await fetch('/api/admin/add-agent', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          password: newPassword,
-          deactivate: deactivateAgent,
-        }),
+        body: JSON.stringify({ agentName: newAgent }),
       })
 
       const result = await response.json()
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Nu am putut actualiza agentul.')
+        throw new Error(result.error || 'Failed to add agent')
       }
 
-      toast({
-        title: deactivateAgent ? 'Agent dezactivat' : 'Parolă actualizată',
-        description: `${selectedAgent?.name || 'Agentul'} a fost actualizat.`,
-      })
-
-      setIsModalOpen(false)
-      await fetchAgents()
-    } catch (error) {
-      console.error('Failed to update agent:', error)
-      toast({
-        title: 'Eroare',
-        description: error instanceof Error ? error.message : 'Actualizarea a eșuat.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsSubmitting(false)
+      setNewAgent('')
+    } catch (err) {
+      console.error('Error adding agent:', err)
     }
   }
 
@@ -159,135 +48,52 @@ export const AgentManager = () => {
           <h2 className="text-xl md:text-2xl font-bold text-white">Gestionare Agenți</h2>
         </div>
 
+        {/* Agent List */}
         <div className="space-y-2 mb-6 md:mb-8">
           <Label className="text-white/90 mb-3 block text-sm md:text-base font-semibold">
-            Agenți activi ({agents.filter((agent) => agent.isActive).length}/{agents.length})
+            Agenți activi ({agents.length})
           </Label>
           <div className="max-h-[200px] md:max-h-[280px] overflow-y-auto space-y-2 pr-2 overscroll-contain">
-            {!loadingAgents && agents.length > 0 ? (
-              agents.map((agent) => (
+            {agents.length > 0 ? (
+              agents.map((agent, index) => (
                 <div
-                  key={agent.id}
+                  key={index}
                   className="flex items-center justify-between p-3 md:p-4 bg-slate-700/60 hover:bg-slate-700/80 rounded-xl border border-slate-600/50 transition-all duration-200 hover:border-purple-500/50"
                 >
-                  <div>
-                    <p className="text-white font-medium text-sm md:text-base">{agent.name}</p>
-                    <p className="text-xs text-slate-400">{agent.email}</p>
-                  </div>
-                  <div
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      agent.isActive
-                        ? 'bg-green-500/20 text-green-300 border border-green-500/40'
-                        : 'bg-red-500/10 text-red-300 border border-red-500/40'
-                    }`}
-                  >
-                    {agent.isActive ? 'Activ' : 'Dezactivat'}
-                  </div>
+                  <span className="text-white font-medium text-sm md:text-base">{agent}</span>
+                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 bg-green-500 rounded-full shadow-lg shadow-green-500/50 animate-pulse" />
                 </div>
               ))
             ) : (
-              <p className="text-slate-400 text-sm md:text-base text-center py-4">
-                {loadingAgents ? 'Se încarcă agenții...' : 'Nu există agenți disponibili.'}
-              </p>
+              <p className="text-slate-400 text-sm md:text-base text-center py-4">Nicio tranzacție înregistrată</p>
             )}
           </div>
         </div>
 
-        <Button
-          onClick={handleOpenModal}
-          className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white h-11 md:h-12 text-sm md:text-base shadow-lg hover:shadow-xl transition-all"
-          disabled={loadingAgents || agents.length === 0}
-        >
-          <ShieldCheck className="mr-2 h-4 w-4 md:h-5 md:w-5" />
-          Administrare Agenți
-        </Button>
-      </div>
-
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="bg-slate-900 text-white border border-slate-700">
-          <DialogHeader>
-            <DialogTitle className="text-xl md:text-2xl">Administrare Agenți</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Selectează un agent, setează o nouă parolă și, opțional, dezactivează accesul lui.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-white">Agent</Label>
-              <Select value={selectedAgentId?.toString() ?? ''} onValueChange={(value) => setSelectedAgentId(Number(value))}>
-                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                  <SelectValue placeholder="Selectează agentul" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 text-white border-slate-700 max-h-64">
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id.toString()} className="focus:bg-slate-700">
-                      <div className="flex flex-col">
-                        <span>{agent.name}</span>
-                        <span className="text-xs text-slate-400">{agent.email}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="new-password" className="text-white">
-                  Parolă nouă
-                </Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Introdu parola nouă"
-                  className="bg-slate-800 border-slate-700 text-white h-11"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password" className="text-white">
-                  Confirmă parola
-                </Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repetă parola"
-                  className="bg-slate-800 border-slate-700 text-white h-11"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-xl border border-slate-700/60 bg-slate-800/60 p-4">
-              <Checkbox
-                id="deactivate-agent"
-                checked={deactivateAgent}
-                onCheckedChange={(checked) => setDeactivateAgent(checked === true)}
-                className="rounded-md border-slate-500 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
-              />
-              <div>
-                <Label htmlFor="deactivate-agent" className="text-white font-semibold">
-                  Dezactivează accesul
-                </Label>
-                <p className="text-sm text-slate-400">
-                  Dacă bifezi această opțiune, agentul nu se va mai putea autentifica până când nu este reactivat.
-                </p>
-              </div>
-            </div>
-
-            <Button
-              onClick={handleUpdateAgent}
-              disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white h-11 md:h-12 text-sm md:text-base shadow-lg hover:shadow-xl transition-all"
-            >
-              {isSubmitting ? 'Se salvează...' : 'Aplică modificările'}
-            </Button>
+        {/* Add Agent Form */}
+        <div className="space-y-3 md:space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="new-agent" className="text-white/90 text-sm md:text-base font-semibold">
+              Adaugă Agent Nou
+            </Label>
+            <Input
+              id="new-agent"
+              value={newAgent}
+              onChange={(e) => setNewAgent(e.target.value)}
+              placeholder="Nume agent nou"
+              className="bg-slate-700/80 border-slate-600 text-white placeholder:text-slate-400 h-11 md:h-12 text-sm md:text-base focus:border-purple-500 focus:ring-purple-500/20"
+              onKeyDown={(e) => e.key === 'Enter' && handleAddAgent()}
+            />
           </div>
-        </DialogContent>
-      </Dialog>
+          <Button
+            onClick={handleAddAgent}
+            className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white h-11 md:h-12 text-sm md:text-base shadow-lg hover:shadow-xl transition-all"
+          >
+            <UserPlus className="mr-2 h-4 w-4 md:h-5 md:w-5" />
+            Adaugă Agent
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

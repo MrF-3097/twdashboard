@@ -3,7 +3,6 @@ import { db } from '@/db'
 import { transactions } from '@/db/schema'
 import { gte, eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
-import { getRonPerEurRate } from '@/lib/fx-rate'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,8 +20,6 @@ interface LeaderboardAgent {
   closed_transactions: number
   total_value: number
   total_commission: number
-  total_value_ron?: number
-  total_commission_ron?: number
   xp: number
   level: number
   active_listings?: number
@@ -50,8 +47,6 @@ interface LeaderboardResponse {
   meta: {
     count: number
     updated_at: string
-    fx_rate: number | null
-    fx_timestamp: string | null
   }
 }
 
@@ -90,22 +85,14 @@ function processLeaderboardData(
     SumaValoare: number
     SumaComision: number
   }>,
-  rebsAgents: any[],
-  ronPerEur: number | null
+  rebsAgents: any[]
 ): LeaderboardAgent[] {
-  const convertValue = (value: number) => {
-    if (!ronPerEur || ronPerEur <= 0) return value
-    return value / ronPerEur
-  }
-
   return commissionRows.map((row, index) => {
     // Generate consistent ID from name hash
     const nameHash = row.Agent.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
     
     // Calculate XP and level (1 XP per euro of commission, level up every 1000 XP)
-    const totalCommissionEur = convertValue(row.SumaComision)
-    const totalValueEur = convertValue(row.SumaValoare)
-    const xp = Math.floor(totalCommissionEur)
+    const xp = Math.floor(row.SumaComision)
     const level = Math.floor(xp / 1000) + 1
     
     // Find matching REBS agent for additional data
@@ -126,10 +113,8 @@ function processLeaderboardData(
       avatar: rebsAgent?.avatar || rebsAgent?.profile_picture,
       profile_picture: rebsAgent?.profile_picture || rebsAgent?.avatar,
       closed_transactions: row.NrTranzactii,
-      total_value: totalValueEur,
-      total_commission: totalCommissionEur,
-      total_value_ron: row.SumaValoare,
-      total_commission_ron: row.SumaComision,
+      total_value: row.SumaValoare,
+      total_commission: row.SumaComision,
       xp,
       level,
       active_listings: rebsAgent?.active_listings || 0,
@@ -217,16 +202,6 @@ export async function GET(request: NextRequest) {
       query = query.where(and(...conditions)) as any
     }
 
-    let fxRate: number | null = null
-    let fxTimestamp: number | null = null
-    try {
-      const fx = await getRonPerEurRate()
-      fxRate = fx.rate
-      fxTimestamp = fx.timestamp
-    } catch (err) {
-      console.warn('⚠️ [API] Could not fetch EUR→RON rate, using raw RON values for display.', err)
-    }
-
     const rows = await query
 
     // Sort by commission descending
@@ -241,7 +216,7 @@ export async function GET(request: NextRequest) {
     const rebsAgents = await fetchRebsAgents()
 
     // Process leaderboard data with gamification
-    const agents = processLeaderboardData(limitedRows, rebsAgents, fxRate)
+    const agents = processLeaderboardData(limitedRows, rebsAgents)
 
     // Calculate statistics
     const stats = includeStats ? calculateStats(agents) : {
@@ -262,8 +237,6 @@ export async function GET(request: NextRequest) {
       meta: {
         count: agents.length,
         updated_at: new Date().toISOString(),
-        fx_rate: fxRate,
-        fx_timestamp: fxTimestamp ? new Date(fxTimestamp).toISOString() : null,
       },
     }
 

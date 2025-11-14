@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Modal, ModalBody, ModalContent, ModalFooter } from '@/components/ui/animated-modal'
 import { Button } from '@/components/ui/button'
@@ -12,9 +12,7 @@ import { ChevronRight, ChevronLeft, Loader2, User, Euro, Percent, CheckCircle, S
 import type { Transaction } from '@/types/commissions'
 import type { Agent } from '@/types'
 import { useLeaderboard } from '@/hooks/use-commissions'
-import { useEurRonRate } from '@/hooks/use-eur-ron-rate'
 import { Checkbox } from '@/components/ui/checkbox'
-import { CommissionConverter } from '@/components/ui/commission-converter'
 
 interface AnimatedTransactionModalProps {
   isOpen: boolean
@@ -57,7 +55,6 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
   const { refresh: refreshLeaderboard } = useLeaderboard()
   const [isCollaborative, setIsCollaborative] = useState(false)
   const [collaborators, setCollaborators] = useState<CollaboratorAgent[]>([])
-  const { rate: ronPerEur, loading: rateLoading, error: rateError } = useEurRonRate()
   
   const [formData, setFormData] = useState<TransactionFormState>({
     Agent: '',
@@ -111,17 +108,6 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       maximumFractionDigits: 2,
     })}%`
   }
-
-  const formatEurDisplay = (value: string | number | undefined) => {
-    const ronValue = parseNumericValue(value)
-    if (!ronPerEur || ronValue <= 0) return null
-    const eur = ronValue / ronPerEur
-    return eur.toLocaleString('ro-RO', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  }
-
   const computeAdjustedTransactionValue = (rawValue: string, applyTva: boolean) => {
     if (!rawValue) {
       return ''
@@ -130,8 +116,8 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
     if (!Number.isFinite(numericValue) || numericValue <= 0) {
       return ''
     }
-    const adjusted = applyTva ? numericValue / 1.21 : numericValue
-    return Number(adjusted.toFixed(2))
+    const adjustedValue = applyTva ? numericValue / 1.21 : numericValue
+    return Number(adjustedValue.toFixed(2))
   }
 
   const recalcCommissionFields = (
@@ -296,10 +282,8 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
     switch (currentStep) {
       case 1:
         return !!formData.Agent
-      case 2: {
-        const transactionValueEur = parseNumericValue(formData['Valoare Tranzactie'])
-        return Boolean(transactionValueInput && formData['Tip Tranzactie'] && ronPerEur && transactionValueEur > 0)
-      }
+      case 2:
+        return !!formData['Valoare Tranzactie'] && !!formData['Tip Tranzactie']
       case 3: {
         const totalCommission = Number(formData.Comision || 0)
         if (commissionType === 'percentage') {
@@ -362,7 +346,6 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
     })
   }
 
-
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -422,17 +405,16 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="valoare" className="text-white/80 text-sm font-medium">Valoare Tranzacție (RON)</Label>
+                <Label htmlFor="valoare" className="text-white/80 text-sm font-medium">Valoare Tranzacție (€)</Label>
                 <Input
                   id="valoare"
                   type="number"
                   step="0.01"
                   value={transactionValueInput}
                   onChange={(e) => handleTransactionValueChange(e.target.value)}
-                  placeholder="Ex: 250000"
+                  placeholder="Ex: 50000"
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
                   autoFocus
-                  disabled={!ronPerEur}
                 />
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                   <Checkbox
@@ -448,19 +430,15 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                     Împarte valoarea la 1.21 când este bifat (default activat)
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 pt-2">
-                  {rateLoading && 'Se încarcă rata EUR→RON…'}
-                  {!rateLoading && rateError && <span className="text-red-300">Rata indisponibilă: {rateError}</span>}
-                  {!rateLoading && !rateError && ronPerEur && parseNumericValue(formData['Valoare Tranzactie']) > 0 && (
-                    <>
-                      Valoare folosită în calcule: €
-                      {parseNumericValue(formData['Valoare Tranzactie']).toLocaleString('ro-RO', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </>
-                  )}
-                </p>
+                {parseNumericValue(formData['Valoare Tranzactie']) > 0 && (
+                  <p className="text-xs text-slate-500 pt-2">
+                    Valoare folosită în calcule: €
+                    {parseNumericValue(formData['Valoare Tranzactie']).toLocaleString('ro-RO', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -541,9 +519,9 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                         className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
                         autoFocus
                       />
-                      {formData['Comision Vanzator'] && ronPerEur && (
+                      {formData['Comision Vanzator'] && (
                         <p className="text-xs text-slate-400">
-                          ≈ €{formatEurDisplay(formData['Comision Vanzator']) ?? '—'}
+                          ≈ €{Number(formData['Comision Vanzator']).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       )}
                     </div>
@@ -560,9 +538,9 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                         placeholder="Ex: 50 sau 0.5"
                         className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
                       />
-                      {formData['Comision Cumparator'] && ronPerEur && (
+                      {formData['Comision Cumparator'] && (
                         <p className="text-xs text-slate-400">
-                          ≈ €{formatEurDisplay(formData['Comision Cumparator']) ?? '—'}
+                          ≈ €{Number(formData['Comision Cumparator']).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                       )}
                     </div>
@@ -577,36 +555,21 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                       <div className="flex items-center justify-between">
                         <span className="text-white/70 text-sm">Comision Proprietar:</span>
                         <span className="text-white font-semibold">
-                          {Number(formData['Comision Vanzator'] || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                          €{Number(formData['Comision Vanzator'] || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
-                        {ronPerEur && (
-                          <span className="text-xs text-slate-400">
-                            ≈ €{formatEurDisplay(formData['Comision Vanzator']) ?? '—'}
-                          </span>
-                        )}
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-white/70 text-sm">Comision Cumpărător:</span>
                         <span className="text-white font-semibold">
-                          {Number(formData['Comision Cumparator'] || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                          €{Number(formData['Comision Cumparator'] || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
-                        {ronPerEur && (
-                          <span className="text-xs text-slate-400">
-                            ≈ €{formatEurDisplay(formData['Comision Cumparator']) ?? '—'}
-                          </span>
-                        )}
                       </div>
                       <div className="h-px bg-blue-500/50" />
                       <div className="flex items-center justify-between">
                         <span className="text-white/80 text-sm font-semibold">Total Comision:</span>
                         <span className="text-white font-bold text-lg">
-                          {Number(formData.Comision).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                          €{Number(formData.Comision).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
-                        {ronPerEur && (
-                          <span className="text-xs text-slate-400">
-                            ≈ €{formatEurDisplay(formData.Comision) ?? '—'}
-                          </span>
-                        )}
                       </div>
                       {formData['Comision %'] && (
                         <p className="text-xs text-slate-300">
@@ -625,14 +588,18 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                 <>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <CommissionConverter
-                        labelRon="Comision Proprietar (RON)"
-                        labelEur="Echivalent EUR"
-                        valueRon={parseNumericValue(formData['Comision Vanzator']) || undefined}
-                        onChangeRon={(value) => handleFieldChange('Comision Vanzator', value)}
-                        disabled={!ronPerEur}
-                        hint="Suma încasată în RON de la proprietar"
-                        rateData={{ rate: ronPerEur, loading: rateLoading, error: rateError }}
+                      <Label htmlFor="comision-vanzator-fixed" className="text-white/80 text-sm font-medium">
+                        Comision Proprietar (€)
+                      </Label>
+                      <Input
+                        id="comision-vanzator-fixed"
+                        type="number"
+                        step="0.01"
+                        value={formData['Comision Vanzator'] || ''}
+                        onChange={(e) => handleFieldChange('Comision Vanzator', parseFloat(e.target.value) || 0)}
+                        placeholder="Ex: 800"
+                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
+                        autoFocus
                       />
                       {formData['Comision Vanzator %'] && (
                         <p className="text-xs text-slate-400">
@@ -641,14 +608,17 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                       )}
                     </div>
                     <div className="space-y-2">
-                      <CommissionConverter
-                        labelRon="Comision Cumpărător (RON)"
-                        labelEur="Echivalent EUR"
-                        valueRon={parseNumericValue(formData['Comision Cumparator']) || undefined}
-                        onChangeRon={(value) => handleFieldChange('Comision Cumparator', value)}
-                        disabled={!ronPerEur}
-                        hint="Suma încasată în RON de la cumpărător"
-                        rateData={{ rate: ronPerEur, loading: rateLoading, error: rateError }}
+                      <Label htmlFor="comision-cumparator-fixed" className="text-white/80 text-sm font-medium">
+                        Comision Cumpărător (€)
+                      </Label>
+                      <Input
+                        id="comision-cumparator-fixed"
+                        type="number"
+                        step="0.01"
+                        value={formData['Comision Cumparator'] || ''}
+                        onChange={(e) => handleFieldChange('Comision Cumparator', parseFloat(e.target.value) || 0)}
+                        placeholder="Ex: 400"
+                        className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
                       />
                       {formData['Comision Cumparator %'] && (
                         <p className="text-xs text-slate-400">
@@ -667,14 +637,9 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                       <div className="flex items-center justify-between">
                         <span className="text-white/70 text-sm">Total Comision:</span>
                         <span className="text-white font-bold text-lg">
-                          {Number(formData.Comision).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                          €{Number(formData.Comision).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
-                      {ronPerEur && (
-                        <p className="text-xs text-slate-300">
-                          ≈ €{formatEurDisplay(formData.Comision) ?? '—'}
-                        </p>
-                      )}
                       {formData['Comision %'] && (
                         <p className="text-xs text-slate-300">
                           Total procentual: {Number(formData['Comision %']).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
@@ -747,14 +712,12 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                 <div className="space-y-3">
                   {collaborators.map((collab, idx) => {
                     const totalCommission = Number(formData.Comision || 0)
-                    const totalCommissionRon = totalCommission
                     const collabSplitType = collab.splitType || (commissionType === 'fixed' ? 'fixed' : 'percentage')
                     
                     // Calculate percentage for display when using fixed split
                     const splitPercentage = collabSplitType === 'fixed' && totalCommission > 0
                       ? ((collab.split || 0) / totalCommission * 100).toFixed(2)
                       : collab.split
-                    const inputValue = collab.split || ''
                     
                     return (
                       <motion.div
@@ -834,19 +797,18 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                               type="number"
                               step={collabSplitType === 'fixed' ? '0.01' : '0.01'}
                               min="0"
-                              max={collabSplitType === 'fixed' ? totalCommissionRon : 100}
-                              value={inputValue}
-                              disabled={false}
+                              max={collabSplitType === 'fixed' ? totalCommission : '100'}
+                              value={collab.split || ''}
                               onChange={(e) => {
                                 const updated = [...collaborators]
                                 updated[idx].split = Number(e.target.value) || 0
                                 setCollaborators(updated)
                               }}
-                              placeholder={collabSplitType === 'fixed' ? 'Suma în RON' : 'Split %'}
+                              placeholder={collabSplitType === 'fixed' ? 'Suma în €' : 'Split %'}
                               className="bg-slate-700 border-slate-600 text-white h-12"
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-                              {collabSplitType === 'fixed' ? 'RON' : '%'}
+                              {collabSplitType === 'fixed' ? '€' : '%'}
                             </span>
                           </div>
                           
@@ -900,24 +862,14 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400 text-sm">Total Split:</span>
                           <span className={`text-lg font-bold ${isValid ? 'text-green-400' : 'text-red-400'}`}>
-                            {totalSplit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                            €{totalSplit.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
-                      {ronPerEur && (
-                        <p className="text-xs text-slate-500 mt-1">
-                          (≈ €{formatEurDisplay(totalSplit) ?? '—'})
-                        </p>
-                      )}
                         <div className="flex justify-between items-center mt-1">
                           <span className="text-slate-400 text-xs">Comision Total:</span>
                           <span className="text-slate-300 text-sm">
-                            {totalCommission.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                            €{totalCommission.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
-                        {ronPerEur && (
-                          <span className="text-xs text-slate-500">
-                            ≈ €{formatEurDisplay(totalCommission) ?? '—'}
-                          </span>
-                        )}
                     </div>
                         {!isValid && (
                           <p className="text-xs text-red-400 mt-2">
@@ -989,13 +941,8 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                     <div className="flex justify-between items-center">
                       <span className="text-slate-400 text-sm">Valoare:</span>
                       <span className="text-white font-semibold">
-                        {Number(formData['Valoare Tranzactie']).toLocaleString('ro-RO')} RON
+                        €{Number(formData['Valoare Tranzactie']).toLocaleString('ro-RO')}
                       </span>
-                      {ronPerEur && (
-                        <span className="text-xs text-slate-400">
-                          ≈ €{formatEurDisplay(formData['Valoare Tranzactie']) ?? '—'}
-                        </span>
-                      )}
                     </div>
                     <div className="h-px bg-slate-700" />
                     <div className="flex justify-between items-center">
@@ -1009,45 +956,30 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                       <span className="text-slate-400 text-sm">Comision Proprietar:</span>
                       <div className="text-right">
                         <span className="text-white font-semibold block">
-                          {Number(formData['Comision Vanzator'] || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                          €{Number(formData['Comision Vanzator'] || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         <span className="text-slate-500 text-xs">
                           {formatPercentageText(formData['Comision Vanzator %'])}
                         </span>
-                        {ronPerEur && (
-                          <span className="text-slate-500 text-xs">
-                            ≈ €{formatEurDisplay(formData['Comision Vanzator']) ?? '—'}
-                          </span>
-                        )}
                       </div>
                     </div>
                     <div className="flex justify-between items-start">
                       <span className="text-slate-400 text-sm">Comision Cumpărător:</span>
                       <div className="text-right">
                         <span className="text-white font-semibold block">
-                          {Number(formData['Comision Cumparator'] || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                          €{Number(formData['Comision Cumparator'] || 0).toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         <span className="text-slate-500 text-xs">
                           {formatPercentageText(formData['Comision Cumparator %'])}
                         </span>
-                        {ronPerEur && (
-                          <span className="text-slate-500 text-xs">
-                            ≈ €{formatEurDisplay(formData['Comision Cumparator']) ?? '—'}
-                          </span>
-                        )}
                       </div>
                     </div>
                     <div className="h-px bg-slate-700" />
                     <div className="flex justify-between items-center pt-2">
                       <span className="text-slate-400 text-base font-medium">Comision Total:</span>
                       <span className="text-white font-bold text-xl">
-                        {formData.Comision?.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                        €{formData.Comision?.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
-                      {ronPerEur && (
-                        <span className="text-xs text-slate-400 font-normal">
-                          ≈ €{formatEurDisplay(formData.Comision) ?? '—'}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1064,13 +996,8 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                       <div className="flex justify-between items-center">
                         <span className="text-slate-400 text-sm">Valoare:</span>
                         <span className="text-white font-semibold">
-                          {Number(formData['Valoare Tranzactie']).toLocaleString('ro-RO')} RON
+                          €{Number(formData['Valoare Tranzactie']).toLocaleString('ro-RO')}
                         </span>
-                        {ronPerEur && (
-                          <span className="text-xs text-slate-400">
-                            ≈ €{formatEurDisplay(formData['Valoare Tranzactie']) ?? '—'}
-                          </span>
-                        )}
                       </div>
                       <div className="h-px bg-slate-700" />
                       <div className="flex justify-between items-center">
@@ -1083,13 +1010,8 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                       <div className="flex justify-between items-center pt-2">
                         <span className="text-slate-400 text-base font-medium">Comision Total:</span>
                         <span className="text-white font-bold text-xl">
-                          {formData.Comision?.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                          €{formData.Comision?.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
-                        {ronPerEur && (
-                          <span className="text-xs text-slate-400 font-normal">
-                            ≈ €{formatEurDisplay(formData.Comision) ?? '—'}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -1120,16 +1042,10 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                             <span className="text-slate-400 text-sm">Split:</span>
                             <span className="text-white font-semibold">
                               {collabSplitType === 'fixed' 
-                                ? `${collab.split.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON`
+                                ? `€${collab.split.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                 : `${collab.split}%`}
                             </span>
                           </div>
-                          {collabSplitType === 'fixed' && ronPerEur && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-slate-400 text-xs">≈ EUR:</span>
-                              <span className="text-slate-500 text-xs">€{formatEurDisplay(collab.split) ?? '—'}</span>
-                            </div>
-                          )}
                           {collabSplitType === 'fixed' && (
                             <div className="flex justify-between items-center">
                               <span className="text-slate-400 text-xs">Echivalent:</span>
@@ -1140,13 +1056,8 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                           <div className="flex justify-between items-center pt-1">
                             <span className="text-slate-400 text-sm font-medium">Comision Agent:</span>
                             <span className="text-green-400 font-bold text-lg">
-                              {agentCommission.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                              €{agentCommission.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
-                            {ronPerEur && (
-                              <span className="text-xs text-slate-400">
-                                ≈ €{formatEurDisplay(agentCommission) ?? '—'}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -1273,10 +1184,9 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
   return (
     <Modal open={isOpen} onOpenChange={onClose}>
       <ModalBody>
-        <ModalContent className="p-0">
-          <div className="flex h-full flex-col">
-            {/* Progress Steps */}
-            <div className="border-b border-slate-700 px-4 pb-3 pt-12 sm:px-6 sm:pt-8 sm:pb-5">
+        <ModalContent>
+          {/* Progress Steps */}
+          <div className="border-b border-slate-700 px-4 pb-3 pt-10 sm:px-6 sm:pt-8 sm:pb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               {STEPS.map((step, index) => {
                 const Icon = step.icon
@@ -1332,69 +1242,68 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                 </div>
               ))}
             </div>
-            </div>
+          </div>
 
-            {/* Main Content */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4">
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mx-2 sm:mx-6 mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-xs sm:text-sm"
-                >
-                  {error}
-                </motion.div>
-              )}
-              {renderStepContent()}
-            </div>
-
-            {/* Footer */}
-            <ModalFooter className="flex-wrap gap-3 sm:flex-nowrap">
-              {currentStep > 1 && (
-                <Button
-                  onClick={prevStep}
-                  disabled={loading}
-                  variant="outline"
-                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Înapoi
-                </Button>
-              )}
-              
-              <div className="flex-1" />
-              
-              {currentStep < STEPS.length ? (
-                <Button
-                  onClick={nextStep}
-                  disabled={!canGoNext() || loading}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-                >
-                  Continuă
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Se salvează...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Salvează Tranzacția
-                    </>
-                  )}
-                </Button>
-              )}
-            </ModalFooter>
+          {/* Main Content */}
+          <div className="max-h-[48vh] sm:max-h-[58vh] overflow-y-auto px-4 sm:px-6 pb-4">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mx-2 sm:mx-6 mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-xs sm:text-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+            {renderStepContent()}
           </div>
         </ModalContent>
+
+        {/* Footer */}
+        <ModalFooter className="flex-wrap gap-3 sm:flex-nowrap">
+          {currentStep > 1 && (
+            <Button
+              onClick={prevStep}
+              disabled={loading}
+              variant="outline"
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Înapoi
+            </Button>
+          )}
+          
+          <div className="flex-1" />
+          
+          {currentStep < STEPS.length ? (
+            <Button
+              onClick={nextStep}
+              disabled={!canGoNext() || loading}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+            >
+              Continuă
+              <ChevronRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Salvează Tranzacția
+                </>
+              )}
+            </Button>
+          )}
+        </ModalFooter>
       </ModalBody>
     </Modal>
   )
