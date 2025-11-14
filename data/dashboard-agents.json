@@ -1,0 +1,223 @@
+[
+  {
+    "id": 7836,
+    "name": "Casandra Babă",
+    "email": "casandra.ioana@towerimob.ro",
+    "phone": "0756353001",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7634,
+    "name": "Simona Pănoiu",
+    "email": "simona.panoiu@towerimob.ro",
+    "phone": "0745127561",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7633,
+    "name": "Sorin Băcilă",
+    "email": "sorin.bacila@towerimob.ro",
+    "phone": "0728674712",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7642,
+    "name": "Ciprian Oprișor",
+    "email": "ciprian.oprisor@towerimob.ro",
+    "phone": "0742560000",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7640,
+    "name": "Claudia Achim",
+    "email": "achim.claudia@yahoo.com",
+    "phone": "0727958004",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7643,
+    "name": "Alina Tarita",
+    "email": "alina.tarita@towerimob.ro",
+    "phone": "0723338480",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 9287,
+    "name": "Cristina Ivanciuc",
+    "email": "cristina.ivanciuc@towerimob.ro",
+    "phone": "0744348213",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7648,
+    "name": "Cosmin Chirica",
+    "email": "cosmin.chirica@towerimob.ro",
+    "phone": "0750291777",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 9033,
+    "name": "Francesco Fârțonea",
+    "email": "francesco.fartonea@towerimob.ro",
+    "phone": "0774033087",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7814,
+    "name": "Florin Veștemean",
+    "email": "florin.vestemean@towerimob.ro",
+    "phone": "0740597647",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7660,
+    "name": "Maria Bolovan",
+    "email": "maria.bolovan@towerimob.ro",
+    "phone": "0744356990",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7866,
+    "name": "Ovidiu Neagu",
+    "email": "ovidiu.neagu@towerimob.ro",
+    "phone": "0744551356",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 8787,
+    "name": "Petru Vidrean",
+    "email": "petru.vidrean@towerimob.ro",
+    "phone": "0774982802",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 9145,
+    "name": "Tudor Veveriță",
+    "email": "tudor.veverita@towerimob.ro",
+    "phone": "0785817372",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7697,
+    "name": "Sebastian Zeicu",
+    "email": "sebastian.zeicu@towerimob.ro",
+    "phone": "0744606444",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 11428,
+    "name": "Mihaela Butuc",
+    "email": "mihaela.butuc@towerimob.ro",
+    "phone": "0752509095",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 11641,
+    "name": "Cătălin Nasta",
+    "email": "catalin.nasta@towerimob.ro",
+    "phone": "0754951373",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 11852,
+    "name": "Andrei Fârțonea",
+    "email": "andrei.fartonea@towerimob.ro",
+    "phone": "0771736717",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 12309,
+    "name": "Marco Roman",
+    "email": "roman.marco@towerimob.ro",
+    "phone": "0729309655",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  },
+  {
+    "id": 7644,
+    "name": "Niculina Grindean",
+    "email": "ikaniculina@yahoo.com",
+    "phone": "0721916885",
+    "role": "agent",
+    "passwordHash": "f6588b3257a129b6ecff634869fdbb61f12b1ff209f1ecac313af5230fb52225",
+    "isActive": true,
+    "createdAt": "2025-10-21T13:08:19.667Z",
+    "updatedAt": "2025-10-21T13:08:19.667Z"
+  }
+]
+
