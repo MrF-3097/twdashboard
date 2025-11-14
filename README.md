@@ -1,5 +1,32 @@
 # Agent Dashboard Minimal
 
+## Francesco 14.11.2025 : Buyer + Seller Commission Split
+
+Summary
+- **Dual commission inputs**: The admin “Adaugă tranzacție” modal now captures separate commission values for `Vânzător` and `Cumpărător`, both in percentage and fixed modes.
+- **Totals >100%**: Combined commissions can exceed 100% of the transaction value (e.g., 100% owner + 50% buyer) without triggering validation errors.
+- **Auto-calculations**: Whenever transaction value or any commission field changes, the modal recalculates euro amounts, percentages, and the overall total used for XP/leaderboard logic.
+- **Clear confirmation**: Step 5 now shows a detailed breakdown with both sides’ amounts and percentages so admins can verify before saving.
+
+Why These Changes
+- Rental deals frequently involve asymmetric commissions per party and totals above 100%; the previous single-percentage constraint blocked real-world flows.
+- Admins needed clarity on how much each side contributes without manual math.
+- Explicitly tracking both parties prevents hacks (like entering 150% in one field) and preserves accurate downstream reporting.
+
+Technical Implementation
+- **`src/components/admin/animated-transaction-modal.tsx`**:
+  - Introduced new form fields (`Comision Vânzător %/€`, `Comision Cumpărător %/€`) plus helper utilities to normalize percentages, convert to euros, and keep totals synchronized.
+  - Updated validation to require at least one side filled while removing the implicit 100% ceiling.
+  - Rebuilt Step 3 UI into two inputs (one per party) with dynamic summaries and guidance that totals may exceed 100%.
+  - Enhanced confirmation view to display seller/buyer breakdowns, and ensured reset logic clears the new fields.
+- **Backend/API**:
+  - The `/api/admin/add-transaction` endpoint continues to receive the aggregated `Comision` and `Comision %`; those values now represent the combined seller+buyer commission (and may be >100%).
+
+Result
+- Admins can log scenarios like “100% proprietar + 50% cumpărător” or “€800 + €400” without workarounds.
+- Leaderboard XP, collaborator splits, and stats continue to use the accurate summed commission.
+- The modal provides clearer guidance, reducing mistakes and confirming the true commission structure.
+
 ## Francesco 12.11.2025 : Client Request Modal with REBS CRM Integration
 
 Summary
