@@ -1,5 +1,27 @@
 # Agent Dashboard Minimal
 
+## Francesco 14.11.2025 : Dashboard Agent Store Dedup
+
+Summary
+- **Single source of truth**: Removed the duplicated `dashboard-agents-store` module block that shipped twice in the bundle and triggered `Identifier redefined` crashes in PM2.
+- **Stable admin APIs**: `GET /api/admin/agents` and the password/update helpers now import a single definition, so the Node process no longer bails during cold starts.
+- **Lean runtime**: With the redundant code gone, the file stays readable, TypeScript stops flagging duplicate exports, and future edits won’t silently diverge between copies.
+
+Why These Changes
+- A previous merge accidentally pasted the entire file twice, so every helper (`fs`, `sanitizeAgent`, `updateDashboardAgent`, etc.) was declared two times.
+- Next.js’ bundler surfaced the issue as runtime `ReferenceError: identifier has already been declared`, preventing the dashboard API from responding.
+- Cleaning the file restores predictable imports for both local development and the production PM2 workers.
+
+Technical Implementation
+- Removed the second occurrence of all imports, schemas, helper functions, and exports in `src/lib/dashboard-agents-store.ts`, keeping the first, authoritative block only.
+- Ensured the module still exports the same API surface (`listDashboardAgents`, `getDashboardAgentByEmail`, `getDashboardAgentById`, `updateDashboardAgent`).
+- Added a safety newline at EOF so future diffs remain clean.
+
+Result
+- PM2 no longer logs duplicate-definition errors while starting `twdashboard-dev`.
+- Admin agent management, auth status checks, and password resets keep working without redeploy hiccups.
+- The codebase documents this fix so teammates understand the rationale when reviewing git history.
+
 ## Francesco 14.11.2025 : Administrare parole, toggle-uri & logout forțat
 
 - Persisted agenții dashboard-ului în `data/dashboard-agents.json`, împreună cu hash-urile SHA-256, rolurile și starea `isActive`, gestionate prin helperul `dashboard-agents-store`.
