@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { transactions } from '@/db/schema'
 import { gte, eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
+import { rebsMockAgents } from '@/lib/rebs-agent-mock'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,25 +55,53 @@ interface LeaderboardResponse {
  * Fetches REBS agents data for enriching leaderboard
  */
 async function fetchRebsAgents(): Promise<any[]> {
-  try {
-    const response = await fetch(`${REBS_API_BASE}/agents/?api_key=${REBS_API_KEY}`, {
+  const methods = [
+    {
+      url: `${REBS_API_BASE}/agent/?api_key=${REBS_API_KEY}`,
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
-      next: { revalidate: 300 } // Cache for 5 minutes
-    })
+    },
+    {
+      url: `${REBS_API_BASE}/agent/`,
+      headers: {
+        Accept: 'application/json',
+        Authorization: REBS_API_KEY,
+      },
+    },
+  ]
 
-    if (!response.ok) {
-      console.warn('⚠️ [API] Failed to fetch REBS agents:', response.statusText)
-      return []
+  let lastError: string | null = null
+
+  for (const method of methods) {
+    try {
+      const response = await fetch(method.url, {
+        headers: method.headers,
+        next: { revalidate: 300 },
+      })
+
+      if (!response.ok) {
+        lastError = `Status ${response.status} ${response.statusText}`
+        console.warn(`⚠️ [API] Failed to fetch REBS agents via ${method.url}: ${lastError}`)
+        continue
+      }
+
+      const result = await response.json()
+      const payload = Array.isArray(result) ? result : result?.objects
+      if (Array.isArray(payload)) {
+        return payload
+      }
+
+      lastError = 'Unexpected REBS response format'
+      console.warn(`⚠️ [API] Unexpected REBS payload shape via ${method.url}`)
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : 'Unknown error'
+      console.error(`❌ [API] Error fetching REBS agents via ${method.url}:`, error)
     }
-
-    const result = await response.json()
-    return Array.isArray(result) ? result : (result?.objects || [])
-  } catch (error) {
-    console.error('❌ [API] Error fetching REBS agents:', error)
-    return []
   }
+
+  console.warn('⚠️ [API] Falling back to mock REBS agents:', lastError)
+  return rebsMockAgents
 }
 
 /**

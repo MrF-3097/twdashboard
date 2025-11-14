@@ -22,6 +22,28 @@ Result
 - Admin agent management, auth status checks, and password resets keep working without redeploy hiccups.
 - The codebase documents this fix so teammates understand the rationale when reviewing git history.
 
+## Francesco 14.11.2025 : REBS Agent Fetch Hardening
+
+Summary
+- **Correct REBS endpoint usage**: Leaderboard enrichment now queries the working `/agent/` endpoint (GET param + Authorization header fallback) instead of the 404-ing `/agents/`.
+- **Shared mock fallback**: Centralized a single `rebsMockAgents` dataset under `src/lib/rebs-agent-mock.ts` so every API consuming REBS data returns consistent placeholder info when upstream is down.
+- **No more log spam**: `fetchRebsAgents()` logs one consolidated warning with the last upstream error and silently serves mock avatars, stopping the PM2 error flood.
+
+Why These Changes
+- PM2 logs were flooded with `⚠️ Failed to fetch REBS agents: Not Found` because the leaderboard API pointed at a non-existent `/agents/` resource.
+- Other modules (e.g., `/api/agents`) already used a multi-strategy fetcher with GET-param and header auth; duplicating this logic elsewhere risked drift.
+- Having separate mock payloads meant diagnostics could disagree about how many placeholder agents existed.
+
+Technical Implementation
+- Added `src/lib/rebs-agent-mock.ts` exporting typed mock agents; `/api/agents` and `/api/leaderboard` now import from the same source.
+- Updated `/api/leaderboard`’s `fetchRebsAgents()` to try both REBS auth modes, validate payload shape, and fall back to mock data if all attempts fail.
+- Cleaned `/api/agents` to reuse the shared mock array across its mock/degraded-mode responses.
+
+Result
+- Leaderboard API keeps serving avatars/metadata even if REBS is offline, and logs clearly indicate when the fallback engages.
+- PM2 no longer prints dozens of identical REBS 404 warnings each minute.
+- Future REBS consumers can import the centralized mock data, ensuring consistent test fixtures.
+
 ## Francesco 14.11.2025 : Administrare parole, toggle-uri & logout forțat
 
 - Persisted agenții dashboard-ului în `data/dashboard-agents.json`, împreună cu hash-urile SHA-256, rolurile și starea `isActive`, gestionate prin helperul `dashboard-agents-store`.
