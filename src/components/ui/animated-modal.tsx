@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ModalProps {
   children: React.ReactNode;
@@ -20,7 +21,7 @@ interface ModalBodyProps {
   children: React.ReactNode;
 }
 
-interface ModalContentProps {
+interface ModalContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
@@ -128,7 +129,7 @@ export const ModalBody = ({ children }: ModalBodyProps) => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="relative mx-auto w-full max-w-[92vw] sm:max-w-3xl"
+                className="relative mx-auto w-full max-w-[88vw] sm:max-w-2xl"
               >
                 <button
                   onClick={() => setOpen(false)}
@@ -146,9 +147,15 @@ export const ModalBody = ({ children }: ModalBodyProps) => {
   );
 };
 
-export const ModalContent = ({ children }: ModalContentProps) => {
+export const ModalContent = ({ children, className, ...props }: ModalContentProps) => {
   return (
-    <div className="relative z-50 mx-auto flex w-full max-w-[92vw] sm:max-w-3xl max-h-[78vh] sm:max-h-[88vh] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl text-sm sm:text-base">
+    <div
+      className={cn(
+        "relative z-50 mx-auto flex w-full max-w-[88vw] sm:max-w-2xl max-h-[72vh] sm:max-h-[85vh] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl text-sm sm:text-base",
+        className
+      )}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -156,7 +163,12 @@ export const ModalContent = ({ children }: ModalContentProps) => {
 
 export const ModalFooter = ({ children, className }: ModalFooterProps) => {
   return (
-    <div className={`flex flex-wrap items-center justify-end gap-2 border-t border-slate-700 bg-slate-800/70 p-3 sm:flex-nowrap sm:gap-3 sm:p-4 ${className}`}>
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-end gap-2 border-t border-slate-700 bg-slate-800/70 p-3 sm:flex-nowrap sm:gap-3 sm:p-4",
+        className
+      )}
+    >
       {children}
     </div>
   );

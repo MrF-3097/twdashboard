@@ -1184,9 +1184,10 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
   return (
     <Modal open={isOpen} onOpenChange={onClose}>
       <ModalBody>
-        <ModalContent>
-          {/* Progress Steps */}
-          <div className="border-b border-slate-700 px-4 pb-3 pt-10 sm:px-6 sm:pt-8 sm:pb-5">
+        <ModalContent className="p-0">
+          <div className="flex h-full flex-col">
+            {/* Progress Steps */}
+            <div className="border-b border-slate-700 px-4 pb-3 pt-12 sm:px-6 sm:pt-8 sm:pb-5">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               {STEPS.map((step, index) => {
                 const Icon = step.icon
@@ -1242,68 +1243,69 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                 </div>
               ))}
             </div>
-          </div>
+            </div>
 
-          {/* Main Content */}
-          <div className="max-h-[48vh] sm:max-h-[58vh] overflow-y-auto px-4 sm:px-6 pb-4">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mx-2 sm:mx-6 mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-xs sm:text-sm"
-              >
-                {error}
-              </motion.div>
-            )}
-            {renderStepContent()}
+            {/* Main Content */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mx-2 sm:mx-6 mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-xs sm:text-sm"
+                >
+                  {error}
+                </motion.div>
+              )}
+              {renderStepContent()}
+            </div>
+
+            {/* Footer */}
+            <ModalFooter className="flex-wrap gap-3 sm:flex-nowrap">
+              {currentStep > 1 && (
+                <Button
+                  onClick={prevStep}
+                  disabled={loading}
+                  variant="outline"
+                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Înapoi
+                </Button>
+              )}
+              
+              <div className="flex-1" />
+              
+              {currentStep < STEPS.length ? (
+                <Button
+                  onClick={nextStep}
+                  disabled={!canGoNext() || loading}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                >
+                  Continuă
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Se salvează...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Salvează Tranzacția
+                    </>
+                  )}
+                </Button>
+              )}
+            </ModalFooter>
           </div>
         </ModalContent>
-
-        {/* Footer */}
-        <ModalFooter className="flex-wrap gap-3 sm:flex-nowrap">
-          {currentStep > 1 && (
-            <Button
-              onClick={prevStep}
-              disabled={loading}
-              variant="outline"
-              className="border-slate-700 text-slate-300 hover:bg-slate-800"
-            >
-              <ChevronLeft className="mr-2 h-4 w-4" />
-              Înapoi
-            </Button>
-          )}
-          
-          <div className="flex-1" />
-          
-          {currentStep < STEPS.length ? (
-            <Button
-              onClick={nextStep}
-              disabled={!canGoNext() || loading}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
-            >
-              Continuă
-              <ChevronRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Se salvează...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Salvează Tranzacția
-                </>
-              )}
-            </Button>
-          )}
-        </ModalFooter>
       </ModalBody>
     </Modal>
   )
