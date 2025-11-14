@@ -1,5 +1,25 @@
 # Agent Dashboard Minimal
 
+## Francesco 14.11.2025 : Agent Store JSON Repair
+
+Summary
+- **Fixed broken JSON**: Removed the duplicated second array in `data/dashboard-agents.json` so the file is once again a single well-formed list and `JSON.parse` inside `listDashboardAgents` no longer fails.
+- **Admin UI restored**: `/api/admin/agents` now responds with the agent list again, so the “Nu am putut încărca agenții.” error toast and console spam in `AgentManager` disappear.
+- **Safe data baseline**: Keeping the canonical IDs/password hashes intact avoids having to recreate agents or reset credentials after the corruption.
+
+Why These Changes
+- A previous merge accidentally appended a complete copy of the array after the closing bracket, resulting in `][` at the file boundary—invalid JSON that Zod correctly rejected.
+- Because the admin dashboard polls the endpoint frequently, every failure produced repeated error toasts and polluted PM2 logs.
+- Fixing the file at the source is simpler than adding try/catch fallbacks around every consumer.
+
+Technical Implementation
+- Trimmed everything after the first closing bracket in `data/dashboard-agents.json`, leaving only the intended array.
+- Verified the file ends with a newline so Git diffs stay clean and the Node runtime can parse it without BOM quirks.
+
+Result
+- Admin agent management loads instantly both locally and on the VPS.
+- PM2 no longer reports `Nu am putut încărca agenții.` for every poll.
+
 ## Francesco 14.11.2025 : Dashboard Agent Store Dedup
 
 Summary
