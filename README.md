@@ -1,5 +1,27 @@
 # Agent Dashboard Minimal
 
+## Francesco 14.11.2025 : RON Input & FX Conversion
+
+Summary
+- **RON-first inputs**: Admin transaction modal now collects `Valoare Tranzacție` and fixed commissions in RON, while automatically converting them to EUR before storing/sending to the backend.
+- **Live FX rate**: Added `/api/fx/eur-ron` endpoint with 60s caching plus a `useEurRonRate` hook so the UI always reflects the latest exchangerate.host feed.
+- **Converter UI**: Introduced `CommissionConverter`, used across the modal to show RON inputs alongside their EUR equivalents and the active rate.
+- **RON context everywhere**: Confirmation, split summaries, and collaborator panels now display both EUR (storage currency) and the derived RON amount for clarity.
+
+Implementation
+- **API**: `src/app/api/fx/eur-ron/route.ts` fetches exchangerate.host, caches responses, and exposes `{ ronPerEur, timestamp }` to the app.
+- **Hook**: `src/hooks/use-eur-ron-rate.ts` centralises fetching + 5‑minute refresh intervals for components.
+- **UI updates** (`src/components/admin/animated-transaction-modal.tsx`):
+  - Step 2 transaction value input now expects RON, keeps the TVA toggle, and blocks progression until the FX rate is available.
+  - Fixed commission flows (including collaborator splits) use the converter component so every amount entered in RON is stored internally as EUR.
+  - Confirmation and summaries show both currencies to make auditing easy.
+- **Component**: `src/components/ui/commission-converter.tsx` handles RON input, EUR preview, and rate messaging as a reusable building block.
+
+Result
+- Admins keep working in RON while the leaderboard, XP math, and stored data remain EUR-accurate.
+- FX lookups stay free, realtime-ish, and production-safe without additional infrastructure.
+- The modal clearly communicates the conversion context, minimizing mistakes when entering mixed-currency deals.
+
 ## Francesco 14.11.2025 : Buyer + Seller Commission Split
 
 Summary
