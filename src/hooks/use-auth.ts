@@ -10,6 +10,7 @@ interface AgentData {
   photo?: string
   position?: string
   created_at?: string
+  updatedAt?: string
   // Additional computed fields
   currentMonthCommission?: number
   previousMonthCommission?: number
@@ -28,6 +29,7 @@ interface AuthState {
 
 const STORAGE_KEY = 'towerimob_auth_data'
 const SESSION_TIMEOUT = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+const STATUS_POLL_INTERVAL = 30 * 1000 // 30 seconds
 
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -131,6 +133,54 @@ export const useAuth = () => {
       }
     }
   }
+
+  // Poll server to ensure agent remains active and session not invalidated
+  useEffect(() => {
+    if (!authState.isLoggedIn || !authState.agentData?.id) {
+      return
+    }
+
+    const controller = new AbortController()
+
+    const checkStatus = async () => {
+      try {
+        const response = await fetch(`/api/auth/status?agentId=${authState.agentData?.id}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const result = await response.json()
+
+        if (!response.ok || !result.success) {
+          return
+        }
+
+        const latestUpdatedAt: string | undefined = result.data?.updatedAt
+        const isActive: boolean = result.data?.isActive
+
+        if (!isActive) {
+          logout()
+          return
+        }
+
+        if (latestUpdatedAt && authState.agentData?.updatedAt && latestUpdatedAt !== authState.agentData.updatedAt) {
+          logout()
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return
+        }
+        console.error('Error verifying session status:', error)
+      }
+    }
+
+    checkStatus()
+    const intervalId = setInterval(checkStatus, STATUS_POLL_INTERVAL)
+
+    return () => {
+      controller.abort()
+      clearInterval(intervalId)
+    }
+  }, [authState.agentData, authState.isLoggedIn, logout])
 
   return {
     ...authState,

@@ -410,69 +410,76 @@ export const NewsFeed = () => {
       </div>
 
       {/* News Feed */}
-      <div className="relative z-10 px-4 md:px-8 py-6 pb-32 space-y-4 md:space-y-5">
+      <div className="relative z-10 px-4 md:px-8 py-6 pb-32">
         {newsItems.length === 0 ? (
           <div className="text-center py-12 text-white/70">
             <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nu există știri disponibile</p>
           </div>
         ) : (
-          newsItems.map((item) => {
+          <div className="grid gap-5 md:gap-6 xl:gap-7 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 auto-rows-fr">
+            {newsItems.map((item) => {
             const userReaction = getUserReaction(item)
             const reactionEmojis = ['👏', '❤️', '🍾', '🤩'] // Applause, Heart, Champagne, Starstruck
             
             return (
               <div
                 key={item.id}
-                className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-3.5 md:p-4 hover:border-white/30 hover:bg-white/15 transition-all shadow-lg relative"
-                style={{
-                  transform: 'scale(0.9)',
-                  transformOrigin: 'center',
-                  overflow: 'visible'
-                }}
+                className="relative flex h-full flex-col justify-between rounded-3xl border border-white/20 bg-white/10 px-5 py-6 shadow-[0_25px_45px_rgba(2,6,23,0.35)] backdrop-blur-2xl transition-all hover:border-white/40 hover:bg-white/15"
                 onMouseDown={() => handleLongPressStart(item.id)}
                 onMouseUp={handleLongPressEnd}
                 onMouseLeave={handleLongPressEnd}
                 onTouchStart={() => handleLongPressStart(item.id)}
                 onTouchEnd={handleLongPressEnd}
               >
-                <div className="flex items-center gap-3">
-                  {/* Agent Avatar */}
-                  <div className="flex-shrink-0">
-                    {item.agentAvatar ? (
-                      <div className="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-white/30 shadow-md">
-                        <Image
-                          src={item.agentAvatar}
-                          alt={item.agentName}
-                          width={56}
-                          height={56}
-                          className="w-full h-full object-cover"
-                          unoptimized
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30 flex items-center justify-center text-white font-bold text-lg md:text-xl shadow-md">
-                        {item.agentName.charAt(0).toUpperCase()}
+                <div className="flex flex-col gap-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] uppercase tracking-[0.3em] text-white/60">Tip achievement.</span>
+                      <span className="text-xs text-white/40">Felicitări agentului</span>
+                    </div>
+                    <div className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-sky-100">
+                      {item.transactionType || 'Vanzare'}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/15 bg-slate-900/40 p-4 text-center">
+                    <div className="text-[12px] uppercase tracking-[0.5em] text-white/60">
+                      {(item.transactionType || 'Vanzare').toUpperCase()}
+                    </div>
+                    <div className="mt-3 text-3xl md:text-4xl font-black text-white">
+                      €{item.transactionValue.toLocaleString('ro-RO')}
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-sky-200">
+                      Comision €{item.commission.toLocaleString('ro-RO')}
+                    </div>
+                    {item.location && (
+                      <div className="mt-1 text-xs text-white/50">
+                        {item.location}
                       </div>
                     )}
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Notification text - Two lines */}
-                    <div className="text-white font-bold text-sm md:text-base mb-2 leading-snug">
-                      <div className="flex items-center gap-1">
-                        <span>{item.transactionType || 'Vanzare'}:</span>
-                        <span className="text-sky-300">
-                          €{item.transactionValue.toLocaleString('ro-RO')}
-                        </span>
+                  <div className="flex flex-col items-center gap-2 text-center">
+                    {item.agentAvatar ? (
+                      <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-white/40 shadow-xl">
+                        <Image
+                          src={item.agentAvatar}
+                          alt={item.agentName}
+                          width={64}
+                          height={64}
+                          className="h-full w-full object-cover"
+                          unoptimized
+                        />
                       </div>
-                      <div className="mt-0.5">
-                        <span className="text-white/90">Comision: </span>
-                        <span className="text-sky-300">
-                          €{item.commission.toLocaleString('ro-RO')}
-                        </span>
+                    ) : (
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/40 bg-white/10 text-xl font-semibold text-white shadow-xl">
+                        {item.agentName.charAt(0).toUpperCase()}
                       </div>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-white">{item.agentName}</span>
+                      <span className="text-xs text-white/50">{formatTimeAgo(item.timestamp)}</span>
                     </div>
                   </div>
                 </div>
@@ -509,11 +516,7 @@ export const NewsFeed = () => {
 
                 {/* Reactions Container - Top-right with overflow, lined horizontally */}
                 <div 
-                  className="absolute flex flex-row-reverse gap-2 z-10 pointer-events-none"
-                  style={{
-                    top: '-16px',
-                    right: '7px',
-                  }}
+                  className="pointer-events-none absolute right-4 top-4 z-10 flex flex-row-reverse gap-2"
                 >
                   {/* Existing Reactions - Stacked vertically */}
                   {Object.entries(item.reactionCounts).map(([emoji, count]) => {
@@ -587,7 +590,8 @@ export const NewsFeed = () => {
                 </div>
               </div>
             )
-          })
+            })}
+          </div>
         )}
       </div>
     </section>

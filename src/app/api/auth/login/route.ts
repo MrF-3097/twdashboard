@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
       console.log(`Using fallback: Agent ${agent.name} has ${propertiesCount} properties (calculated)`)
     }
 
+    const createdAt = (agent as { created_at?: string; createdAt?: string }).created_at ?? agent.createdAt ?? null
+
     // Return authenticated agent data with real properties count
     return NextResponse.json({
       success: true,
@@ -95,7 +97,8 @@ export async function POST(request: NextRequest) {
         phone: agent.phone,
         photo: agent.photo,
         position: agent.position,
-        created_at: agent.created_at,
+        created_at: createdAt,
+        updatedAt: agent.updatedAt,
         propertiesCount: propertiesCount,
       }
     })

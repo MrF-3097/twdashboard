@@ -1,5 +1,37 @@
 # Agent Dashboard Minimal
 
+## Francesco 14.11.2025 : Administrare parole, toggle-uri & logout forțat
+
+- Persisted agenții dashboard-ului în `data/dashboard-agents.json`, împreună cu hash-urile SHA-256, rolurile și starea `isActive`, gestionate prin helperul `dashboard-agents-store`.
+- Creat API-urile `/api/admin/agents` (listare) și `/api/admin/agents/[id]` (PUT) plus `GET /api/auth/status` pentru a sincroniza tabla de bord cu backend-ul și pentru a permite dezactivări instant.
+- `AgentManager` afișează acum toggle-uri per agent (activ/inaactiv) și oferă în continuare modalul „Administrare Agenți” pentru resetarea parolei; toate acțiunile prezintă feedback vizual și protecție la double-submit.
+- `useAuth` verifică la fiecare 30s dacă agentul mai este activ sau dacă `updatedAt` s-a schimbat; la prima abatere șterge sesiunea locală astfel încât dezactivările produc logout pe toate dispozitivele.
+- `/api/auth/login` întoarce `updatedAt`, astfel încât orice resetare de parolă sau dezactivare declanșează imediat invalidarea sesiunilor persistente.
+
+## Francesco 14.11.2025 : Tip Achievement News Notifications
+
+Summary
+- **Large-format cards**: News feed notifications now render as tall “Tip achievement” tiles with bold transaction totals, uppercased transaction type badges, and dedicated agent portrait blocks.
+- **Limited on-screen density**: Responsive grid (`grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4`) plus generous padding keeps only three to four cards visible per viewport, matching the brief.
+- **Context-first content**: Each card highlights the deal type, value, commission, location (when present), and a timestamp so users grasp the win at a glance.
+- **Reaction UX preserved**: Long-press picker and live reaction counters remain anchored to the card’s top-right corner, ensuring social feedback still works with the new layout.
+
+Why These Changes
+- The previous pill cards were too compact, forcing users to parse small numbers and multiple stacked rows.
+- Stakeholders requested a celebratory layout inspired by scoreboard slides—fewer items per screen but with dramatic typography and agent focus.
+- Larger tiles improve readability on TV/large displays often used in office dashboards.
+
+Technical Implementation
+- **`src/components/pages/news-feed.tsx`**:
+  - Wrapped the feed list in a responsive CSS grid and removed the vertical `space-y` stack so multiple columns can show simultaneously.
+  - Rebuilt each card into a columnar layout: header badge (`Tip achievement.`), centered transaction type capsule, hero value line, commission/location text, and an enlarged avatar/name block.
+  - Adjusted reaction picker overlay and counter cluster to align with the new geometry while keeping long-press handlers unchanged.
+
+Result
+- News notifications now read like achievement posters, emphasizing the type (“VANZARE”), the € amount, and the celebrating agent photo.
+- Layout consistency across breakpoints ensures no more than four cards show concurrently, improving focus and storytelling.
+- Social reactions continue to operate seamlessly within the refreshed design.
+
 ## Francesco 14.11.2025 : Buyer + Seller Commission Split
 
 Summary
