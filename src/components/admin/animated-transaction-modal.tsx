@@ -12,6 +12,7 @@ import { ChevronRight, ChevronLeft, Loader2, User, Euro, Percent, CheckCircle, S
 import type { Transaction } from '@/types/commissions'
 import type { Agent } from '@/types'
 import { useLeaderboard } from '@/hooks/use-commissions'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface AnimatedTransactionModalProps {
   isOpen: boolean
@@ -67,6 +68,8 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
     Comision: '',
     Timestamp: new Date().toISOString(),
   })
+  const [transactionValueInput, setTransactionValueInput] = useState('')
+  const [isTvaApplied, setIsTvaApplied] = useState(true)
   const parseNumericValue = (value: string | number | undefined) => {
     if (typeof value === 'number') {
       return Number.isFinite(value) ? value : 0
@@ -104,6 +107,17 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}%`
+  }
+  const computeAdjustedTransactionValue = (rawValue: string, applyTva: boolean) => {
+    if (!rawValue) {
+      return ''
+    }
+    const numericValue = Number(rawValue)
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      return ''
+    }
+    const adjustedValue = applyTva ? numericValue / 1.21 : numericValue
+    return Number(adjustedValue.toFixed(2))
   }
 
   const recalcCommissionFields = (
@@ -150,6 +164,25 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
     }
 
     return updated
+  }
+  const handleTransactionValueChange = (rawValue: string) => {
+    setTransactionValueInput(rawValue)
+    const adjustedValue = computeAdjustedTransactionValue(rawValue, isTvaApplied)
+    const normalizedValue = adjustedValue === '' ? '' : adjustedValue
+    setFormData(prev => recalcCommissionFields({
+      ...prev,
+      'Valoare Tranzactie': normalizedValue,
+    }))
+  }
+  const handleTvaToggle = (checked: boolean | 'indeterminate') => {
+    const nextChecked = checked === 'indeterminate' ? true : Boolean(checked)
+    setIsTvaApplied(nextChecked)
+    const adjustedValue = computeAdjustedTransactionValue(transactionValueInput, nextChecked)
+    const normalizedValue = adjustedValue === '' ? '' : adjustedValue
+    setFormData(prev => recalcCommissionFields({
+      ...prev,
+      'Valoare Tranzactie': normalizedValue,
+    }))
   }
 
   const handleCommissionTypeChange = (type: 'percentage' | 'fixed') => {
@@ -377,12 +410,35 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
                   id="valoare"
                   type="number"
                   step="0.01"
-                  value={formData['Valoare Tranzactie'] || ''}
-                  onChange={(e) => handleFieldChange('Valoare Tranzactie', parseFloat(e.target.value) || 0)}
+                  value={transactionValueInput}
+                  onChange={(e) => handleTransactionValueChange(e.target.value)}
                   placeholder="Ex: 50000"
                   className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-14 text-base"
                   autoFocus
                 />
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  <Checkbox
+                    id="valoare-tva"
+                    checked={isTvaApplied}
+                    onCheckedChange={handleTvaToggle}
+                    className="border-slate-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-500"
+                  />
+                  <Label htmlFor="valoare-tva" className="text-white/90 text-sm cursor-pointer">
+                    TVA
+                  </Label>
+                  <span className="text-xs text-slate-500">
+                    Împarte valoarea la 1.21 când este bifat (default activat)
+                  </span>
+                </div>
+                {parseNumericValue(formData['Valoare Tranzactie']) > 0 && (
+                  <p className="text-xs text-slate-500 pt-2">
+                    Valoare folosită în calcule: €
+                    {parseNumericValue(formData['Valoare Tranzactie']).toLocaleString('ro-RO', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -1111,6 +1167,8 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
         Comision: '',
         Timestamp: new Date().toISOString(),
       })
+      setTransactionValueInput('')
+      setIsTvaApplied(true)
       setCommissionType('percentage')
       setIsCollaborative(false)
       setCollaborators([])

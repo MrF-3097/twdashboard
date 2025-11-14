@@ -4,6 +4,7 @@
 
 Summary
 - **Dual commission inputs**: The admin “Adaugă tranzacție” modal now captures separate commission values for `Vânzător` and `Cumpărător`, both in percentage and fixed modes.
+- **TVA toggle**: `Valoare Tranzacție` includes a default-on “TVA” checkbox that divides the typed amount by 1.21 (net value) while still letting admins disable the adjustment when they already have net figures.
 - **Totals >100%**: Combined commissions can exceed 100% of the transaction value (e.g., 100% owner + 50% buyer) without triggering validation errors.
 - **Auto-calculations**: Whenever transaction value or any commission field changes, the modal recalculates euro amounts, percentages, and the overall total used for XP/leaderboard logic.
 - **Clear confirmation**: Step 5 now shows a detailed breakdown with both sides’ amounts and percentages so admins can verify before saving.
@@ -16,6 +17,7 @@ Why These Changes
 Technical Implementation
 - **`src/components/admin/animated-transaction-modal.tsx`**:
   - Introduced new form fields (`Comision Vânzător %/€`, `Comision Cumpărător %/€`) plus helper utilities to normalize percentages, convert to euros, and keep totals synchronized.
+  - Added TVA helpers and checkbox (default on) so entering a gross value automatically stores/uses the net value (value ÷ 1.21) for all downstream calculations.
   - Updated validation to require at least one side filled while removing the implicit 100% ceiling.
   - Rebuilt Step 3 UI into two inputs (one per party) with dynamic summaries and guidance that totals may exceed 100%.
   - Enhanced confirmation view to display seller/buyer breakdowns, and ensured reset logic clears the new fields.
