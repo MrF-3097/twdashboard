@@ -116,23 +116,30 @@ export const ModalBody = ({ children }: ModalBodyProps) => {
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
           />
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="relative w-full max-w-lg mx-auto"
-            >
-              <button
-                onClick={() => setOpen(false)}
-                className="absolute -top-12 right-0 z-50 rounded-xl border border-slate-700 bg-slate-800 p-2 text-slate-400 hover:bg-slate-700 hover:text-white transition-colors"
+          <motion.div
+            className="fixed inset-0 z-50 overflow-y-auto"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 1 }}
+          >
+            <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="relative mx-auto w-full max-w-2xl"
               >
-                <X className="h-4 w-4" />
-              </button>
-              {children}
-            </motion.div>
-          </div>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="absolute right-4 top-4 z-50 rounded-xl border border-slate-600 bg-slate-900/80 p-2 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                {children}
+              </motion.div>
+            </div>
+          </motion.div>
         </>
       )}
     </AnimatePresence>
@@ -141,7 +148,7 @@ export const ModalBody = ({ children }: ModalBodyProps) => {
 
 export const ModalContent = ({ children }: ModalContentProps) => {
   return (
-    <div className="relative z-50 mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-2xl">
+    <div className="relative z-50 mx-auto flex w-full max-w-2xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-800 shadow-2xl">
       {children}
     </div>
   );

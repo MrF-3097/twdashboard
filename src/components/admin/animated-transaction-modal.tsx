@@ -1186,7 +1186,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       <ModalBody>
         <ModalContent>
           {/* Progress Steps */}
-          <div className="border-b border-slate-700 p-6">
+          <div className="border-b border-slate-700 px-4 pb-4 pt-12 sm:px-6 sm:pt-8 sm:pb-6">
             <div className="flex items-center justify-between mb-4">
               {STEPS.map((step, index) => {
                 const Icon = step.icon
@@ -1245,7 +1245,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
           </div>
 
           {/* Main Content */}
-          <div className="max-h-[500px] overflow-y-auto">
+          <div className="max-h-[55vh] sm:max-h-[60vh] overflow-y-auto px-4 sm:px-6">
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -1260,7 +1260,7 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
         </ModalContent>
 
         {/* Footer */}
-        <ModalFooter>
+        <ModalFooter className="flex-wrap gap-3 sm:flex-nowrap">
           {currentStep > 1 && (
             <Button
               onClick={prevStep}
