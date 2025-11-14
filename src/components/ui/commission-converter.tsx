@@ -12,6 +12,11 @@ interface CommissionConverterProps {
   onChangeRon?: (value: number) => void
   disabled?: boolean
   hint?: string
+  rateData?: {
+    rate: number | null
+    loading: boolean
+    error: string | null
+  }
 }
 
 export const CommissionConverter = ({
@@ -21,10 +26,11 @@ export const CommissionConverter = ({
   onChangeRon,
   disabled,
   hint,
+  rateData,
 }: CommissionConverterProps) => {
   const controlled = typeof onChangeRon === 'function'
   const [localRon, setLocalRon] = useState<string>(valueRon?.toString() ?? '')
-  const { rate, loading, error } = useEurRonRate()
+  const rateState = rateData ?? useEurRonRate()
 
   useEffect(() => {
     if (controlled) {
@@ -47,7 +53,7 @@ export const CommissionConverter = ({
   }
 
   const numericRon = parseFloat(localRon)
-  const eur = Number.isFinite(numericRon) && rate ? numericRon / rate : null
+  const eur = Number.isFinite(numericRon) && rateState.rate ? numericRon / rateState.rate : null
 
   return (
     <div className="space-y-3 text-sm">
@@ -70,10 +76,10 @@ export const CommissionConverter = ({
 
       <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-3">
         <p className="text-xs text-slate-400">
-          {loading && 'Se încarcă rata EUR→RON…'}
-          {error && <span className="text-red-300">Eroare rată: {error}</span>}
-          {!loading && !error && rate && (
-            <span>1 EUR = {rate.toFixed(4)} RON • Sursă: exchangerate.host</span>
+          {rateState.loading && 'Se încarcă rata EUR→RON…'}
+          {rateState.error && <span className="text-red-300">Eroare rată: {rateState.error}</span>}
+          {!rateState.loading && !rateState.error && rateState.rate && (
+            <span>1 EUR = {rateState.rate.toFixed(4)} RON • Sursă: exchangerate.host</span>
           )}
         </p>
         <p className="mt-2 text-sm font-semibold text-white">
