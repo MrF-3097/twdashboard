@@ -8,6 +8,7 @@ Summary
 - **Totals >100%**: Combined commissions can exceed 100% of the transaction value (e.g., 100% owner + 50% buyer) without triggering validation errors.
 - **Auto-calculations**: Whenever transaction value or any commission field changes, the modal recalculates euro amounts, percentages, and the overall total used for XP/leaderboard logic.
 - **Clear confirmation**: Step 5 now shows a detailed breakdown with both sides’ amounts and percentages so admins can verify before saving.
+- **Single-transaction maintenance**: Added a “Modifică Tranzacții” workflow under “Acțiuni Periculoase” so admins can edit or delete a specific entry without wiping the leaderboard.
 
 Why These Changes
 - Rental deals frequently involve asymmetric commissions per party and totals above 100%; the previous single-percentage constraint blocked real-world flows.
@@ -21,13 +22,18 @@ Technical Implementation
   - Updated validation to require at least one side filled while removing the implicit 100% ceiling.
   - Rebuilt Step 3 UI into two inputs (one per party) with dynamic summaries and guidance that totals may exceed 100%.
   - Enhanced confirmation view to display seller/buyer breakdowns, and ensured reset logic clears the new fields.
+- **`src/components/admin/reset-controls.tsx`**:
+  - Added the “Modifică Tranzacții” button that opens a Radix dialog listing the latest 200 transactions, complete with edit fields, delete action, refresh control, and success/error toasts.
+  - The dialog reuses leaderboard refresh hooks so any update/delete immediately propagates to both the internal dashboard and external leaderboard API.
 - **Backend/API**:
   - The `/api/admin/add-transaction` endpoint continues to receive the aggregated `Comision` and `Comision %`; those values now represent the combined seller+buyer commission (and may be >100%).
+  - New admin endpoints (`GET /api/admin/transactions`, `PUT|DELETE /api/admin/transactions/[id]`) expose transaction IDs for editing, update the DB, and emit `X-Leaderboard-Updated` headers to signal cache invalidation.
 
 Result
 - Admins can log scenarios like “100% proprietar + 50% cumpărător” or “€800 + €400” without workarounds.
 - Leaderboard XP, collaborator splits, and stats continue to use the accurate summed commission.
 - The modal provides clearer guidance, reducing mistakes and confirming the true commission structure.
+- Individual transactions can be corrected or removed safely, eliminating the need for destructive resets when one entry is wrong.
 
 ## Francesco 12.11.2025 : Client Request Modal with REBS CRM Integration
 
