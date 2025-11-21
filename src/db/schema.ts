@@ -57,6 +57,24 @@ export const questProgress = sqliteTable('quest_progress', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
+export const pushSubscriptions = sqliteTable('push_subscriptions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  agentId: integer('agent_id').notNull(),
+  agentName: text('agent_name').notNull(),
+  endpoint: text('endpoint').notNull().unique(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
+export const leaderboardHistory = sqliteTable('leaderboard_history', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  firstPlaceAgentName: text('first_place_agent_name').notNull(),
+  firstPlaceTotal: real('first_place_total').notNull(),
+  changedAt: integer('changed_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export type Transaction = typeof transactions.$inferSelect
 export type NewTransaction = typeof transactions.$inferInsert
 export type AgentTarget = typeof agentTargets.$inferSelect
@@ -67,4 +85,8 @@ export type AgentTransactionCount = typeof agentTransactionCounts.$inferSelect
 export type NewAgentTransactionCount = typeof agentTransactionCounts.$inferInsert
 export type QuestProgress = typeof questProgress.$inferSelect
 export type NewQuestProgress = typeof questProgress.$inferInsert
+export type PushSubscription = typeof pushSubscriptions.$inferSelect
+export type NewPushSubscription = typeof pushSubscriptions.$inferInsert
+export type LeaderboardHistory = typeof leaderboardHistory.$inferSelect
+export type NewLeaderboardHistory = typeof leaderboardHistory.$inferInsert
 

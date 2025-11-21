@@ -95,8 +95,6 @@ export async function POST(request: NextRequest) {
         name: agent.name,
         email: agent.email,
         phone: agent.phone,
-        photo: agent.photo,
-        position: agent.position,
         created_at: createdAt,
         updatedAt: agent.updatedAt,
         propertiesCount: propertiesCount,

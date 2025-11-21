@@ -44,6 +44,7 @@ import { useTransactions } from '@/hooks/use-commissions'
 import { PwaInstallButton } from '@/components/ui/pwa-install-button'
 import { AddRequestModal } from '@/components/modules/add-request-modal'
 import { AddPropertyModal } from '@/components/modules/add-property-modal'
+import { NotificationPermissionDialog } from '@/components/modules/notification-permission-dialog'
 
 // Typing Animation Component
 function TypingAnimation() {
@@ -624,6 +625,14 @@ function DashboardContent() {
         isOpen={showAddPropertyModal} 
         onClose={() => setShowAddPropertyModal(false)} 
       />
+      
+      {/* Notification Permission Dialog */}
+      {agentData?.id && agentData?.name && (
+        <NotificationPermissionDialog 
+          agentId={agentData.id}
+          agentName={agentData.name}
+        />
+      )}
     </div>
   )
 }

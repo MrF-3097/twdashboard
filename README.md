@@ -1,5 +1,66 @@
 # Agent Dashboard Minimal
 
+## Francesco 21.11.2025 : Sistem de Notificări Push pentru Clasament
+
+Summary
+- **Notificări push web**: Sistemul cere permisiunea pentru notificări la prima accesare a aplicației și salvează abonamentele în baza de date.
+- **Monitoring clasament**: Aplicația monitorizează automat schimbările din clasament și trimite notificări tuturor agenților când locul 1 se schimbă.
+- **Notificări personalizate în română**: "👑 Lider Nou în Clasament! [Nume Agent] a urcat pe primul loc cu un total de [Sumă] € în comisioane! Deschide aplicația pentru a vedea cine e cel mai bun."
+- **Service Worker îmbunătățit**: Service worker-ul PWA acum suportă evenimente push, click pe notificări și redirectare către aplicație.
+- **Dialog modern de permisiuni**: UI atractiv cu animații Framer Motion care explică beneficiile notificărilor (actualizări în timp real, motivație, competiție).
+
+Why These Changes
+- Agenții doreau să fie notificați instant când poziția lor în clasament se schimbă, în special când apare un nou lider.
+- Notificările push creează o experiență mai engaging și motivantă, menținând agenții conectați chiar dacă nu au aplicația deschisă.
+- Sistemul de competiție devine mai dinamic când toți agenții sunt informați imediat despre schimbările importante din clasament.
+
+Technical Implementation
+- **Database Schema** (`src/db/schema.ts`)
+  - Adăugat tabelul `pushSubscriptions` pentru stocarea abonamentelor push (endpoint, p256dh, auth keys).
+  - Adăugat tabelul `leaderboardHistory` pentru tracking-ul schimbărilor de lider în timp.
+  
+- **Service Worker** (`public/sw.js`)
+  - Implementat event handler pentru `push` care afișează notificările custom.
+  - Implementat event handler pentru `notificationclick` care deschide/focusează aplicația.
+  - Versiunea updată la 2.0.0 cu suport complet pentru push notifications.
+
+- **API Endpoints**
+  - `POST /api/notifications/subscribe`: Abonează un agent la notificări (creează sau actualizează subscription).
+  - `DELETE /api/notifications/subscribe`: Dezabonează un agent de la notificări.
+  - `POST /api/notifications/send`: Trimite notificări push la toți agenții abonați (cu opțiune de excludere).
+
+- **Leaderboard Monitoring** (`src/lib/leaderboard-monitor.ts`)
+  - Funcție `checkAndNotifyLeaderboardChange` care compară liderul curent cu istoricul.
+  - Detectează automat când locul 1 se schimbă și declanșează notificări.
+  - Salvează fiecare schimbare în `leaderboardHistory` pentru audit trail.
+
+- **Custom Hook** (`src/hooks/use-push-notifications.ts`)
+  - Hook React pentru gestionarea permisiunilor, abonărilor și dezabonărilor.
+  - Conversia VAPID keys din base64 în Uint8Array pentru PushManager API.
+  - Gestionarea erorilor și a stărilor (loading, subscribed, permission).
+
+- **UI Component** (`src/components/modules/notification-permission-dialog.tsx`)
+  - Dialog animat care apare după 2 secunde la prima accesare.
+  - Design modern cu gradient backgrounds, iconuri animate și listă de beneficii.
+  - Salvează preferința în localStorage pentru a nu deranja utilizatorii repetat.
+
+- **Integration**
+  - `src/hooks/use-agent-leaderboard.ts`: Integrat monitoring-ul în `fetchAgents` pentru verificare automată la fiecare polling.
+  - `src/app/page.tsx`: Adăugat `NotificationPermissionDialog` în dashboard pentru agenții autentificați.
+  - Generat VAPID keys cu script dedicat (`scripts/generate-vapid-keys.js`).
+
+- **Environment Variables**
+  - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: Cheia publică VAPID pentru subscriptions.
+  - `VAPID_PRIVATE_KEY`: Cheia privată VAPID pentru semnarea notificărilor.
+  - `VAPID_SUBJECT`: Subject (email) pentru identificarea sursei notificărilor.
+
+Result
+- Agenții primesc notificări push instant când liderul clasamentului se schimbă, chiar dacă aplicația nu este deschisă.
+- Sistemul respectă permisiunile utilizatorului și oferă un UI clar pentru activare/dezactivare.
+- Notificările sunt personalizate în limba română și includ detalii relevante (nume agent, sumă totală).
+- Istoricul schimbărilor din clasament este păstrat în baza de date pentru analiză ulterioară.
+- Experiența de gamification este amplificată prin notificări push care cresc engagement-ul și competitivitatea.
+
 ## Francesco 20.11.2025 : FAB Wizard UI Simplificat
 
 Summary

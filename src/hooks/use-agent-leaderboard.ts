@@ -138,7 +138,7 @@ export const useAgentLeaderboard = (
     return changes
   }
 
-  const fetchAgents = useCallback(() => {
+  const fetchAgents = useCallback(async () => {
     try {
       setError(commissionError || null)
       setIsLoading(commissionLoading)
@@ -162,6 +162,24 @@ export const useAgentLeaderboard = (
           // Clear rank changes after 5 seconds
           setTimeout(() => setRankChanges([]), 5000)
         }
+      }
+
+      // Check for leaderboard first place change and send notification
+      // This must be done via API call since it involves database operations
+      if (processedAgents.length > 0 && typeof window !== 'undefined') {
+        const leaderboardData = processedAgents.map(agent => ({
+          agent: agent.name,
+          total: agent.total_value || 0,
+        }))
+        
+        // Call API to check for leaderboard changes
+        fetch('/api/leaderboard/check-changes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leaderboard: leaderboardData }),
+        }).catch(monitorError => {
+          console.error('[Leaderboard] Error checking for changes:', monitorError)
+        })
       }
 
       // Update ref before setting state

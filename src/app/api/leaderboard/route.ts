@@ -75,8 +75,16 @@ async function fetchRebsAgents(): Promise<any[]> {
 
   for (const method of methods) {
     try {
+      // Filter out undefined headers
+      const cleanHeaders: Record<string, string> = {}
+      for (const [key, value] of Object.entries(method.headers)) {
+        if (value !== undefined) {
+          cleanHeaders[key] = value
+        }
+      }
+      
       const response = await fetch(method.url, {
-        headers: method.headers,
+        headers: cleanHeaders,
         next: { revalidate: 300 },
     })
 
