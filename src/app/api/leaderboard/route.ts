@@ -78,15 +78,15 @@ async function fetchRebsAgents(): Promise<any[]> {
       const response = await fetch(method.url, {
         headers: method.headers,
         next: { revalidate: 300 },
-      })
+    })
 
-      if (!response.ok) {
+    if (!response.ok) {
         lastError = `Status ${response.status} ${response.statusText}`
         console.warn(`⚠️ [API] Failed to fetch REBS agents via ${method.url}: ${lastError}`)
         continue
-      }
+    }
 
-      const result = await response.json()
+    const result = await response.json()
       const payload = Array.isArray(result) ? result : result?.objects
       if (Array.isArray(payload)) {
         return payload
@@ -94,7 +94,7 @@ async function fetchRebsAgents(): Promise<any[]> {
 
       lastError = 'Unexpected REBS response format'
       console.warn(`⚠️ [API] Unexpected REBS payload shape via ${method.url}`)
-    } catch (error) {
+  } catch (error) {
       lastError = error instanceof Error ? error.message : 'Unknown error'
       console.error(`❌ [API] Error fetching REBS agents via ${method.url}:`, error)
     }

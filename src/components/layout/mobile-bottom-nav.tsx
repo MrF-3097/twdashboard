@@ -9,6 +9,7 @@ interface MobileBottomNavProps {
   activeModule?: string
   onModuleSelect?: (module: string) => void
   onAddRequest?: () => void
+  onAddProperty?: () => void
   variant?: 'default' | 'portfolio' | 'profile' | 'stats' | 'imobiliare' | 'documents' | 'news'
 }
 
@@ -18,6 +19,7 @@ export const MobileBottomNav = ({
   activeModule = 'documents',
   onModuleSelect,
   onAddRequest,
+  onAddProperty,
   variant = 'default'
 }: MobileBottomNavProps) => {
   const [showToolsDropdown, setShowToolsDropdown] = useState(() => {
@@ -47,6 +49,7 @@ export const MobileBottomNav = ({
     { id: 'printer', icon: Printer, label: 'Driver' },
     { id: 'image-editor', icon: Image, label: 'Imagini' },
     { id: 'portfolio', icon: FolderOpen, label: 'Portofoliu' },
+    { id: 'add-property', icon: Home, label: 'Adaugă Proprietate', isAction: true },
     { id: 'add-request', icon: UserPlus, label: 'Adaugă Cerere', isAction: true },
   ]
 
@@ -118,10 +121,17 @@ export const MobileBottomNav = ({
     const tool = tools.find(t => t.id === toolId)
     
     // If it's an action (like add-request), call the action handler instead
-    if (tool?.isAction && toolId === 'add-request' && onAddRequest) {
-      onAddRequest()
-      setShowToolsDropdown(false)
-      return
+    if (tool?.isAction) {
+      if (toolId === 'add-request' && onAddRequest) {
+        onAddRequest()
+        setShowToolsDropdown(false)
+        return
+      }
+      if (toolId === 'add-property' && onAddProperty) {
+        onAddProperty()
+        setShowToolsDropdown(false)
+        return
+      }
     }
     
     // Otherwise, handle as module selection

@@ -7,11 +7,6 @@ import Image from 'next/image'
 import { Bell, SmilePlus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-interface NewsReaction {
-  emoji: string
-  agentName: string
-}
-
 interface NewsItem {
   id: string
   agentName: string
@@ -22,8 +17,6 @@ interface NewsItem {
   propertyType?: string
   location?: string
   timestamp: Date
-  reactions: NewsReaction[]
-  reactionCounts: Record<string, number>
 }
 
 export const NewsFeed = () => {
@@ -31,10 +24,9 @@ export const NewsFeed = () => {
   const { data: transactions } = useTransactions()
   const [newsItems, setNewsItems] = useState<NewsItem[]>([])
   const [rebsAgents, setRebsAgents] = useState<any[]>([])
-  const [reactionsData, setReactionsData] = useState<Record<string, { reactions: NewsReaction[]; reactionCounts: Record<string, number> }>>({})
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null)
+  const [selectedReactions, setSelectedReactions] = useState<Record<string, string>>({}) // itemId -> emoji
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
-  const [longPressItemId, setLongPressItemId] = useState<string | null>(null)
 
   // Generate stable random values for vertical lines
   const verticalLines = useMemo(() => {
@@ -72,33 +64,6 @@ export const NewsFeed = () => {
     fetchRebsAgents()
   }, [])
 
-  // Fetch reactions data
-  useEffect(() => {
-    const fetchReactions = async () => {
-      try {
-        const response = await fetch('/api/news/likes')
-        const result = await response.json()
-        if (result.success && result.data) {
-          const reactionsMap: Record<string, { reactions: NewsReaction[]; reactionCounts: Record<string, number> }> = {}
-          Object.values(result.data).forEach((item: any) => {
-            const reactions = item.reactions || []
-            const reactionCounts: Record<string, number> = {}
-            reactions.forEach((r: NewsReaction) => {
-              reactionCounts[r.emoji] = (reactionCounts[r.emoji] || 0) + 1
-            })
-            reactionsMap[item.itemId] = {
-              reactions,
-              reactionCounts
-            }
-          })
-          setReactionsData(reactionsMap)
-        }
-      } catch (err) {
-        console.error('Error fetching reactions:', err)
-      }
-    }
-    fetchReactions()
-  }, [])
 
   // Convert transactions to news items
   useEffect(() => {
@@ -138,12 +103,24 @@ export const NewsFeed = () => {
         // Determine transaction type (Sale or Rental)
         // closed_transaction_type: 2 = Vânzare, 1 = Închiriere
         const closedTransactionType = (t as any)['closed_transaction_type'] || t['Tip Tranzactie'] || (t as any)['Transaction Type']
-        const transactionType: 'Vanzare' | 'Chirie' = closedTransactionType === 1 || 
-                                closedTransactionType === 'Chirie' || 
-                                closedTransactionType === 'Rental' || 
-                                closedTransactionType === 'Închiriere'
-          ? 'Chirie' 
-          : 'Vanzare'
+        
+        // Check if it's a rental transaction
+        const isRental = 
+          closedTransactionType === 1 || 
+          closedTransactionType === '1' ||
+          closedTransactionType === 'Chirie' || 
+          closedTransactionType === 'Rental' || 
+          closedTransactionType === 'Rent' ||
+          closedTransactionType === 'Închiriere' ||
+          String(closedTransactionType).toLowerCase().includes('chirie') ||
+          String(closedTransactionType).toLowerCase().includes('rent')
+        
+        const transactionType: 'Vanzare' | 'Chirie' = isRental ? 'Chirie' : 'Vanzare'
+        
+        // Debug logging for transaction type detection
+        if (isRental) {
+          console.log(`[Rental Transaction Detected] Agent: ${agentName}, Value: €${valoare}, Type Field: ${closedTransactionType}`)
+        }
 
         return {
           id: `${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`,
@@ -154,23 +131,19 @@ export const NewsFeed = () => {
           transactionType,
           propertyType: (t as any)['Tip Proprietate'] || (t as any)['Property Type'],
           location: (t as any)['Locatie'] || (t as any)['Location'],
-          timestamp: transactionDate,
-          reactions: reactionsData[`${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`]?.reactions || [],
-          reactionCounts: reactionsData[`${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`]?.reactionCounts || {}
+          timestamp: transactionDate
         }
       })
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       .slice(0, 50) // Limit to 50 most recent
 
     setNewsItems(items)
-  }, [transactions?.rows, rebsAgents, reactionsData])
+  }, [transactions?.rows, rebsAgents])
 
   // Handle long press to show reaction picker
   const handleLongPressStart = (itemId: string) => {
-    setLongPressItemId(itemId)
     longPressTimer.current = setTimeout(() => {
       setShowReactionPicker(itemId)
-      setLongPressItemId(null)
     }, 500) // 500ms long press
   }
 
@@ -179,97 +152,24 @@ export const NewsFeed = () => {
       clearTimeout(longPressTimer.current)
       longPressTimer.current = null
     }
-    setLongPressItemId(null)
   }
 
-  // Handle reaction selection
-  const handleReaction = async (itemId: string, emoji: string) => {
-    if (!agentData?.name) return
-
-    const currentReactions = reactionsData[itemId]?.reactions || []
-    const existingReaction = currentReactions.find(r => r.agentName === agentData.name)
-    const isSameReaction = existingReaction?.emoji === emoji
-    const action = isSameReaction ? 'remove' : 'add'
-
-    // Optimistic update
-    const newReactions = [...currentReactions]
-    const existingIndex = newReactions.findIndex(r => r.agentName === agentData.name)
-    
-    if (action === 'add') {
-      if (existingIndex >= 0) {
-        newReactions[existingIndex] = { emoji, agentName: agentData.name }
-      } else {
-        newReactions.push({ emoji, agentName: agentData.name })
-      }
-    } else {
-      if (existingIndex >= 0) {
-        newReactions.splice(existingIndex, 1)
-      }
-    }
-
-    const newReactionCounts: Record<string, number> = {}
-    newReactions.forEach(r => {
-      newReactionCounts[r.emoji] = (newReactionCounts[r.emoji] || 0) + 1
-    })
-
-    setNewsItems(prev => prev.map(item => 
-      item.id === itemId 
-        ? { ...item, reactions: newReactions, reactionCounts: newReactionCounts }
-        : item
-    ))
-
-    setReactionsData(prev => ({
+  // Handle emoji selection
+  const handleEmojiSelect = (itemId: string, emoji: string) => {
+    setSelectedReactions(prev => ({
       ...prev,
-      [itemId]: { reactions: newReactions, reactionCounts: newReactionCounts }
+      [itemId]: emoji
     }))
-
-    // Close picker
     setShowReactionPicker(null)
-
-    // Save to server
-    try {
-      const response = await fetch('/api/news/likes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          itemId,
-          agentName: agentData.name,
-          emoji,
-          action
-        })
-      })
-
-      const result = await response.json()
-      if (result.success && result.data) {
-        setReactionsData(prev => ({
-          ...prev,
-          [itemId]: {
-            reactions: result.data.reactions || [],
-            reactionCounts: result.data.reactionCounts || {}
-          }
-        }))
-        setNewsItems(prev => prev.map(item => 
-          item.id === itemId 
-            ? { ...item, reactions: result.data.reactions || [], reactionCounts: result.data.reactionCounts || {} }
-            : item
-        ))
-      }
-    } catch (error) {
-      console.error('Error updating reaction:', error)
-      // Revert on error
-      setNewsItems(prev => prev.map(item => 
-        item.id === itemId 
-          ? { ...item, reactions: currentReactions, reactionCounts: reactionsData[itemId]?.reactionCounts || {} }
-          : item
-      ))
-    }
   }
 
-  // Get user's current reaction
-  const getUserReaction = (item: NewsItem): string | null => {
-    if (!agentData?.name) return null
-    const userReaction = item.reactions.find(r => r.agentName === agentData.name)
-    return userReaction?.emoji || null
+  // Handle reaction removal
+  const handleRemoveReaction = (itemId: string) => {
+    setSelectedReactions(prev => {
+      const newReactions = { ...prev }
+      delete newReactions[itemId]
+      return newReactions
+    })
   }
 
   // Cleanup long press timer on unmount
@@ -418,9 +318,10 @@ export const NewsFeed = () => {
           </div>
         ) : (
           <div className="grid gap-5 md:gap-6 xl:gap-7 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 auto-rows-fr">
-            {newsItems.map((item) => {
-            const userReaction = getUserReaction(item)
-            const reactionEmojis = ['👏', '❤️', '🍾', '🤩'] // Applause, Heart, Champagne, Starstruck
+            {newsItems.map((item, index) => {
+            const reactionEmojis = ['👑', '❤️', '💰', '👏', '🤩'] // Crown, Heart, Moneybag, Clapping, Starstruck
+            const selectedEmoji = selectedReactions[item.id]
+            const hasReaction = !!selectedEmoji
             
             return (
               <div
@@ -435,20 +336,52 @@ export const NewsFeed = () => {
                 <div className="flex flex-col gap-5">
                   <div className="flex items-start justify-between">
                     <div className="flex flex-col">
-                      <span className="text-[11px] uppercase tracking-[0.3em] text-white/60">Tip achievement.</span>
                       <span className="text-xs text-white/40">Felicitări agentului</span>
                     </div>
-                    <div className="rounded-full border border-white/20 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-sky-100">
-                      {item.transactionType || 'Vanzare'}
+                    
+                    {/* Top Right - Add Reaction Button or Reactions Display */}
+                    <div className="absolute -top-4 right-4 flex items-center gap-1.5 z-10">
+                      {hasReaction ? (
+                        // Show reaction
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{ type: 'spring', damping: 15, stiffness: 300 }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemoveReaction(item.id)
+                          }}
+                          className="relative flex items-center justify-center w-10 h-10 rounded-full bg-slate-800/90 backdrop-blur-md border-2 border-white/30 shadow-xl cursor-pointer hover:scale-110 transition-transform"
+                        >
+                          <span className="text-xl">{selectedEmoji}</span>
+                        </motion.div>
+                      ) : (
+                        // Show add reaction button
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowReactionPicker(item.id)
+                          }}
+                          className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-800/60 backdrop-blur-md border-2 border-white/20 hover:border-white/40 hover:bg-slate-800/80 transition-all shadow-lg"
+                        >
+                          <SmilePlus className="w-5 h-5 text-white/50" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
                   <div className="rounded-2xl border border-white/15 bg-slate-900/40 p-4 text-center">
-                    <div className="text-[12px] uppercase tracking-[0.5em] text-white/60">
+                    <div className={`text-[12px] uppercase tracking-[0.5em] font-semibold ${
+                      item.transactionType === 'Chirie' ? 'text-emerald-300' : 'text-white/60'
+                    }`}>
                       {(item.transactionType || 'Vanzare').toUpperCase()}
                     </div>
                     <div className="mt-3 text-3xl md:text-4xl font-black text-white">
                       €{item.transactionValue.toLocaleString('ro-RO')}
+                      {item.transactionType === 'Chirie' && (
+                        <span className="text-base text-white/60 ml-1">/lună</span>
+                      )}
                     </div>
                     <div className="mt-1 text-sm font-semibold text-sky-200">
                       Comision €{item.commission.toLocaleString('ro-RO')}
@@ -484,7 +417,7 @@ export const NewsFeed = () => {
                   </div>
                 </div>
 
-                {/* Reaction Picker - Attached to card */}
+                {/* Reaction Picker - Centered in card */}
                 <AnimatePresence>
                   {showReactionPicker === item.id && (
                     <>
@@ -492,102 +425,29 @@ export const NewsFeed = () => {
                         className="fixed inset-0 z-40"
                         onClick={() => setShowReactionPicker(null)}
                       />
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, y: 10 }}
-                        transition={{ type: 'spring', damping: 20 }}
-                        className="absolute bottom-full right-2 mb-2 bg-slate-800/95 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl p-2 z-50 flex gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {reactionEmojis.map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => handleReaction(item.id, emoji)}
-                            className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-2xl md:text-3xl hover:scale-125 active:scale-110 transition-transform rounded-lg hover:bg-white/10"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </motion.div>
+                      <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                          className="bg-slate-800/95 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl p-3 flex gap-2 pointer-events-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {reactionEmojis.map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => handleEmojiSelect(item.id, emoji)}
+                              className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center text-3xl md:text-4xl hover:scale-125 active:scale-110 transition-transform rounded-xl hover:bg-white/10"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </motion.div>
+                      </div>
                     </>
                   )}
                 </AnimatePresence>
-
-                {/* Reactions Container - Top-right with overflow, lined horizontally */}
-                <div 
-                  className="pointer-events-none absolute right-4 top-4 z-10 flex flex-row-reverse gap-2"
-                >
-                  {/* Existing Reactions - Stacked vertically */}
-                  {Object.entries(item.reactionCounts).map(([emoji, count]) => {
-                    // Get agents who reacted with this emoji
-                    const agentsWithReaction = item.reactions
-                      .filter(r => r.emoji === emoji)
-                      .map(r => r.agentName)
-                    
-                    return (
-                      <motion.div
-                        key={emoji}
-                        initial={{ scale: 0.8, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.8, opacity: 0 }}
-                        transition={{ type: 'spring', damping: 15 }}
-                        className="relative group flex flex-col items-center pointer-events-auto"
-                      >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            // If user has this reaction, remove it; otherwise add it
-                            handleReaction(item.id, emoji)
-                          }}
-                          className="transition-all hover:scale-110 active:scale-95"
-                          style={{
-                            width: '27px',
-                            height: '27px',
-                            background: 'rgba(30, 40, 60, 0.85)',
-                            borderRadius: '50%',
-                            border: '1px solid rgba(255, 255, 255, 0.15)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                            padding: '5px',
-                          }}
-                        >
-                          <span className="text-base">{emoji}</span>
-                        </button>
-                        
-                        {/* Count Badge */}
-                        <div 
-                          className="text-white font-semibold text-center"
-                          style={{
-                            fontSize: '10px',
-                            marginTop: '2px',
-                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.5)',
-                          }}
-                        >
-                          {count}
-                        </div>
-
-                        {/* Tooltip showing agents who reacted */}
-                        {agentsWithReaction.length > 0 && (
-                          <div className="absolute bottom-full right-full mr-2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                            <div className="bg-slate-900/95 backdrop-blur-md text-white text-xs px-3 py-2 rounded-lg border border-white/20 shadow-xl whitespace-nowrap">
-                              <div className="font-semibold mb-1">{emoji} {count}</div>
-                              <div className="space-y-0.5">
-                                {agentsWithReaction.map((agentName, idx) => (
-                                  <div key={idx} className="text-white/80">
-                                    {agentName}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </motion.div>
-                    )
-                  })}
-                </div>
               </div>
             )
             })}

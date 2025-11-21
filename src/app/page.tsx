@@ -43,6 +43,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { useTransactions } from '@/hooks/use-commissions'
 import { PwaInstallButton } from '@/components/ui/pwa-install-button'
 import { AddRequestModal } from '@/components/modules/add-request-modal'
+import { AddPropertyModal } from '@/components/modules/add-property-modal'
 
 // Typing Animation Component
 function TypingAnimation() {
@@ -81,6 +82,7 @@ function DashboardContent() {
   const [salesCount, setSalesCount] = useState(0)
   const [showLoginAnimation, setShowLoginAnimation] = useState(true) // Start with animation shown
   const [showAddRequestModal, setShowAddRequestModal] = useState(false)
+  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
   
   const { isLoggedIn, agentData, isLoading, login, logout } = useAuth()
 
@@ -284,11 +286,16 @@ function DashboardContent() {
           activeModule={selectedModule}
           onModuleSelect={handleModuleSelect}
           onAddRequest={() => setShowAddRequestModal(true)}
+          onAddProperty={() => setShowAddPropertyModal(true)}
           variant="profile"
         />
         <AddRequestModal 
           isOpen={showAddRequestModal} 
           onClose={() => setShowAddRequestModal(false)} 
+        />
+        <AddPropertyModal 
+          isOpen={showAddPropertyModal} 
+          onClose={() => setShowAddPropertyModal(false)} 
         />
       </>
     )
@@ -596,6 +603,7 @@ function DashboardContent() {
         activeModule={selectedModule}
         onModuleSelect={handleModuleSelect}
         onAddRequest={() => setShowAddRequestModal(true)}
+        onAddProperty={() => setShowAddPropertyModal(true)}
         variant={
           mobileTab === 'profile' ? 'profile' :
           mobileTab === 'leaderboard' ? 'stats' :
@@ -611,6 +619,10 @@ function DashboardContent() {
       <AddRequestModal 
         isOpen={showAddRequestModal} 
         onClose={() => setShowAddRequestModal(false)} 
+      />
+      <AddPropertyModal 
+        isOpen={showAddPropertyModal} 
+        onClose={() => setShowAddPropertyModal(false)} 
       />
     </div>
   )

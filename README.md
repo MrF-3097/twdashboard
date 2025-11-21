@@ -1,5 +1,134 @@
 # Agent Dashboard Minimal
 
+## Francesco 20.11.2025 : FAB Wizard UI Simplificat
+
+Summary
+- **Header curat**: Toate etapele wizard-ului “Adaugă Proprietate” folosesc acum doar titlul pasului, fără subtitluri sau carduri suplimentare, astfel încât agenții văd direct câmpurile relevante.
+- **Layout pe întregul modal**: Contact, Tip proprietate & CF, Mod tranzacție și Localizare afișează câmpurile direct în modal (fără box-uri intermediare), cu grile compacte optimizate pentru mobil.
+- **Dropdown-uri contextuale**: Subtipurile proprietății (apartament/casă/comercial/hotel/special) apar chiar sub select-ul principal imediat ce utilizatorul alege tipul.
+- **Localizare clară**: Am eliminat lat/lng și orice referință la “API” pentru a evita confuziile; rămân doar câmpurile esențiale + acțiunea “Verifică duplicate”.
+- **Caracteristici în acordeon**: Toate dotările/utilitățile sunt grupate în secțiuni collapsible (faq-style) ce pornesc închise, astfel încât pasul nu mai devine copleșitor pe ecrane mici.
+
+Why These Changes
+- Agenții au raportat că vechile carduri cu subtitluri (“Completezi totul fără derulare”, “Prefill CF”) ocupau spațiu inutil și făceau wizard-ul greu de urmărit pe mobil.
+- Tipurile secundare (ex. “Triplex”) trebuiau prezentate imediat sub tipul principal, nu la distanță într-o coloană separată.
+- Câmpurile tehnice precum latitudine/longitudine nu sunt utile în fluxul comercial și produceau întrebări despre “ce API completăm”.
+- Secțiunea de caracteristici a devenit foarte lungă după mapping-ul complet cu REBS; fără acordeoane, utilizatorii trebuiau să deruleze excesiv.
+
+Technical Implementation
+- `src/components/modules/add-property-modal.tsx`
+  - Eliminat subtitlurile implicite și cardurile `rounded-3xl` din pașii Contact, Tip proprietate, Tranzacție și Localizare; câmpurile folosesc acum direct grilele Tailwind din containerul modalului.
+  - Mutat select-urile condiționale pentru subtipuri chiar sub `Tip proprietate` și refolosit opțiunile existente pentru REBS.
+  - Scos câmpurile `lat`/`lng` din UI și redenumit pasul în “Localizare”.
+  - Adăugat stare `openFeatureSections` + componentă `CollapsibleSection` cu icon `ChevronDown`; fiecare grup de dotări/utilități folosește accent chips în interiorul acordeonului.
+  - Regrupat “Suprafețe & niveluri” și “Detalii principale” în două acordeoane dedicate, astfel încât suprafețele și numărul de niveluri să fie accesibile fără să aglomereze ecranul.
+
+Result
+- Wizard-ul arată aerisit atât pe mobil, cât și pe desktop; fiecare pas afișează doar titlul și câmpurile strict necesare.
+- Acordeoanele de la “Caracteristici” reduc scroll-ul inițial, dar păstrează acces rapid la toate multi-selecturile mapate în REBS.
+- Eliminarea câmpurilor nefolosite (lat/lng) și a referințelor la “API” scade confuzia pentru agenții non-tehnici, păstrând totuși logica de duplicate-check din backend.
+
+## Francesco 20.11.2025 : FAB Pricing Flow Dinamizare
+
+Summary
+- **Prețuri contextuale**: Pasul “Preț” afișează doar câmpurile relevante (vânzare, chirie sau ambele) în funcție de modul ales la pasul de tranzacție și renunță la cardul masiv cu subtitluri.
+- **Calcul automat €/mp**: Valorile “Preț pe mp” sunt generate live din prețurile introduse și suprafața utilă, înlocuind input-urile manuale. Câmpurile sunt read-only și explică faptul că rezultatul vine din suprafața utilă.
+- **TVA clar**: TVA devine un dropdown “Da (21%) / Nu”, cu hint textual când se aplică cota standard, astfel încât agenții nu mai tastează procentul manual.
+- **Toast de comision**: După ce utilizatorul trece de pasul de preț și a setat comisionul, apare un mesaj festiv cu confetti care îi arată valoarea comisionului în euro, calculată din preț și procent.
+
+Why These Changes
+- Agenții se loveau de câmpuri irelevante (de ex. preț chirie când reprezentau doar vânzări) și trebuiau să facă mental conversia €/mp.
+- TVA trebuia completat text, iar majoritatea ofertelor folosesc cota standard de 21%, deci dropdown-ul reduce erorile.
+- Product a cerut un moment motivațional după configurarea comisionului, pentru a-i recompensa pe agenți și a evidenția câștigul estimat.
+
+Technical Implementation
+- `src/components/modules/add-property-modal.tsx`
+  - Rescris cazul `pricing` astfel încât să folosească grile simple în locul cardului și să arate dinamic câmpurile sale/rent/both.
+  - Calculat automat `price per sqm` prin `computedSalePricePerSqm` / `computedRentPricePerSqm` (folosind `parseNumericInput` și suprafața utilă existentă).
+  - Înlocuit inputul TVA cu `Select` (`nu` / `da (21%)`) și helper text condițional.
+  - Adăugat `commissionToast` + confetti banner (AnimatePresence + motion) și un hook în `handleNext` care declanșează mesajul doar când treci de pasul de preț și există un comision valid.
+
+Result
+- UI-ul pentru prețuri este mai scurt, mai clar și nu mai expune câmpuri inutile.
+- Agenții văd instant costul pe mp și cota TVA fără să facă aritmetică manuală.
+- Mesajul “Bravo! Ești la un pas de comisionul tău de …” adaugă feedback pozitiv imediat ce finalizează prețurile, consolidând motivația de a încheia procesul.
+
+## Francesco 20.11.2025 : FAB Caracteristici – Tipuri & Suprafețe
+
+Summary
+- **Tipuri complete**: Step-ul “Tip proprietate & CF” afișează acum subtipurile REBS (apartament, casă/vilă, comercial, hotel, proprietăți speciale) doar când sunt relevante și le trimite cu codurile oficiale.
+- **Construcție nouă clară**: Am introdus toggle-uri pentru “Construcție nouă”, “De la dezvoltator” și “La revânzare”, astfel încât agenții pot seta rapid scenariul corect înainte să trimită în CRM.
+- **Suprafețe & niveluri**: Pasul “Caracteristici” include o nouă secțiune mobile-first pentru suprafețe (construită, terase, balcoane, teren etc.), unitatea de măsură și numărul de bucătării/lifturi/subsoluri, toate mapate 1:1 la `surface_*` și `building_*` din API.
+
+Why These Changes
+- REBS refuză parțial payload-ul dacă subtipurile lipsesc pentru anumite proprietăți; până acum wizard-ul nu oferea nicio cale de a le completa.
+- Suprafețele și numărul de încăperi/adăposturi sunt obligatorii în multe rapoarte interne, dar agenții trebuiau să le reintroducă manual după creare.
+- Trebuia să păstrăm layout-ul scrollabil existent pe mobil fără a înghesui totul într-un singur card.
+
+Technical Implementation
+- `src/components/modules/add-property-modal.tsx`
+  - Extins `PropertyFormState` + `createInitialState` cu noile obiecte `meta`, `areas`, `counts`, `construction`.
+  - Adăugat liste de opțiuni (`apartmentTypeOptions`, `houseTypeOptions`, etc.) și logică condițională în pasul “Tip proprietate & CF” pentru a afișa doar select-urile relevante.
+  - Nou card “Suprafețe & niveluri” în pasul “Caracteristici” cu grilă responsivă (1 coloană pe mobil, 2 pe desktop) pentru toate câmpurile numerice și select pentru unitatea suprafeței.
+- `src/app/api/rebs/add-property/route.ts`
+  - Actualizat schema Zod (`fabPropertySchema`) pentru a accepta și valida noile secțiuni.
+  - `mapPropertyPayload` setează acum `apartment_type`, `house_type`, `commercial_building_type`, `hotel_type`, `special_property_type`, `surface_*`, `surface_unit`, `kitchens`, `lifts`, `building_underground_floors`, `building_retired_floors`, `new_building_developer`, `new_building_resale`.
+
+Result
+- Agenții pot trimite toate suprafețele critice și subtipurile fără să părăsească wizard-ul, iar CRM REBS primește valori coerente încă din draft.
+- Layout-ul rămâne mobil-friendly: carduri separate, grile responsive și controale condiționale astfel încât să nu supraîncărcăm utilizatorii care listează doar tipuri simple.
+- Pasul următor (caracteristici structurale, utilități teren, VAT etc.) poate continua pe aceeași machetă fără refactor major.
+
+## Francesco 20.11.2025 : REBS Characteristics Mapping
+
+Summary
+- **Schema-aligned payload**: `POST /api/rebs/add-property` now maps every numeric field we capture (camere, băi, dormitoare, etaj, suprafață utilă, balcoane, terase, garaje, locuri de parcare, etaje clădire) to the actual REBS `PropertyRequest` keys instead of dropping them client-side.
+- **Enum helpers**: Added `mapFloorValue` (covers demisol, parter, mezanin, mansardă, ultimul etaj și valori numerice) și `mapComfortValue` (1/2/3/Lux) ca să trimitem codurile cerute de `FloorFilterLteEnum`/`ComfortEnum`.
+- **Location cleanup**: Normalizăm `street_number` numeric și păstrăm varianta textuală în `location_number`, plus lat/lng convertite corect la numere double.
+- **Caracteristici multi-select**: Până primim ID-urile oficiale de tag-uri REBS, agregăm valorile din chips (Amenajare străzi, Utilități, Dotări imobil, Parcare, etc.) într-un paragraf separat ce se lipește automat la descrierea proprietății, ca să nu se piardă informația.
+
+Why These Changes
+- CRM-ul crea proprietăți fără camere/băi/etaj chiar dacă agentul completa datele în wizard; payload-ul JSON ignora aceste câmpuri sau le trimitea în formate pe care API-ul nu le recunoștea.
+- Lipsa unui mapper pentru etaj creea neconcordanțe între “Parter” din UI și codul numeric pe care REBS îl așteaptă, iar Comfort-ul rămânea mereu `null`.
+- Multi-select-urile pentru dotări/utilități n-aveau niciun corespondent în CRM, deci agenții trebuiau să le reintroducă manual după ce proprietatea era creată.
+
+Technical Implementation
+- `src/app/api/rebs/add-property/route.ts`
+  - Added helper maps + parsers (`multiFieldLabels`, `floorKeywordMap`, `mapFloorValue`, `mapComfortValue`, `buildCharacteristicSummary`) și refolosit `parseNumeric/parseInteger` pentru toate câmpurile numerice.
+  - Extins `mapPropertyPayload` să populeze `rooms`, `bathrooms`, `bedrooms`, `surface_useable`, `floor`, `floor_multi`, `comfort`, `balconies`, `terraces`, `garages`, `parking_spots`, `building_floors`, `street_number`, `location_number`, `location_unit`, monedele și prețurile corecte.
+  - Construiește descrierea finală ca `[note agent] + Caracteristici selectate`, astfel încât fiecare grup de chips rămâne vizibil în CRM chiar fără endpoint separat de tags.
+
+Result
+- Proprietățile noi apar în CRM cu camere/băi/etaj/comfort completate și pot fi filtrate imediat după aceste valori.
+- Agenții nu mai rescriu manual lista de dotări: tot ce selectează în wizard ajunge în descriere, grupat pe secțiuni clare.
+- Fluxul rămâne compatibil cu viitoarele endpoint-uri de “tags” (când vor exista codurile REBS), fiind suficient să înlocuim sumarul textual cu ID-urile oficiale.
+
+## Francesco 18.11.2025 : FAB "Adaugă Proprietate" Flow
+
+Summary
+- **Nou entry FAB**: Mobile bottom FAB include acum acțiunea "Adaugă Proprietate" (simbol separată de "Adaugă Cerere"), declanșând noul wizard fără a schimba tab-ul curent.
+- **Wizard multi-step complet**: `AddPropertyModal` acoperă cele opt etape (Contact → Tip proprietate & CF → Vânzare / Închiriere → Localizare API → Caracteristici → Preț → Poze & media → Închiriere) într-un UI mobil full-height, scrollabil, cu indicator de progres și validări per pas.
+- **Integrare CRM reală**: Submit-ul trimite un `FormData` cu payload-ul JSON + fișiere (scan CF + galerie) către `/api/rebs/add-property`, iar serverul postează contactele și proprietatea direct în `https://towerimob.crmrebs.com/api` folosind `Authorization: Token …`. După creare, endpoint-ul urcă și media (`/properties/{id}/images/`) și returnează ID-ul CRM + eventuale warnings (duplicate găsite).
+- **Persistență & audit**: Pe lângă sincronizarea imediată, fiecare payload rămâne logat în `data/fab-property-drafts.json` pentru audit/rollback.
+- **Documentare updatată**: README explică fluxul, astfel încât colegii știu unde să configureze variabilele (`REBS_PRIVATE_API_BASE`, `REBS_API_TOKEN`) și cum este mapat fiecare pas.
+
+Why These Changes
+- Agenții aveau doar butonul "Adaugă Cerere" în FAB; era nevoie de un flux rapid pentru proprietăți fără a intra în modulul imobiliar lung.
+- Brief-ul impunea validări pentru CNP, telefon, CF, modul de reprezentare, duplicate property, media și condiții speciale la chirie; un wizard single-screen nu era suficient.
+- Conectarea directă la CRM elimină backlog-ul manual și asigură că duplicatele sunt detectate în timp real (REBS returnează contactul existent pentru aceleași telefoane/CNP, iar noi verificăm și proprietăți similare prin `search`).
+
+Technical Implementation
+- `src/components/modules/add-property-modal.tsx`: componentă client-side cu nou state pentru fișiere (`cfFile`, `photoFiles`), multi-select chips pentru dotări/utilități, indicator de progres și submit prin `FormData`.
+- `src/components/layout/mobile-bottom-nav.tsx`: primește prop `onAddProperty`, buton animat "Adaugă Proprietate" și handler dedicat.
+- `src/app/page.tsx`: gestionează `showAddPropertyModal`, pasează callback-urile către nav (dashboard + profil) și montează atât `AddPropertyModal`, cât și `AddRequestModal`.
+- `src/app/api/rebs/add-property/route.ts`: rulează pe `runtime: 'nodejs'`, parsează `FormData`, validează cu Zod, rulează `upsertContact`, `POST /properties/`, `POST /properties/{id}/images/`, scrie drafts și returnează warnings pentru duplicate. Necesită `REBS_API_TOKEN` (write scopes) și acceptă override pentru `REBS_PRIVATE_API_BASE`.
+- `data/fab-property-drafts.json`: log pentru toate payload-urile și ID-urile CRM generate.
+
+Result
+- Agenții pot deschide oricând modalul Add Proprietate (din orice tab) și trimit efectiv datele în CRM, fără a părăsi dashboard-ul mobile.
+- Toate câmpurile obligatorii sunt validate contextual; upload-urile de CF/galerie sunt trimise ca fișiere multipart și ajung în REBS imediat după crearea proprietății.
+- Dacă REBS găsește duplicate (contact sau proprietate), utilizatorul primește warnings direct în UI, iar payload-ul este salvat pentru audit.
+
 ## Francesco 14.11.2025 : Agent Store JSON Repair
 
 Summary

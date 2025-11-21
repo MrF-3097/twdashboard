@@ -14,13 +14,12 @@ export async function GET(request: NextRequest) {
     const limit = Number.isNaN(limitParam) || limitParam <= 0 ? DEFAULT_LIMIT : Math.min(limitParam, 500)
     const agentFilter = searchParams.get('agent')
 
-    let query = db.select().from(transactions)
-    if (agentFilter) {
-      query = query.where(eq(transactions.agent, agentFilter))
-    }
-    query = query.orderBy(desc(transactions.timestamp)).limit(limit)
-
-    const rows = await query
+    const baseQuery = db.select().from(transactions)
+    const filteredQuery = agentFilter 
+      ? baseQuery.where(eq(transactions.agent, agentFilter))
+      : baseQuery
+    
+    const rows = await filteredQuery.orderBy(desc(transactions.timestamp)).limit(limit)
 
     const serialized = rows.map((row) => ({
       id: row.id,
