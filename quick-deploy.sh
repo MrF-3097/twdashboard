@@ -9,7 +9,6 @@ if [ $? -eq 0 ]; then
         git pull
         git stash pop || true
         npm install
-        npm run build
         pm2 restart all
         echo "Deployment complete!"
 ENDSSH
