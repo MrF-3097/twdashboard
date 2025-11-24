@@ -31,6 +31,32 @@ Result
 - Service worker-ul, PWA-ul și notificările push funcționează în producție (context securizat obligatoriu).
 - Configurația permite extindere ușoară (HSTS, header CSP, caching assets) fără downtime și fără a modifica aplicația Next.js.
 
+## Francesco 24.11.2025 : Notificări Lider Declanșate din Tranzacții
+
+Summary
+- **Dialog inteligent**: Modalul “Activează notificările” dispare automat imediat ce utilizatorul acordă permisiunea sau este deja abonat, fără a mai apărea redundant.
+- **Hook robust**: `usePushNotifications` verifică din nou abonarea când permisiunea devine “granted”, tratează browserele fără suport și menține stări clare (loading/erroare).
+- **Trigger backend**: După fiecare tranzacție nouă (`POST /api/admin/add-transaction`), backend-ul generează instant snapshot-ul de leaderboard și verifică dacă liderul s-a schimbat.
+- **Push “quirky”**: Când apare un nou lider, toți abonații primesc mesajul “🔥 Avem un nou lider! … Deschide aplicația și vezi cine a preluat conducerea!” trimis via `/api/notifications/send`.
+
+Why These Changes
+- Agenții care activaseră notificările vedeau în continuare dialogul până la refresh manual; trebuia să se închidă singur imediat ce permisiunea era confirmată.
+- Când se introducea o tranzacție care schimba primul loc, notificările nu porneau automat — trebuiau apeluri manuale către endpoint-uri interne.
+- Gamificarea devine mult mai dinamică atunci când noul lider este anunțat instant, fără cron job-uri separate.
+
+Technical Implementation
+- **UI / Hook**
+  - `src/components/modules/notification-permission-dialog.tsx`: efect nou care marchează localStorage + închide modalul atunci când permisiunea este “granted” sau există abonament activ; condiția de randare verifică acum și `permission === 'granted'`.
+  - `src/hooks/use-push-notifications.ts`: helper `ensureSupport`, folosirea `useCallback` pentru `checkSubscription`, re-verificare automată când permisiunea devine “granted”, setarea explicită a permisiunii la succes și tratarea dezabonării fără suport SW.
+- **Backend**
+  - `src/lib/leaderboard-monitor.ts`: funcția nouă `getLeaderboardSnapshot()` agregă comisioanele pe agent, iar mesajul trimis prin push este mai expresiv în română; fallback-ul URL folosește acum `https://dashboard.towerimob.ro`.
+  - `src/app/api/admin/add-transaction/route.ts`: după insert, se construiește snapshot-ul și se apelează `checkAndNotifyLeaderboardChange`, astfel încât notificările să se trimită chiar în momentul adăugării.
+
+Result
+- Dialogul de permisiune este “one and done”: nu mai revine după ce agenții acceptă notificările.
+- Liderii noi sunt anunțați automat la fiecare tranzacție, menținând competiția vie și reducând sarcinile manuale.
+- Toată logica rămâne documentată și extensibilă (de ex., se pot declanșa și alte notificări pornind de la același snapshot).
+
 ## Francesco 21.11.2025 : Sistem de Notificări Push pentru Clasament
 
 Summary

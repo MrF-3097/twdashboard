@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 /**
  * VAPID public key for push notifications
@@ -32,27 +32,44 @@ export const usePushNotifications = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const ensureSupport = () => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      setPermission('unsupported')
+      return false
+    }
+
+    if (!('Notification' in window)) {
+      setPermission('unsupported')
+      return false
+    }
+
+    return true
+  }
+
   /**
    * Check if push notifications are supported and get current permission
    */
   useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      setPermission('unsupported')
+    if (!ensureSupport()) {
       return
     }
 
-    if ('Notification' in window) {
-      setPermission(Notification.permission as NotificationPermissionState)
-      checkSubscription()
-    }
+    setPermission(Notification.permission as NotificationPermissionState)
+    void checkSubscription()
   }, [])
 
   /**
    * Check if user is currently subscribed
    */
-  const checkSubscription = async (): Promise<void> => {
+  const checkSubscription = useCallback(async (): Promise<void> => {
+    if (!ensureSupport()) {
+      return
+    }
+
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
@@ -60,7 +77,13 @@ export const usePushNotifications = () => {
     } catch (err) {
       console.error('[Push Notifications] Error checking subscription:', err)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (permission === 'granted') {
+      void checkSubscription()
+    }
+  }, [permission, checkSubscription])
 
   /**
    * Request notification permission and subscribe
@@ -70,8 +93,7 @@ export const usePushNotifications = () => {
     setError(null)
 
     try {
-      // Check if service worker is supported
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      if (!ensureSupport()) {
         throw new Error('Notificările push nu sunt suportate de acest browser.')
       }
 
@@ -110,6 +132,7 @@ export const usePushNotifications = () => {
       }
 
       setIsSubscribed(true)
+      setPermission('granted')
       setIsLoading(false)
       return true
     } catch (err) {
@@ -129,6 +152,12 @@ export const usePushNotifications = () => {
     setError(null)
 
     try {
+      if (!ensureSupport()) {
+        setIsSubscribed(false)
+        setIsLoading(false)
+        return true
+      }
+
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
 

@@ -1,6 +1,6 @@
 import { db } from '@/db'
-import { leaderboardHistory } from '@/db/schema'
-import { desc } from 'drizzle-orm'
+import { leaderboardHistory, transactions } from '@/db/schema'
+import { desc, sql } from 'drizzle-orm'
 
 /**
  * Interface for leaderboard entry
@@ -8,6 +8,31 @@ import { desc } from 'drizzle-orm'
 interface LeaderboardEntry {
   agent: string
   total: number
+}
+
+/**
+ * Build current leaderboard snapshot from database transactions
+ */
+export const getLeaderboardSnapshot = async (): Promise<LeaderboardEntry[]> => {
+  try {
+    const rows = await db
+      .select({
+        agent: transactions.agent,
+        total: sql<number>`sum(${transactions.comision})`,
+      })
+      .from(transactions)
+      .groupBy(transactions.agent)
+
+    return rows
+      .map((row) => ({
+        agent: row.agent,
+        total: row.total ?? 0,
+      }))
+      .sort((a, b) => b.total - a.total)
+  } catch (error) {
+    console.error('[Leaderboard Monitor] Error building snapshot:', error)
+    return []
+  }
 }
 
 /**
@@ -99,14 +124,19 @@ const sendLeaderboardChangeNotification = async (
   newLeaderTotal: number
 ): Promise<void> => {
   try {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || 'https://dashboard.towerimob.ro'
+
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications/send`,
+      `${baseUrl}/api/notifications/send`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: '👑 Lider Nou în Clasament!',
-          body: `${newLeaderName} a urcat pe primul loc cu un total de ${newLeaderTotal.toLocaleString('ro-RO')} € în comisioane! Deschide aplicația pentru a vedea cine e cel mai bun.`,
+          title: '🔥 Avem un nou lider în clasament!',
+          body: `${newLeaderName} conduce acum cu ${newLeaderTotal.toLocaleString(
+            'ro-RO'
+          )} € comisioane. Deschide aplicația și vezi cine a preluat conducerea!`,
           icon: '/icon-192x192.png',
           badge: '/icon-192x192.png',
           tag: 'leaderboard-change',

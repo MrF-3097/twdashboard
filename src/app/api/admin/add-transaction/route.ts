@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { transactionSchema } from '@/types/commissions'
 import { db } from '@/db'
 import { transactions } from '@/db/schema'
+import {
+  checkAndNotifyLeaderboardChange,
+  getLeaderboardSnapshot,
+} from '@/lib/leaderboard-monitor'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +41,16 @@ export async function POST(request: NextRequest) {
     }).returning()
     
     console.log(`✅ [API] Inserted transaction with ID: ${inserted.id}`)
+
+    try {
+      const leaderboardSnapshot = await getLeaderboardSnapshot()
+      await checkAndNotifyLeaderboardChange(leaderboardSnapshot)
+    } catch (notificationError) {
+      console.error(
+        '⚠️ [API] Failed to trigger leaderboard notification:',
+        notificationError
+      )
+    }
 
     // Invalidate leaderboard cache by returning updated timestamp
     const updatedAt = new Date().toISOString()

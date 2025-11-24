@@ -39,6 +39,18 @@ export const NotificationPermissionDialog = ({
     }
   }, [permission, isSubscribed, hasBeenShown])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    if (permission === 'granted' || isSubscribed) {
+      localStorage.setItem('notification-permission-asked', 'true')
+      setIsOpen(false)
+      onClose?.()
+    }
+  }, [permission, isSubscribed, onClose])
+
   const handleEnable = async () => {
     const success = await subscribe(agentId, agentName)
     if (success) {
@@ -54,7 +66,7 @@ export const NotificationPermissionDialog = ({
     onClose?.()
   }
 
-  if (!isOpen || isSubscribed) return null
+  if (!isOpen || isSubscribed || permission === 'granted') return null
 
   return (
     <AnimatePresence>
