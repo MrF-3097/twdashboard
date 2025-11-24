@@ -1,5 +1,36 @@
 # Agent Dashboard Minimal
 
+## Francesco 24.11.2025 : HTTPS Reverse Proxy pentru dashboard.towerimob.ro
+
+Summary
+- **DNS dedicat**: `dashboard.towerimob.ro` pointează către VPS-ul (185.92.192.127) și servește drept endpoint public pentru dashboard.
+- **Reverse proxy nginx**: Traficul HTTPS ajunge pe nginx (port 443) și este proxiat intern către Next.js (`twdashboard-dev`) care rulează pe `http://127.0.0.1:3001`.
+- **Certificat Let's Encrypt**: Certbot gestionează automat certificatul (`/etc/letsencrypt/live/dashboard.towerimob.ro/`) și a activat redirect permanent 80 → 443.
+- **PM2 compatibil**: PM2 rămâne responsabil doar de procesele Node (fără build), în timp ce nginx expune interfața publică, ceea ce permite push notifications/service workers să ruleze în context securizat.
+
+Why These Changes
+- Agenții aveau nevoie de o adresă HTTPS validă pentru ca PWA-ul, service worker-ul și notificările push să funcționeze în browsere fără erori “Not Secure”.
+- Portul 3001 nu poate fi accesat direct din exterior în siguranță; un reverse proxy per domeniu permite certificate SSL regenerate automat și încărcări mai mari (uploads) fără probleme CORS.
+- Centralizarea traficului prin nginx oferă scalabilitate ulterioară (rate limiting, caching, header policies) fără a atinge aplicația Next.js.
+
+Technical Implementation
+- **DNS**: creat record A în Hostico pentru `dashboard.towerimob.ro → 185.92.192.127`.
+- **Nginx** (`/etc/nginx/sites-available/dashboard.towerimob.ro`)
+  - `listen 80` + redirect `return 301 https://$host$request_uri;`
+  - `listen 443 ssl http2;` + `proxy_pass http://127.0.0.1:3001;`
+  - Headere forward corecte (`X-Forwarded-*`, `Upgrade`, `Connection`) și `proxy_http_version 1.1`.
+  - Găzduit în `sites-enabled` prin symlink; config verificat cu `nginx -t` înainte de reload.
+- **Certbot**
+  - Instalare via `apt-get install certbot python3-certbot-nginx`.
+  - `certbot --nginx -d dashboard.towerimob.ro --redirect` a emis certificatul și a setat cron/`certbot.timer` pentru reînnoire automată.
+- **PM2**
+  - Nicio schimbare asupra scriptului `quick-deploy.sh` (continuează să ruleze `npm install` + `pm2 restart all`), deoarece nginx gestionează doar layer-ul web.
+
+Result
+- Dashboard-ul este accesibil la `https://dashboard.towerimob.ro` cu un certificat valid și redirect automat de pe HTTP.
+- Service worker-ul, PWA-ul și notificările push funcționează în producție (context securizat obligatoriu).
+- Configurația permite extindere ușoară (HSTS, header CSP, caching assets) fără downtime și fără a modifica aplicația Next.js.
+
 ## Francesco 21.11.2025 : Sistem de Notificări Push pentru Clasament
 
 Summary
