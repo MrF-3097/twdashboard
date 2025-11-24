@@ -29,6 +29,8 @@ const notificationSchema = z.object({
   requireInteraction: z.boolean().optional(),
   data: z.record(z.any()).optional(),
   excludeAgentId: z.number().optional(), // Don't send to this agent (e.g., the one who caused the change)
+  targetAgentIds: z.array(z.number()).optional(),
+  targetAgentNames: z.array(z.string().min(1)).optional(),
 })
 
 /**
@@ -75,11 +77,35 @@ export async function POST(request: NextRequest) {
     let failed = 0
     const failedEndpoints: string[] = []
 
+    const normalizedTargetAgentNames = notificationData.targetAgentNames
+      ?.map(name => name.trim().toLowerCase())
+      .filter(name => name.length > 0)
+
+    const hasTargetIds =
+      Array.isArray(notificationData.targetAgentIds) &&
+      notificationData.targetAgentIds.length > 0
+
+    const hasTargetNames =
+      Array.isArray(normalizedTargetAgentNames) &&
+      normalizedTargetAgentNames.length > 0
+
     // Send to all subscriptions
     for (const sub of subscriptions) {
       // Skip if this is the agent who caused the change
       if (notificationData.excludeAgentId && sub.agentId === notificationData.excludeAgentId) {
         continue
+      }
+
+      // Limit to targeted agent IDs if provided
+      if (hasTargetIds && !notificationData.targetAgentIds!.includes(sub.agentId)) {
+        continue
+      }
+
+      if (hasTargetNames) {
+        const normalizedName = sub.agentName.trim().toLowerCase()
+        if (!normalizedTargetAgentNames!.includes(normalizedName)) {
+          continue
+        }
       }
 
       try {

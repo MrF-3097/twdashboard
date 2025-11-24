@@ -1,5 +1,52 @@
 # Agent Dashboard Minimal
 
+## Francesco 24.11.2025 : Service Worker fixat pentru push pe mobil
+
+Summary
+- **/sw.js sănătos**: Eliminat ruta App Router `src/app/sw.js/route.ts` care provoca 500 (“conflicting public file”) și făcea imposibilă înregistrarea service worker-ului pe device-uri mobile.
+- **Headers corecte**: Lăsat doar fișierul din `public/sw.js` servit static, cu headere setate prin `next.config.js` (Content-Type, Cache-Control, Service-Worker-Allowed).
+- **Push funcțional**: După reînregistrare, serviciul push poate rula și pe Android/iOS (în PWA), pentru că fișierul SW se descarcă și se activează corect.
+
+Why These Changes
+- Browserele mobile refuză să înregistreze service worker-ul dacă endpoint-ul `/sw.js` nu răspunde cu 200. Eroarea 500 bloca orice flux de notificări.
+- Ruta App Router era utilă doar pentru headere, dar Next nu permite să existe simultan un fișier public cu același nume.
+
+Technical Implementation
+- Șters `src/app/sw.js/route.ts` (conflictul care genera 500).
+- Menținut headerele pentru `/sw.js` în `next.config.js` (deja definite).
+- Verificat manual cu `curl https://dashboard.towerimob.ro/sw.js` după redeploy pentru a confirma răspuns 200 + `Service-Worker-Allowed: /`.
+
+Result
+- Service worker-ul se înregistrează și pe mobil, astfel încât cererile `Notification.requestPermission` și `pushManager.subscribe` funcționează.
+- Notificările push ajung acum și pe device-urile mobile care instalează PWA-ul.
+
+## Francesco 24.11.2025 : Notificări țintite pentru agenții detronați
+
+Summary
+- **Standings persistente**: noul tabel `leaderboard_standings` salvează rank-ul curent, totalul și timestamp-ul fiecărui agent pentru a compara rapid schimbările.
+- **Push dedicat**: agentul care pierde locul 1 primește o notificare directă („👑 Locul 1 a fost preluat!”) cu detalii despre colegul care l-a detronat.
+- **API selectiv**: `/api/notifications/send` acceptă acum `targetAgentIds` / `targetAgentNames`, astfel încât backend-ul poate trimite mesaje doar către destinatarii relevanți.
+
+Why These Changes
+- Agenții doreau o alertă personală atunci când pierd poziția fruntașă, nu doar anunțuri generale către toată echipa.
+- Odată cu HTTPS activ, push notifications trebuie să fie mai inteligente și mai puțin intruzive, trimise doar celor afectați.
+- Persistarea clasamentelor curente simplifică orice alte automatizări care depind de evoluția locurilor (badge-uri, XP bursts etc.).
+
+Technical Implementation
+- **DB Schema** (`src/db/schema.ts`): tabel nou `leaderboard_standings` cu index unic pe `agent_name`, rank curent și totalul comisioanelor.
+- **Monitoring** (`src/lib/leaderboard-monitor.ts`):
+  - Helperi `getPreviousStandings`, `refreshStandings`, `seedHistoryIfMissing`.
+  - `checkAndNotifyLeaderboardChange` actualizează standings, loghează istoria și lansează două notificări în paralel (generală + țintită).
+  - Funcție nouă `sendLeaderDethronedNotification` care postează către `/api/notifications/send` cu `targetAgentNames`.
+- **API Push** (`src/app/api/notifications/send/route.ts`):
+  - Schema Zod extinsă cu `targetAgentIds`, `targetAgentNames`.
+  - Filtrare normalizată (case-insensitive) înainte de `webpush.sendNotification`, păstrând și opțiunea `excludeAgentId`.
+
+Result
+- Agentul care pierde locul 1 află instant și poate reacționa rapid fără ca restul echipei să fie spam-uit.
+- Clasamentul este urmărit granular și poate sluji ca bază pentru alte reguli (achievements, notificări suplimentare).
+- Sistemul de notificări rămâne documentat și extensibil, evitând trimiteri redundante și reducând zgomotul.
+
 ## Francesco 24.11.2025 : HTTPS Reverse Proxy pentru dashboard.towerimob.ro
 
 Summary

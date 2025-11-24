@@ -1,4 +1,4 @@
-import { sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, real, integer, uniqueIndex } from 'drizzle-orm/sqlite-core'
 
 export const transactions = sqliteTable('transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -75,6 +75,20 @@ export const leaderboardHistory = sqliteTable('leaderboard_history', {
   changedAt: integer('changed_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
+export const leaderboardStandings = sqliteTable(
+  'leaderboard_standings',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    agentName: text('agent_name').notNull(),
+    rank: integer('rank').notNull(),
+    total: real('total').notNull(),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  },
+  table => ({
+    agentNameIdx: uniqueIndex('leaderboard_standings_agent_name_unique').on(table.agentName),
+  })
+)
+
 export type Transaction = typeof transactions.$inferSelect
 export type NewTransaction = typeof transactions.$inferInsert
 export type AgentTarget = typeof agentTargets.$inferSelect
@@ -89,4 +103,6 @@ export type PushSubscription = typeof pushSubscriptions.$inferSelect
 export type NewPushSubscription = typeof pushSubscriptions.$inferInsert
 export type LeaderboardHistory = typeof leaderboardHistory.$inferSelect
 export type NewLeaderboardHistory = typeof leaderboardHistory.$inferInsert
+export type LeaderboardStanding = typeof leaderboardStandings.$inferSelect
+export type NewLeaderboardStanding = typeof leaderboardStandings.$inferInsert
 

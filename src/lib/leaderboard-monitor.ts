@@ -1,5 +1,5 @@
 import { db } from '@/db'
-import { leaderboardHistory, transactions } from '@/db/schema'
+import { leaderboardHistory, leaderboardStandings, transactions } from '@/db/schema'
 import { desc, sql } from 'drizzle-orm'
 
 /**
@@ -74,39 +74,36 @@ export const checkAndNotifyLeaderboardChange = async (
     }
 
     const newFirstPlace = currentLeaderboard[0]
-    const previousFirstPlace = await getCurrentFirstPlace()
+    const previousStandings = await getPreviousStandings()
+    const previousLeader = previousStandings.find(
+      standing => standing.rank === 1
+    )
 
-    // If this is the first time or the leader hasn't changed, do nothing
-    if (
-      !previousFirstPlace ||
-      previousFirstPlace.agentName === newFirstPlace.agent
-    ) {
-      // Still update the history even if no change (for tracking purposes)
-      if (!previousFirstPlace) {
-        await db.insert(leaderboardHistory).values({
-          firstPlaceAgentName: newFirstPlace.agent,
-          firstPlaceTotal: newFirstPlace.total,
-          changedAt: new Date(),
-        })
-      }
+    if (!previousLeader) {
+      await refreshStandings(currentLeaderboard)
+      await seedHistoryIfMissing(newFirstPlace)
       return false
     }
 
-    // Leader has changed! Save to history
+    if (previousLeader.agentName === newFirstPlace.agent) {
+      await refreshStandings(currentLeaderboard)
+      return false
+    }
+
+    await refreshStandings(currentLeaderboard)
     await db.insert(leaderboardHistory).values({
       firstPlaceAgentName: newFirstPlace.agent,
       firstPlaceTotal: newFirstPlace.total,
       changedAt: new Date(),
     })
 
-    // Send push notification to all agents
-    await sendLeaderboardChangeNotification(
-      newFirstPlace.agent,
-      newFirstPlace.total
-    )
+    await Promise.all([
+      sendLeaderboardChangeNotification(newFirstPlace.agent, newFirstPlace.total),
+      sendLeaderDethronedNotification(previousLeader.agentName, newFirstPlace.agent),
+    ])
 
     console.log(
-      `[Leaderboard Monitor] Leader changed from ${previousFirstPlace.agentName} to ${newFirstPlace.agent}`
+      `[Leaderboard Monitor] Leader changed from ${previousLeader.agentName} to ${newFirstPlace.agent}`
     )
 
     return true
@@ -160,6 +157,86 @@ const sendLeaderboardChangeNotification = async (
     }
   } catch (error) {
     console.error('[Leaderboard Monitor] Error sending notification:', error)
+  }
+}
+
+const sendLeaderDethronedNotification = async (
+  dethronedAgentName: string,
+  newLeaderName: string
+): Promise<void> => {
+  try {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_APP_URL || 'https://dashboard.towerimob.ro'
+
+    const response = await fetch(`${baseUrl}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: '👑 Locul 1 a fost preluat!',
+        body: `${newLeaderName} ți-a luat prima poziție. Intră în aplicație și recâștigă locul 1.`,
+        icon: '/icon-192x192.png',
+        badge: '/icon-192x192.png',
+        tag: 'leaderboard-dethroned',
+        requireInteraction: true,
+        data: {
+          type: 'leaderboard-dethroned',
+          dethronedAgent: dethronedAgentName,
+          newLeader: newLeaderName,
+          timestamp: new Date().toISOString(),
+        },
+        targetAgentNames: [dethronedAgentName],
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!data.success) {
+      console.error('[Leaderboard Monitor] Failed to send dethroned notification:', data.error)
+    }
+  } catch (error) {
+    console.error('[Leaderboard Monitor] Error sending dethroned notification:', error)
+  }
+}
+
+const getPreviousStandings = async () => {
+  try {
+    return await db.select().from(leaderboardStandings)
+  } catch (error) {
+    console.error('[Leaderboard Monitor] Error fetching previous standings:', error)
+    return []
+  }
+}
+
+const refreshStandings = async (currentLeaderboard: LeaderboardEntry[]) => {
+  try {
+    await db.delete(leaderboardStandings)
+    if (!currentLeaderboard.length) return
+
+    await db.insert(leaderboardStandings).values(
+      currentLeaderboard.map((entry, index) => ({
+        agentName: entry.agent,
+        rank: index + 1,
+        total: entry.total,
+        updatedAt: new Date(),
+      }))
+    )
+  } catch (error) {
+    console.error('[Leaderboard Monitor] Error refreshing standings:', error)
+  }
+}
+
+const seedHistoryIfMissing = async (leader: LeaderboardEntry) => {
+  try {
+    const existing = await getCurrentFirstPlace()
+    if (existing) return
+
+    await db.insert(leaderboardHistory).values({
+      firstPlaceAgentName: leader.agent,
+      firstPlaceTotal: leader.total,
+      changedAt: new Date(),
+    })
+  } catch (error) {
+    console.error('[Leaderboard Monitor] Error seeding leaderboard history:', error)
   }
 }
 
