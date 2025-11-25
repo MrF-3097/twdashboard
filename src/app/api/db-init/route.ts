@@ -76,6 +76,38 @@ export async function GET() {
       )
     `)
     
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        agent_id INTEGER NOT NULL,
+        agent_name TEXT NOT NULL,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `)
+    
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS leaderboard_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        first_place_agent_name TEXT NOT NULL,
+        first_place_total REAL NOT NULL,
+        changed_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `)
+    
+    await db.run(sql`
+      CREATE TABLE IF NOT EXISTS leaderboard_standings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        agent_name TEXT NOT NULL UNIQUE,
+        rank INTEGER NOT NULL,
+        total REAL NOT NULL,
+        updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    `)
+    
     // Just a simple query to test connection
     const result = await db.select().from(transactions).limit(1)
     
@@ -83,8 +115,17 @@ export async function GET() {
     
     return NextResponse.json({
       success: true,
-      message: 'Database initialized with quest tables',
-      tables: ['transactions', 'agent_targets', 'agent_property_counts', 'agent_transaction_counts', 'quest_progress'],
+      message: 'Database initialized with all tables including leaderboard tables',
+      tables: [
+        'transactions', 
+        'agent_targets', 
+        'agent_property_counts', 
+        'agent_transaction_counts', 
+        'quest_progress',
+        'push_subscriptions',
+        'leaderboard_history',
+        'leaderboard_standings'
+      ],
       count: result.length,
     })
   } catch (error) {
