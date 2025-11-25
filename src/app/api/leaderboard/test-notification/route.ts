@@ -1,8 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/db'
+import { leaderboardStandings } from '@/db/schema'
 import {
   checkAndNotifyLeaderboardChange,
   getLeaderboardSnapshot,
 } from '@/lib/leaderboard-monitor'
+
+const seedOutdatedStandings = async (
+  leaderboard: Awaited<ReturnType<typeof getLeaderboardSnapshot>>
+) => {
+  const simulatedStandings = [...leaderboard]
+
+  if (simulatedStandings.length > 1) {
+    // Ensure the "previous" standings show the original leader at the top
+    const originalFirst = simulatedStandings[0]
+    simulatedStandings[0] = { ...originalFirst }
+  }
+
+  await db.delete(leaderboardStandings)
+
+  await db.insert(leaderboardStandings).values(
+    simulatedStandings.map((entry, index) => ({
+      agentName: entry.agent,
+      rank: index + 1,
+      total: entry.total,
+      updatedAt: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+    }))
+  )
+
+  console.log('[Test Notification] Seeded simulated previous standings')
+}
 
 /**
  * POST /api/leaderboard/test-notification
@@ -40,10 +67,10 @@ export async function POST(request: NextRequest) {
     const firstPlace = modifiedLeaderboard[0]
     const secondPlace = modifiedLeaderboard[1]
 
-    // Swap positions by adjusting totals
-    // Make second place slightly higher than first place
-    const newFirstTotal = secondPlace.total + 100 // Add 100 to ensure it's higher
-    const newSecondTotal = firstPlace.total - 100 // Subtract 100 to ensure it's lower
+    // Swap positions by adjusting totals with a guaranteed large delta
+    const requiredDelta = Math.abs(firstPlace.total - secondPlace.total) + 1000
+    const newFirstTotal = firstPlace.total + requiredDelta
+    const newSecondTotal = Math.max(secondPlace.total - requiredDelta, 0)
 
     modifiedLeaderboard[0] = {
       agent: secondPlace.agent,
@@ -56,6 +83,9 @@ export async function POST(request: NextRequest) {
 
     // Re-sort to ensure correct order
     modifiedLeaderboard.sort((a, b) => b.total - a.total)
+
+    // Seed standings with the original ordering so the change is always detected
+    await seedOutdatedStandings(currentLeaderboard)
 
     console.log('[Test Notification] Modified leaderboard:', modifiedLeaderboard)
     console.log(
