@@ -85,6 +85,7 @@ Summary
 - **Hook robust**: `usePushNotifications` verifică din nou abonarea când permisiunea devine “granted”, tratează browserele fără suport și menține stări clare (loading/erroare).
 - **Trigger backend**: După fiecare tranzacție nouă (`POST /api/admin/add-transaction`), backend-ul generează instant snapshot-ul de leaderboard și verifică dacă liderul s-a schimbat.
 - **Push “quirky”**: Când apare un nou lider, toți abonații primesc mesajul “🔥 Avem un nou lider! … Deschide aplicația și vezi cine a preluat conducerea!” trimis via `/api/notifications/send`.
+- **Rank change alerts**: Agenții din top 10 primesc notificări țintite când urcă sau coboară în clasament, astfel încât reacționează rapid fără să urmărească manual leaderboard-ul.
 
 Why These Changes
 - Agenții care activaseră notificările vedeau în continuare dialogul până la refresh manual; trebuia să se închidă singur imediat ce permisiunea era confirmată.

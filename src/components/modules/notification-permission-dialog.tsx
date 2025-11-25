@@ -26,6 +26,25 @@ export const NotificationPermissionDialog = ({
   const { permission, isSubscribed, isLoading, subscribe, error } = usePushNotifications()
 
   useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const handleOpenRequest = () => {
+      if (isSubscribed || permission === 'granted') {
+        return
+      }
+      setIsOpen(true)
+      setHasBeenShown(true)
+    }
+
+    window.addEventListener('tower:show-notification-dialog', handleOpenRequest)
+    return () => {
+      window.removeEventListener('tower:show-notification-dialog', handleOpenRequest)
+    }
+  }, [isSubscribed, permission])
+
+  useEffect(() => {
     // Check localStorage to see if we've already asked
     const asked = localStorage.getItem('notification-permission-asked')
     
@@ -64,6 +83,30 @@ export const NotificationPermissionDialog = ({
     localStorage.setItem('notification-permission-asked', 'true')
     setIsOpen(false)
     onClose?.()
+  }
+
+  if (permission === 'unsupported' && !isSubscribed) {
+    return (
+      <div className="fixed inset-x-4 bottom-6 z-[90] md:inset-auto md:bottom-8 md:right-8 md:left-auto">
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-slate-900/95 p-4 shadow-2xl backdrop-blur">
+          <div className="mt-0.5 rounded-full bg-amber-500/20 p-2">
+            <BellOff className="h-5 w-5 text-amber-400" />
+          </div>
+          <div className="text-sm text-slate-200">
+            <p className="font-semibold text-white mb-1">Activează aplicația pentru notificări</p>
+            <p className="text-slate-300 mb-2">
+              Browserul mobil nu oferă acces la notificări push. Instalează aplicația din butonul
+              “Adaugă pe ecranul de pornire” și redeschide-o din home screen pentru a primi alerte.
+            </p>
+            <ul className="list-disc pl-5 text-slate-400 space-y-1">
+              <li>Deschide meniul share ⋯ și alege “Add to Home Screen”.</li>
+              <li>Repornește aplicația din icon-ul nou creat.</li>
+              <li>După ce se deschide, dialogul de notificări va apărea automat.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!isOpen || isSubscribed || permission === 'granted') return null

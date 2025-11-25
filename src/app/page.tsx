@@ -42,6 +42,7 @@ import { GamifiedLeaderboard } from '@/components/modules/leaderboard/gamified-l
 import { useAuth } from '@/hooks/use-auth'
 import { useTransactions } from '@/hooks/use-commissions'
 import { PwaInstallButton } from '@/components/ui/pwa-install-button'
+import { ActivateNotificationsButton } from '@/components/modules/activate-notifications-button'
 import { AddRequestModal } from '@/components/modules/add-request-modal'
 import { AddPropertyModal } from '@/components/modules/add-property-modal'
 import { NotificationPermissionDialog } from '@/components/modules/notification-permission-dialog'
@@ -336,7 +337,8 @@ function DashboardContent() {
         {/* Mobile Home View */}
         {mobileTab === 'home' && (
           <div className="md:hidden bg-[#0F172A]">
-            <div className="px-4 pt-4 pb-2">
+            <div className="px-4 pt-4 pb-2 space-y-3">
+              <ActivateNotificationsButton />
               <PwaInstallButton inline />
             </div>
             <MobileStatsBar 

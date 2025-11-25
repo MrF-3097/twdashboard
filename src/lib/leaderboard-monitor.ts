@@ -10,6 +10,17 @@ interface LeaderboardEntry {
   total: number
 }
 
+interface RankChange {
+  agentName: string
+  oldRank: number
+  newRank: number
+  total: number
+}
+
+const RANK_NOTIFICATION_LIMIT = 10
+const normalizeName = (name: string) => name.trim().toLowerCase()
+const formatAmount = (amount: number) => amount.toLocaleString('ro-RO')
+
 /**
  * Build current leaderboard snapshot from database transactions
  */
@@ -85,28 +96,42 @@ export const checkAndNotifyLeaderboardChange = async (
       return false
     }
 
-    if (previousLeader.agentName === newFirstPlace.agent) {
-      await refreshStandings(currentLeaderboard)
-      return false
-    }
+    const rankChanges = detectRankChanges(previousStandings, currentLeaderboard)
+
+    const leaderChanged = previousLeader.agentName !== newFirstPlace.agent
 
     await refreshStandings(currentLeaderboard)
-    await db.insert(leaderboardHistory).values({
-      firstPlaceAgentName: newFirstPlace.agent,
-      firstPlaceTotal: newFirstPlace.total,
-      changedAt: new Date(),
-    })
 
-    await Promise.all([
-      sendLeaderboardChangeNotification(newFirstPlace.agent, newFirstPlace.total),
-      sendLeaderDethronedNotification(previousLeader.agentName, newFirstPlace.agent),
-    ])
+    if (leaderChanged) {
+      await db.insert(leaderboardHistory).values({
+        firstPlaceAgentName: newFirstPlace.agent,
+        firstPlaceTotal: newFirstPlace.total,
+        changedAt: new Date(),
+      })
+    }
 
-    console.log(
-      `[Leaderboard Monitor] Leader changed from ${previousLeader.agentName} to ${newFirstPlace.agent}`
-    )
+    const notificationTasks: Promise<void>[] = []
 
-    return true
+    if (leaderChanged) {
+      notificationTasks.push(
+        sendLeaderboardChangeNotification(newFirstPlace.agent, newFirstPlace.total),
+        sendLeaderDethronedNotification(previousLeader.agentName, newFirstPlace.agent)
+      )
+
+      console.log(
+        `[Leaderboard Monitor] Leader changed from ${previousLeader.agentName} to ${newFirstPlace.agent}`
+      )
+    }
+
+    if (rankChanges.length > 0) {
+      notificationTasks.push(sendRankChangeNotifications(rankChanges))
+    }
+
+    if (notificationTasks.length > 0) {
+      await Promise.all(notificationTasks)
+    }
+
+    return leaderChanged || rankChanges.length > 0
   } catch (error) {
     console.error('[Leaderboard Monitor] Error checking leaderboard change:', error)
     return false
@@ -198,6 +223,67 @@ const sendLeaderDethronedNotification = async (
   }
 }
 
+const sendRankChangeNotifications = async (changes: RankChange[]): Promise<void> => {
+  if (!changes.length) return
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || 'https://dashboard.towerimob.ro'
+
+  await Promise.all(
+    changes.map(async (change) => {
+      try {
+        const movedUp = change.newRank < change.oldRank
+        const title = movedUp
+          ? `🚀 Ai urcat pe locul ${change.newRank}!`
+          : `⚠️ Ai coborât pe locul ${change.newRank}`
+        const positionsDelta = Math.abs(change.newRank - change.oldRank)
+        const positionsText =
+          positionsDelta === 1 ? 'o poziție' : `${positionsDelta} poziții`
+        const body = movedUp
+          ? `${change.agentName}, ai urcat ${positionsText} și ești pe locul ${change.newRank} cu ${formatAmount(
+              change.total
+            )} € comisioane. Continuă să împingi!`
+          : `${change.agentName}, ai coborât ${positionsText} și ești pe locul ${change.newRank}. Mai adaugă o tranzacție ca să revii.`
+
+        const response = await fetch(`${baseUrl}/api/notifications/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            body,
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            tag: `rank-change-${change.agentName}`,
+            requireInteraction: false,
+            data: {
+              type: 'leaderboard-rank-change',
+              agentName: change.agentName,
+              oldRank: change.oldRank,
+              newRank: change.newRank,
+              total: change.total,
+              timestamp: new Date().toISOString(),
+            },
+            targetAgentNames: [change.agentName],
+          }),
+        })
+
+        const data = await response.json()
+        if (!data.success) {
+          console.error(
+            `[Leaderboard Monitor] Failed to send rank change notification for ${change.agentName}:`,
+            data.error
+          )
+        }
+      } catch (error) {
+        console.error(
+          `[Leaderboard Monitor] Error sending rank change notification for ${change.agentName}:`,
+          error
+        )
+      }
+    })
+  )
+}
+
 const getPreviousStandings = async () => {
   try {
     return await db.select().from(leaderboardStandings)
@@ -248,5 +334,38 @@ export const initializeLeaderboardMonitoring = async (
   leaderboard: LeaderboardEntry[]
 ): Promise<void> => {
   await checkAndNotifyLeaderboardChange(leaderboard)
+}
+
+const detectRankChanges = (
+  previousStandings: Awaited<ReturnType<typeof getPreviousStandings>>,
+  currentLeaderboard: LeaderboardEntry[]
+): RankChange[] => {
+  if (!previousStandings.length) {
+    return []
+  }
+
+  const previousMap = new Map(
+    previousStandings.map((standing) => [normalizeName(standing.agentName), standing])
+  )
+
+  return currentLeaderboard.reduce<RankChange[]>((changes, entry, index) => {
+    const previous = previousMap.get(normalizeName(entry.agent))
+    const newRank = index + 1
+
+    if (
+      previous &&
+      previous.rank !== newRank &&
+      (newRank <= RANK_NOTIFICATION_LIMIT || previous.rank <= RANK_NOTIFICATION_LIMIT)
+    ) {
+      changes.push({
+        agentName: entry.agent,
+        oldRank: previous.rank,
+        newRank,
+        total: entry.total,
+      })
+    }
+
+    return changes
+  }, [])
 }
 
