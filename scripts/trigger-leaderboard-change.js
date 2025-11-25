@@ -39,6 +39,9 @@ async function main() {
     ],
   }
 
+  console.log(`[trigger-leaderboard-change] Sending request to: ${baseUrl}/api/leaderboard/check-changes`)
+  console.log(`[trigger-leaderboard-change] Payload:`, JSON.stringify(payload, null, 2))
+
   try {
     const response = await fetch(`${baseUrl}/api/leaderboard/check-changes`, {
       method: 'POST',
@@ -46,10 +49,32 @@ async function main() {
       body: JSON.stringify(payload),
     })
 
-    const data = await response.json()
-    console.log('Response:', data)
+    console.log(`[trigger-leaderboard-change] Response status: ${response.status} ${response.statusText}`)
+    console.log(`[trigger-leaderboard-change] Response headers:`, Object.fromEntries(response.headers.entries()))
+
+    const contentType = response.headers.get('content-type')
+    const text = await response.text()
+
+    if (!contentType || !contentType.includes('application/json')) {
+      console.error('[trigger-leaderboard-change] Received non-JSON response:')
+      console.error('Content-Type:', contentType)
+      console.error('Response body (first 500 chars):', text.substring(0, 500))
+      process.exit(1)
+    }
+
+    try {
+      const data = JSON.parse(text)
+      console.log('[trigger-leaderboard-change] Success! Response:', JSON.stringify(data, null, 2))
+    } catch (parseError) {
+      console.error('[trigger-leaderboard-change] Failed to parse JSON:')
+      console.error('Response body:', text)
+      process.exit(1)
+    }
   } catch (error) {
-    console.error('[scripts/trigger-leaderboard-change] Failed:', error)
+    console.error('[trigger-leaderboard-change] Request failed:', error.message)
+    if (error.cause) {
+      console.error('Error cause:', error.cause)
+    }
     process.exit(1)
   }
 }
