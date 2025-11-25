@@ -298,8 +298,26 @@ const refreshStandings = async (currentLeaderboard: LeaderboardEntry[]) => {
     await db.delete(leaderboardStandings)
     if (!currentLeaderboard.length) return
 
+    const seenAgents = new Set<string>()
+    const uniqueEntries = currentLeaderboard.filter((entry) => {
+      const key = normalizeName(entry.agent)
+      if (seenAgents.has(key)) {
+        console.warn(
+          `[Leaderboard Monitor] Duplicate agent "${entry.agent}" detected while refreshing standings. Keeping first occurrence.`
+        )
+        return false
+      }
+      seenAgents.add(key)
+      return true
+    })
+
+    if (!uniqueEntries.length) {
+      console.warn('[Leaderboard Monitor] No unique leaderboard entries found after deduplication.')
+      return
+    }
+
     await db.insert(leaderboardStandings).values(
-      currentLeaderboard.map((entry, index) => ({
+      uniqueEntries.map((entry, index) => ({
         agentName: entry.agent,
         rank: index + 1,
         total: entry.total,
