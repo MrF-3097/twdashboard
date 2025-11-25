@@ -104,6 +104,19 @@ Result
 - Liderii noi sunt anunțați automat la fiecare tranzacție, menținând competiția vie și reducând sarcinile manuale.
 - Toată logica rămâne documentată și extensibilă (de ex., se pot declanșa și alte notificări pornind de la același snapshot).
 
+## Setup rapid: sistem notificări push
+
+1. **Configurează VAPID în `.env.local`** – folosește cheile generate prin `node scripts/generate-vapid-keys.js` și completează `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Exemplul se găsește în `env.example`.
+2. **Pornește aplicația în HTTPS** – local `npm run dev:https`, în producție ține nginx/Certbot pe `https://dashboard.towerimob.ro` pentru ca service worker-ul să se instaleze.
+3. **Înregistrează service worker-ul o singură dată** – componenta `ServiceWorkerRegister` se ocupă de registru + update; nu mai este nevoie de scripturi inline.
+4. **Cere permisiunea din UI** – `NotificationPermissionDialog` apare după login. Pentru a re-testa, rulează în consolă `localStorage.removeItem('notification-permission-asked')`.
+5. **Stochează abonamentele** – `usePushNotifications.subscribe` apelează `/api/notifications/subscribe` și persistă endpoint-ul + cheile în `push_subscriptions`.
+6. **Testează manual** – rulează:
+   - `npm run notifications:test -- --title "Test" --body "Salut"` pentru a trimite push către toți abonații.
+   - `npm run leaderboard:simulate-change -- --leader="Agent Nou" --previous="Agent Curent"` pentru a simula detronarea liderului.
+7. **Verifică mobilul** – adaugă PWA-ul la Home Screen, acceptă permisiunea și confirmă că notificările apar în Notification Center atunci când scripturile de test rulează.
+8. **Monitorizează baza de date** – verifică `data/database.sqlite` (`push_subscriptions` și `leaderboard_history`) pentru a te asigura că abonamentele și evenimentele se înregistrează corect.
+
 ## Francesco 21.11.2025 : Sistem de Notificări Push pentru Clasament
 
 Summary

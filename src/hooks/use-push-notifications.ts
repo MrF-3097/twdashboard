@@ -93,6 +93,10 @@ export const usePushNotifications = () => {
     setError(null)
 
     try {
+      if (!VAPID_PUBLIC_KEY) {
+        throw new Error('Cheia VAPID lipsește. Completează NEXT_PUBLIC_VAPID_PUBLIC_KEY în .env.local.')
+      }
+
       if (!ensureSupport()) {
         throw new Error('Notificările push nu sunt suportate de acest browser.')
       }

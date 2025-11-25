@@ -12,7 +12,9 @@
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "notifications:test": "node scripts/send-test-notification.js",
+    "leaderboard:simulate-change": "node scripts/trigger-leaderboard-change.js"
   },
   "dependencies": {
     "@fal-ai/client": "^1.6.2",

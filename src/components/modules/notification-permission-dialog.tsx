@@ -23,7 +23,7 @@ export const NotificationPermissionDialog = ({
 }: NotificationPermissionDialogProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [hasBeenShown, setHasBeenShown] = useState(false)
-  const { permission, isSubscribed, isLoading, subscribe } = usePushNotifications()
+  const { permission, isSubscribed, isLoading, subscribe, error } = usePushNotifications()
 
   useEffect(() => {
     // Check localStorage to see if we've already asked
@@ -179,6 +179,11 @@ export const NotificationPermissionDialog = ({
               >
                 Poate mai târziu
               </button>
+              {error && (
+                <p className="text-center text-sm text-red-400" role="alert">
+                  {error}
+                </p>
+              )}
             </div>
           </div>
         </motion.div>

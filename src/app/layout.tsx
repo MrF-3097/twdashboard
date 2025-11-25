@@ -54,23 +54,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Tower Imob" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .then((registration) => {
-                      console.log('[SW Script] Service Worker registered:', registration.scope);
-                    })
-                    .catch((error) => {
-                      console.error('[SW Script] Service Worker registration failed:', error);
-                    });
-                });
-              }
-            `,
-          }}
-        />
       </head>
               <body className={`${inter.className} ${montserrat.variable} dark`}>
                 <ServiceWorkerRegister />
