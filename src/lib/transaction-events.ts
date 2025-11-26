@@ -13,7 +13,7 @@ export const logTransactionEvent = async (transaction: Transaction, action: Tran
       comisionPct: transaction.comisionPct,
       comision: transaction.comision,
       action,
-      eventTimestamp: new Date().toISOString(),
+      eventTimestamp: transaction.timestamp ?? new Date().toISOString(),
     })
   } catch (error) {
     console.error('[Transaction Events] Failed to log event', {

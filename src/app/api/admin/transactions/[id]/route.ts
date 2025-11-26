@@ -91,13 +91,19 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ success: false, error: 'Invalid transaction ID' }, { status: 400 })
     }
 
-    const [deleted] = await db.delete(transactions).where(eq(transactions.id, transactionId)).returning()
+    const existing = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, transactionId))
+      .limit(1)
 
-    if (!deleted) {
+    if (existing.length === 0) {
       return NextResponse.json({ success: false, error: 'Transaction not found' }, { status: 404 })
     }
 
-    await logTransactionEvent(deleted, 'deleted')
+    await db.delete(transactions).where(eq(transactions.id, transactionId))
+
+    await logTransactionEvent(existing[0], 'deleted')
 
     const leaderboardMeta = buildLeaderboardHeader()
 
