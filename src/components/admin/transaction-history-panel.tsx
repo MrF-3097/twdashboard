@@ -370,7 +370,7 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
           </div>
 
           <div className="rounded-2xl border border-slate-700/70 bg-slate-900/60 shadow-inner">
-            <div className="md:hidden space-y-3 p-4">
+            <div className="md:hidden space-y-2 p-2">
               {isLoading && (
                 <div className="py-6 text-center text-slate-400">
                   <span className="inline-flex items-center gap-2 text-sm">
@@ -390,55 +390,38 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
                 filteredTransactions.map((tx, index) => (
                   <div
                     key={`mobile-${tx.agent}-${tx.timestamp}-${index}`}
-                    className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-4 shadow-sm"
+                    className="rounded-xl border border-slate-700/70 bg-slate-900/80 px-4 py-3 shadow-sm"
                   >
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs uppercase text-slate-500">Agent</p>
-                        <p className="text-base font-semibold text-white">{tx.agent}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{tx.agent}</p>
+                        <p className="text-xs text-slate-400">{dateFormatter.format(tx.date)}</p>
                       </div>
                       <Badge
-                        className={`gap-1 text-xs ${tx.action === 'created' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}
+                        className={`gap-1 text-[10px] ${tx.action === 'created' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}
                       >
                         {tx.action === 'created' ? (
                           <>
-                            <Undo2 className="h-3.5 w-3.5" />
+                            <Undo2 className="h-3 w-3" />
                             Adăugată
                           </>
                         ) : (
                           <>
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-3 w-3" />
                             Ștearsă
                           </>
                         )}
                       </Badge>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-xs uppercase text-slate-500">Data</p>
-                        <p className="font-medium text-white">{dateFormatter.format(tx.date)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase text-slate-500">Tip</p>
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                            tx.type === 'Vanzare' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-sky-500/15 text-sky-300'
-                          }`}
-                        >
-                          {tx.type}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase text-slate-500">Valoare</p>
-                        <p className="font-semibold text-white">{currencyFormatter.format(tx.value)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase text-slate-500">Comision</p>
-                        <p className="font-semibold text-amber-300">
-                          {currencyFormatter.format(tx.commission)}{' '}
-                          <span className="text-xs text-slate-400">({(tx.commissionPct * 100).toFixed(2)}%)</span>
-                        </p>
-                      </div>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 font-semibold ${
+                          tx.type === 'Vanzare' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-sky-500/15 text-sky-300'
+                        }`}
+                      >
+                        {tx.type}
+                      </span>
+                      <span className="text-slate-500">#{tx.transactionId ?? '—'}</span>
                     </div>
                   </div>
                 ))}
