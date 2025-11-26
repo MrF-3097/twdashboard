@@ -255,120 +255,6 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
 
         <ScrollArea className="h-full pr-4">
         <div className="space-y-6 pb-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border-slate-700/80 bg-slate-900/60 p-4">
-              <p className="text-xs uppercase text-slate-400">Tranzacții filtrate</p>
-              <p className="mt-2 text-2xl font-semibold text-white">{summary.count}</p>
-              <span className="text-xs text-slate-400">
-                din {transactions.length} totale
-              </span>
-            </Card>
-            <Card className="border-slate-700/80 bg-slate-900/60 p-4">
-              <p className="text-xs uppercase text-slate-400">Valoare tranzacții</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {currencyFormatter.format(summary.value)}
-              </p>
-            </Card>
-            <Card className="border-slate-700/80 bg-slate-900/60 p-4">
-              <p className="text-xs uppercase text-slate-400">Comisioane totale</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
-                {currencyFormatter.format(summary.commission)}
-              </p>
-            </Card>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-5">
-            <div className="lg:col-span-2">
-              <label className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                <Search className="h-3.5 w-3.5" />
-                Caută agent
-              </label>
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Nume agent..."
-                className="border-slate-700 bg-slate-900/70 text-white placeholder:text-slate-500"
-              />
-            </div>
-            <div>
-              <label className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                <CalendarDays className="h-3.5 w-3.5" />
-                An
-              </label>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="border-slate-700 bg-slate-900/70 text-white">
-                  <SelectValue placeholder="Toți anii" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toți anii</SelectItem>
-                  {availableYears.map(year => (
-                    <SelectItem key={year} value={year}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                <CalendarDays className="h-3.5 w-3.5" />
-                Lună
-              </label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="border-slate-700 bg-slate-900/70 text-white">
-                  <SelectValue placeholder="Toate lunile" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate lunile</SelectItem>
-                  {monthLabels.map(month => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                <Filter className="h-3.5 w-3.5" />
-                Tip tranzacție
-              </label>
-              <Select value={selectedType} onValueChange={value => setSelectedType(value as typeof selectedType)}>
-                <SelectTrigger className="border-slate-700 bg-slate-900/70 text-white">
-                  <SelectValue placeholder="Toate tipurile" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Toate tipurile</SelectItem>
-                  <SelectItem value="Vanzare">Vânzare</SelectItem>
-                  <SelectItem value="Inchiriere">Închiriere</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <p className="text-xs text-slate-400">
-              Listele sunt generate din baza de date reală (tranzacțiile rămân chiar dacă sunt eliminate din leaderboard).
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                className="border-slate-600 text-slate-200"
-                onClick={handleResetFilters}
-              >
-                Resetează filtrele
-              </Button>
-              <Button
-                variant="outline"
-                className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
-                onClick={handleDownloadCsv}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export CSV
-              </Button>
-            </div>
-          </div>
-
           <div className="rounded-2xl border border-slate-700/70 bg-slate-900/60 shadow-inner">
             <div className="md:hidden space-y-2 p-2">
               {isLoading && (
@@ -523,6 +409,121 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
                     ))}
                 </tbody>
               </table>
+              </div>
+            </div>
+          </div>
+          <div className="hidden md:block space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card className="border-slate-700/80 bg-slate-900/60 p-4">
+                <p className="text-xs uppercase text-slate-400">Tranzacții filtrate</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{summary.count}</p>
+                <span className="text-xs text-slate-400">
+                  din {transactions.length} totale
+                </span>
+              </Card>
+              <Card className="border-slate-700/80 bg-slate-900/60 p-4">
+                <p className="text-xs uppercase text-slate-400">Valoare tranzacții</p>
+                <p className="mt-2 text-2xl font-semibold text-white">
+                  {currencyFormatter.format(summary.value)}
+                </p>
+              </Card>
+              <Card className="border-slate-700/80 bg-slate-900/60 p-4">
+                <p className="text-xs uppercase text-slate-400">Comisioane totale</p>
+                <p className="mt-2 text-2xl font-semibold text-white">
+                  {currencyFormatter.format(summary.commission)}
+                </p>
+              </Card>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-5">
+              <div className="lg:col-span-2">
+                <label className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <Search className="h-3.5 w-3.5" />
+                  Caută agent
+                </label>
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Nume agent..."
+                  className="border-slate-700 bg-slate-900/70 text-white placeholder:text-slate-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  An
+                </label>
+                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                  <SelectTrigger className="border-slate-700 bg-slate-900/70 text-white">
+                    <SelectValue placeholder="Toți anii" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toți anii</SelectItem>
+                    {availableYears.map(year => (
+                      <SelectItem key={year} value={year}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  Lună
+                </label>
+                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="border-slate-700 bg-slate-900/70 text-white">
+                    <SelectValue placeholder="Toate lunile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toate lunile</SelectItem>
+                    {monthLabels.map(month => (
+                      <SelectItem key={month.value} value={month.value}>
+                        {month.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <Filter className="h-3.5 w-3.5" />
+                  Tip tranzacție
+                </label>
+                <Select value={selectedType} onValueChange={value => setSelectedType(value as typeof selectedType)}>
+                  <SelectTrigger className="border-slate-700 bg-slate-900/70 text-white">
+                    <SelectValue placeholder="Toate tipurile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toate tipurile</SelectItem>
+                    <SelectItem value="Vanzare">Vânzare</SelectItem>
+                    <SelectItem value="Inchiriere">Închiriere</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <p className="text-xs text-slate-400">
+                Listele sunt generate din baza de date reală (tranzacțiile rămân chiar dacă sunt eliminate din leaderboard).
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  className="border-slate-600 text-slate-200"
+                  onClick={handleResetFilters}
+                >
+                  Resetează filtrele
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
+                  onClick={handleDownloadCsv}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export CSV
+                </Button>
               </div>
             </div>
           </div>
