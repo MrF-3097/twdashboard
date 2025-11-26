@@ -1,6 +1,7 @@
 import { db } from '@/db'
 import { leaderboardHistory, leaderboardStandings, transactions } from '@/db/schema'
 import { desc, sql } from 'drizzle-orm'
+import { sendPushNotification } from '@/lib/push-notification-service'
 
 /**
  * Interface for leaderboard entry
@@ -146,40 +147,26 @@ const sendLeaderboardChangeNotification = async (
   newLeaderTotal: number
 ): Promise<void> => {
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL || 'https://dashboard.towerimob.ro'
+    const result = await sendPushNotification({
+      title: '🔥 Avem un nou lider în clasament!',
+      body: `${newLeaderName} conduce acum cu ${newLeaderTotal.toLocaleString(
+        'ro-RO'
+      )} € comisioane. Deschide aplicația și vezi cine a preluat conducerea!`,
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      tag: 'leaderboard-change',
+      requireInteraction: true,
+      data: {
+        type: 'leaderboard-change',
+        leaderName: newLeaderName,
+        leaderTotal: newLeaderTotal,
+        timestamp: new Date().toISOString(),
+      },
+    })
 
-    const response = await fetch(
-      `${baseUrl}/api/notifications/send`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: '🔥 Avem un nou lider în clasament!',
-          body: `${newLeaderName} conduce acum cu ${newLeaderTotal.toLocaleString(
-            'ro-RO'
-          )} € comisioane. Deschide aplicația și vezi cine a preluat conducerea!`,
-          icon: '/icon-192x192.png',
-          badge: '/icon-192x192.png',
-          tag: 'leaderboard-change',
-          requireInteraction: true,
-          data: {
-            type: 'leaderboard-change',
-            leaderName: newLeaderName,
-            leaderTotal: newLeaderTotal,
-            timestamp: new Date().toISOString(),
-          },
-        }),
-      }
+    console.log(
+      `[Leaderboard Monitor] Leader change notification sent. sent=${result.sent}, failed=${result.failed}`
     )
-
-    const data = await response.json()
-    
-    if (data.success) {
-      console.log(`[Leaderboard Monitor] Notification sent to ${data.sent} agents`)
-    } else {
-      console.error('[Leaderboard Monitor] Failed to send notification:', data.error)
-    }
   } catch (error) {
     console.error('[Leaderboard Monitor] Error sending notification:', error)
   }
@@ -190,34 +177,21 @@ const sendLeaderDethronedNotification = async (
   newLeaderName: string
 ): Promise<void> => {
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL || 'https://dashboard.towerimob.ro'
-
-    const response = await fetch(`${baseUrl}/api/notifications/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: '👑 Locul 1 a fost preluat!',
-        body: `${newLeaderName} ți-a luat prima poziție. Intră în aplicație și recâștigă locul 1.`,
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
-        tag: 'leaderboard-dethroned',
-        requireInteraction: true,
-        data: {
-          type: 'leaderboard-dethroned',
-          dethronedAgent: dethronedAgentName,
-          newLeader: newLeaderName,
-          timestamp: new Date().toISOString(),
-        },
-        targetAgentNames: [dethronedAgentName],
-      }),
+    await sendPushNotification({
+      title: '👑 Locul 1 a fost preluat!',
+      body: `${newLeaderName} ți-a luat prima poziție. Intră în aplicație și recâștigă locul 1.`,
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      tag: 'leaderboard-dethroned',
+      requireInteraction: true,
+      data: {
+        type: 'leaderboard-dethroned',
+        dethronedAgent: dethronedAgentName,
+        newLeader: newLeaderName,
+        timestamp: new Date().toISOString(),
+      },
+      targetAgentNames: [dethronedAgentName],
     })
-
-    const data = await response.json()
-
-    if (!data.success) {
-      console.error('[Leaderboard Monitor] Failed to send dethroned notification:', data.error)
-    }
   } catch (error) {
     console.error('[Leaderboard Monitor] Error sending dethroned notification:', error)
   }
@@ -225,9 +199,6 @@ const sendLeaderDethronedNotification = async (
 
 const sendRankChangeNotifications = async (changes: RankChange[]): Promise<void> => {
   if (!changes.length) return
-
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || 'https://dashboard.towerimob.ro'
 
   await Promise.all(
     changes.map(async (change) => {
@@ -245,35 +216,23 @@ const sendRankChangeNotifications = async (changes: RankChange[]): Promise<void>
             )} € comisioane. Continuă să împingi!`
           : `${change.agentName}, ai coborât ${positionsText} și ești pe locul ${change.newRank}. Mai adaugă o tranzacție ca să revii.`
 
-        const response = await fetch(`${baseUrl}/api/notifications/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            body,
-            icon: '/icon-192x192.png',
-            badge: '/icon-192x192.png',
-            tag: `rank-change-${change.agentName}`,
-            requireInteraction: false,
-            data: {
-              type: 'leaderboard-rank-change',
-              agentName: change.agentName,
-              oldRank: change.oldRank,
-              newRank: change.newRank,
-              total: change.total,
-              timestamp: new Date().toISOString(),
-            },
-            targetAgentNames: [change.agentName],
-          }),
+        await sendPushNotification({
+          title,
+          body,
+          icon: '/icon-192x192.png',
+          badge: '/icon-192x192.png',
+          tag: `rank-change-${change.agentName}`,
+          requireInteraction: false,
+          data: {
+            type: 'leaderboard-rank-change',
+            agentName: change.agentName,
+            oldRank: change.oldRank,
+            newRank: change.newRank,
+            total: change.total,
+            timestamp: new Date().toISOString(),
+          },
+          targetAgentNames: [change.agentName],
         })
-
-        const data = await response.json()
-        if (!data.success) {
-          console.error(
-            `[Leaderboard Monitor] Failed to send rank change notification for ${change.agentName}:`,
-            data.error
-          )
-        }
       } catch (error) {
         console.error(
           `[Leaderboard Monitor] Error sending rank change notification for ${change.agentName}:`,

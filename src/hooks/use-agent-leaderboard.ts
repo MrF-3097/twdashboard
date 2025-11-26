@@ -169,7 +169,7 @@ export const useAgentLeaderboard = (
       if (processedAgents.length > 0 && typeof window !== 'undefined') {
         const leaderboardData = processedAgents.map(agent => ({
           agent: agent.name,
-          total: agent.total_value || 0,
+          total: agent.xp ?? 0,
         }))
         
         // Call API to check for leaderboard changes

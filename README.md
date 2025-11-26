@@ -1,5 +1,29 @@
 # Agent Dashboard Minimal
 
+## Francesco 26.11.2025 : Pipeline push unificat & bug fix leaderboard
+
+Summary
+- **Serviciu unic**: `src/lib/push-notification-service.ts` configurează `web-push`, validează payload-urile cu Zod și gestionează filtrarea/clean-up-ul abonamentelor expirate.
+- **API subțire**: `/api/notifications/send` delegă acum logică către service-ul comun, astfel încât orice modul backend (nu doar endpoint-ul HTTP) poate lansa notificări instant.
+- **Monitorare directă**: `src/lib/leaderboard-monitor.ts` cheamă helper-ul nou în loc să facă request-uri HTTP către sine, reducând latența și oferind logging clar (`sent` / `failed`).
+- **Fix payload**: `useAgentLeaderboard` trimite spre `/api/leaderboard/check-changes` totalul de comision (XP) al agenților, astfel încât trigger-ele detectează corect când liderul se schimbă.
+
+Why These Changes
+- Vizam mobile-first: notificarea trebuie să ajungă imediat ce locul 1 se schimbă; rutele HTTP adăugau latență și puteau eșua dacă API-ul intern era limitat.
+- Codul duplicat pentru web-push făcea dificilă mentenanța (setezi VAPID în două locuri, schema de payload în două locuri).
+- Hook-ul trimitea valoarea tranzacțiilor totale, nu comisionul; rezultatul era că primele locuri nu se sincronizau cu ceea ce vedea backend-ul.
+
+Technical Implementation
+- **`src/lib/push-notification-service.ts`**: schema `notificationPayloadSchema`, helper `sendPushNotification`, normalizare nume, curățare endpoint-uri eșuate.
+- **`/api/notifications/send`**: folosește schema exportată și returnează rezultatul `sent/failed` al helper-ului.
+- **`src/lib/leaderboard-monitor.ts`**: `sendLeaderboardChangeNotification`, `sendLeaderDethronedNotification`, `sendRankChangeNotifications` trimit direct payload-ul, fără `fetch`.
+- **`src/hooks/use-agent-leaderboard.ts`**: `leaderboardData` se bazează pe `agent.xp` (SumaComision) înainte de POST către `/api/leaderboard/check-changes`.
+
+Result
+- Orice schimbare de lider declanșează notificarea din același tick backend, cu rapoarte clare despre câți agenți au primit mesajul.
+- Codul pentru push notifications este documentat, testabil și reutilizabil (poți trimite alte tipuri de alerte reutilizând helper-ul).
+- Bug-ul cu valori greșite în payload a dispărut, astfel încât leaderboard-ul monitorizat reflectă același criteriu ca UI-ul (comision total).
+
 ## Francesco 24.11.2025 : Service Worker fixat pentru push pe mobil
 
 Summary
