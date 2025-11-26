@@ -489,12 +489,12 @@ Result
 - The modal provides clearer guidance, reducing mistakes and confirming the true commission structure.
 - Individual transactions can be corrected or removed safely, eliminating the need for destructive resets when one entry is wrong.
 
-## Francesco 12.11.2025 : Client Request Modal with REBS CRM Integration
+## Francesco 12.11.2025 : Client Request Modal cu integrare REBS (schema nouă)
 
 Summary
 - **New FAB entry**: Added "Adaugă Cerere" (Add Request) entry to the mobile bottom navigation FAB menu, accessible alongside existing module entries (Imobiliare, Documente, etc.).
 - **Multi-step request modal**: Implemented animated step-by-step modal (`add-request-modal.tsx`) for collecting client request information, similar to the "Adaugă tranzacție" modal in admin dashboard.
-- **REBS CRM integration**: Created API endpoint (`/api/rebs/add-request`) that maps form data to REBS CRM API format and submits leads using the logged-in agent's credentials.
+- **REBS CRM integration**: Endpoint-ul (`/api/rebs/add-request`) folosește acum schema oficială `POST /api/requests/` (din YAML), creează/atașează contactul și trimite toate filtrele (camere, buget, tip proprietate) direct în CRM.
 - **Form fields**: Modal collects Nume, Prenume, Telefon, Email, Tip Contact, Tip Proprietate, Camere min/max, Buget min/max, and Comentarii Generale (free text).
 - **Data mapping**: Form data is intelligently mapped to REBS API requirements - combines Nume/Prenume into `name`, embeds all property details in `message` field, sets `lead_source` to 'Dashboard Agent'.
 - **Bug fixes**: Fixed infinite loop issue in agent detail modal using `useRef` and `useCallback` to prevent redundant state updates.
@@ -515,12 +515,10 @@ Technical Implementation
   - Success/error messaging with animated transitions.
   - Integrates with `useAuth` hook to automatically get logged-in agent name.
 - **API Endpoint** (`src/app/api/rebs/add-request/route.ts`):
-  - `POST /api/rebs/add-request`: Receives form data and maps to REBS API format.
-  - Combines `nume` and `prenume` into `fullName` for `name` field.
-  - Constructs detailed `message` string containing: agent info, contact type, property type, room range, budget range, general comments.
-  - Sends only allowed fields to REBS: `name`, `phone`, `email`, `lead_source`, `message`.
-  - Validates required fields (`nume`, `prenume`).
-  - Uses `export const dynamic = 'force-dynamic'` for server-side rendering.
+  - Validează payload-ul cu Zod și cere cel puțin un canal de contact (telefon/email).
+  - Verifică dacă există deja contactul (`GET /api/contacts/?search=`) sau îl creează (`POST /api/contacts/`) și atașează agentul curent.
+  - Construiește payload `RequestRequest` (title, details, contact_ids, property_type, transaction_type, filtre camere/buget, currency, lead_source_name).
+  - Trimite cererea la `POST /api/requests/` folosind `Authorization: Token ...`.
 - **Mobile Navigation** (`src/components/layout/mobile-bottom-nav.tsx`):
   - Added `onAddRequest?: () => void` prop to `MobileBottomNavProps`.
   - Added `{ id: 'add-request', icon: UserPlus, label: 'Adaugă Cerere', isAction: true }` to `tools` array.
@@ -540,22 +538,14 @@ Technical Implementation
   - **PWA Components** (`src/app/layout.tsx`):
     - Removed `PWAInstallabilityChecker` and `ForceInstallCheck` components from rendering in development mode.
 
-API Integration Details
-- **REBS API Endpoint**: `POST https://rebs-api-url/leads` (configured via environment variables).
-- **Required Fields**: Only `name`, `phone`, `email`, `lead_source`, `message` are accepted by REBS API.
-- **Field Mapping**:
-  - `name`: Combined from `nume` + `prenume`.
-  - `phone`: Direct mapping from `telefon`.
-  - `email`: Direct mapping from form field (optional).
-  - `lead_source`: Hardcoded to 'Dashboard Agent'.
-  - `message`: Comprehensive string containing all form data:
-    - Agent name (from logged-in user)
-    - Contact type (Tip Contact)
-    - Property type (Tip Proprietate)
-    - Room range (Camere min - max)
-    - Budget range (Buget min - max)
-    - General comments (Comentarii Generale)
-- **Error Handling**: API route validates required fields and returns appropriate error messages if validation fails or REBS API call fails.
+- **Integrare API**:
+  - Endpoint: `POST ${REBS_PRIVATE_API_BASE}/requests/` (schema `RequestRequest` din YAML).
+  - Contact: reusește sau creează contacte prin `/api/contacts/`.
+  - Mapping:
+    - `title`, `details`, `comments_general`, `lead_source_name` (`Dashboard Agent`).
+    - `contact_ids` (ID-ul contactului proaspăt creat/găsit).
+    - `property_type` mapat din tipul selectat, `transaction_type` (implicit Cumpărare), filtre camere/buget (`rooms_filter_gte/lte`, `price_filter_gte/lte`), `currency` (EUR) și `include_neighbouring_cities`.
+  - Gestionează răspunsurile CRM și propagă mesajele de eroare în UI.
 
 Mobile Optimizations
 - **Modal Layout**: Reduced padding and spacing for mobile devices (`px-3 md:px-6`, `gap-2 md:gap-4`).

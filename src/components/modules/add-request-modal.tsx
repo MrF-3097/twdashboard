@@ -129,6 +129,7 @@ export const AddRequestModal = ({ isOpen, onClose }: AddRequestModalProps) => {
           buget_max: formData.buget_max,
           comentarii_generale: formData.comentarii_generale,
           agent_name: agentData.name,
+          agentId: agentData.id,
         }),
       })
 

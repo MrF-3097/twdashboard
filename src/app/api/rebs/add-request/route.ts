@@ -1,140 +1,220 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 
-const REBS_API_BASE = 'https://towerimob.crmrebs.com/api/public'
-const REBS_API_KEY = 'ee93793d23fb4cdfc27e581a300503bda245b7c8'
+const REBS_API_BASE = process.env.REBS_PRIVATE_API_BASE || 'https://towerimob.crmrebs.com/api'
+const REBS_API_TOKEN = process.env.REBS_API_TOKEN || process.env.REBS_WRITE_API_KEY || process.env.REBS_API_KEY
 
 export const dynamic = 'force-dynamic'
 
-interface AddRequestBody {
-  nume: string
-  prenume: string
-  telefon?: string
-  tip_contact?: string
-  email?: string
-  tip_proprietate?: string
-  camere_min?: string
-  camere_max?: string
-  buget_min?: string
-  buget_max?: string
-  comentarii_generale?: string
-  agent_name?: string
+const requestBodySchema = z.object({
+  nume: z.string().min(1, 'Numele este obligatoriu'),
+  prenume: z.string().min(1, 'Prenumele este obligatoriu'),
+  telefon: z.string().optional(),
+  tip_contact: z.string().optional(),
+  email: z.string().email('Email invalid').optional(),
+  tip_proprietate: z.string().optional(),
+  camere_min: z.string().optional(),
+  camere_max: z.string().optional(),
+  buget_min: z.string().optional(),
+  buget_max: z.string().optional(),
+  comentarii_generale: z.string().optional(),
+  agent_name: z.string().optional(),
+  agentId: z.number().optional()
+})
+
+const PROPERTY_TYPE_MAP: Record<string, number> = {
+  'Apartament': 1,
+  'Casă': 3,
+  'Casă / Vilă': 3,
+  'Vilă': 3,
+  'Teren': 6,
+  'Spațiu birouri': 4,
+  'Spațiu comercial': 5,
+  'Spațiu industrial': 7,
+  'Hotel': 8,
+  'Pensiune': 8,
+  'Alt tip': 9,
+}
+
+const parseInteger = (value?: string | null) => {
+  if (!value) return null
+  const numeric = Number(value.toString().replace(/[^\d-]/g, ''))
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+const buildDetails = (payload: z.infer<typeof requestBodySchema>) => {
+  const sections: string[] = []
+
+  if (payload.agent_name) {
+    sections.push(`Agent: ${payload.agent_name}`)
+  }
+
+  if (payload.tip_contact) {
+    sections.push(`Canal contact: ${payload.tip_contact}`)
+  }
+
+  if (payload.tip_proprietate) {
+    sections.push(`Tip proprietate: ${payload.tip_proprietate}`)
+  }
+
+  if (payload.camere_min || payload.camere_max) {
+    sections.push(
+      `Camere: ${payload.camere_min || '?'} - ${payload.camere_max || '?'}`
+    )
+  }
+
+  if (payload.buget_min || payload.buget_max) {
+    sections.push(
+      `Buget: €${payload.buget_min || '?'} - €${payload.buget_max || '?'}`
+    )
+  }
+
+  if (payload.comentarii_generale) {
+    sections.push('')
+    sections.push('Comentarii generale:')
+    sections.push(payload.comentarii_generale.trim())
+  }
+
+  return sections.join('\n').trim()
+}
+
+const ensureRebsEnv = () => {
+  if (!REBS_API_TOKEN) {
+    throw new Error('REBS_API_TOKEN este necesar pentru integrarea CRM.')
+  }
+}
+
+const rebsFetch = async (path: string, init?: RequestInit) => {
+  ensureRebsEnv()
+  const response = await fetch(`${REBS_API_BASE}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Token ${REBS_API_TOKEN}`,
+      ...(init?.headers ?? {}),
+    },
+  })
+  return response
+}
+
+const findExistingContact = async (phone?: string | null, email?: string | null) => {
+  const searchValue = phone?.trim() || email?.trim()
+  if (!searchValue) return null
+
+  const response = await rebsFetch(`/contacts/?search=${encodeURIComponent(searchValue)}`, { cache: 'no-store' })
+  if (!response.ok) {
+    return null
+  }
+  const payload = await response.json()
+  const items: any[] = Array.isArray(payload) ? payload : payload?.results || payload?.objects || []
+  return Array.isArray(items) && items.length > 0 ? items[0] : null
+}
+
+const createContact = async (
+  data: { first_name: string; last_name: string; phone?: string; email?: string; agentId?: number }
+) => {
+  const contactPayload: Record<string, any> = {
+    first_name: data.first_name,
+    last_name: data.last_name,
+  }
+
+  if (data.phone?.trim()) {
+    contactPayload.phone = data.phone.trim()
+  }
+  if (data.email?.trim()) {
+    contactPayload.email = data.email.trim()
+  }
+  if (data.agentId) {
+    contactPayload.agents = [data.agentId]
+  }
+
+  const response = await rebsFetch('/contacts/', {
+    method: 'POST',
+    body: JSON.stringify(contactPayload),
+  })
+
+  const payload = await response.json()
+  if (!response.ok) {
+    throw new Error(payload?.detail || 'Nu am putut crea contactul în CRM.')
+  }
+  return payload
+}
+
+const upsertContact = async (
+  firstName: string,
+  lastName: string,
+  phone?: string,
+  email?: string,
+  agentId?: number
+) => {
+  const existing = await findExistingContact(phone, email)
+  if (existing?.id) {
+    return existing
+  }
+  return createContact({ first_name: firstName, last_name: lastName, phone, email, agentId })
+}
+
+const buildRequestPayload = (
+  parsed: z.infer<typeof requestBodySchema>,
+  contactId: number
+) => {
+  const minRooms = parseInteger(parsed.camere_min)
+  const maxRooms = parseInteger(parsed.camere_max)
+  const minPrice = parseInteger(parsed.buget_min)
+  const maxPrice = parseInteger(parsed.buget_max)
+  const propertyType = parsed.tip_proprietate ? PROPERTY_TYPE_MAP[parsed.tip_proprietate] : undefined
+
+  return {
+    title: `${parsed.tip_proprietate || 'Cerere imobiliară'} - ${parsed.prenume} ${parsed.nume}`.trim(),
+    agent: parsed.agentId ?? null,
+    details: buildDetails(parsed),
+    comments_general: parsed.comentarii_generale?.trim() || null,
+    contact_ids: [contactId],
+    lead_source_name: 'Dashboard Agent',
+    property_type: propertyType ?? null,
+    transaction_type: 2, // Cumpărare
+    rooms_filter_gte: minRooms,
+    rooms_filter_lte: maxRooms,
+    price_filter_gte: minPrice,
+    price_filter_lte: maxPrice,
+    currency: 1, // EUR
+    include_neighbouring_cities: true,
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body: AddRequestBody = await request.json()
-    
-    const { 
-      nume, 
-      prenume, 
-      telefon, 
-      tip_contact, 
-      email, 
-      tip_proprietate, 
-      camere_min, 
-      camere_max, 
-      buget_min, 
-      buget_max, 
-      comentarii_generale,
-      agent_name 
-    } = body
-
-    if (!nume || nume.trim() === '' || !prenume || prenume.trim() === '') {
+    const rawBody = await request.json()
+    const parsed = requestBodySchema.parse(rawBody)
+    if (!parsed.telefon?.trim() && !parsed.email?.trim()) {
       return NextResponse.json(
-        { success: false, error: 'Numele și prenumele sunt obligatorii' },
+        {
+          success: false,
+          error: 'Este necesar cel puțin un canal de contact (telefon sau email).',
+        },
         { status: 400 }
       )
     }
 
-    // Combine nume and prenume for the name field
-    const fullName = `${nume.trim()} ${prenume.trim()}`
+    const fullName = `${parsed.prenume.trim()} ${parsed.nume.trim()}`
+    const contact = await upsertContact(parsed.prenume.trim(), parsed.nume.trim(), parsed.telefon, parsed.email, parsed.agentId)
 
-    // Build the message from all form fields
-    const messageParts: string[] = []
-    
-    // Add agent info first
-    if (agent_name) {
-      messageParts.push(`Agent: ${agent_name}`)
-    }
-    
-    // Add contact details
-    if (tip_contact) {
-      messageParts.push(`Tip Contact: ${tip_contact}`)
-    }
-    
-    // Add property details
-    if (tip_proprietate) {
-      messageParts.push(`Tip Proprietate: ${tip_proprietate}`)
-    }
-    if (camere_min || camere_max) {
-      const camereRange = camere_min && camere_max 
-        ? `${camere_min} - ${camere_max} camere`
-        : camere_min 
-          ? `Min ${camere_min} camere`
-          : `Max ${camere_max} camere`
-      messageParts.push(`Camere: ${camereRange}`)
-    }
-    
-    // Add budget details
-    if (buget_min || buget_max) {
-      const minVal = buget_min ? parseInt(buget_min) : null
-      const maxVal = buget_max ? parseInt(buget_max) : null
-      
-      if (minVal && !isNaN(minVal) && maxVal && !isNaN(maxVal)) {
-        messageParts.push(`Buget: €${minVal.toLocaleString()} - €${maxVal.toLocaleString()}`)
-      } else if (minVal && !isNaN(minVal)) {
-        messageParts.push(`Buget: Min €${minVal.toLocaleString()}`)
-      } else if (maxVal && !isNaN(maxVal)) {
-        messageParts.push(`Buget: Max €${maxVal.toLocaleString()}`)
-      }
-    }
-    
-    // Add general comments (Comentarii Generale) - this is the main message content
-    if (comentarii_generale && comentarii_generale.trim()) {
-      messageParts.push('')
-      messageParts.push('Comentarii Generale:')
-      messageParts.push(comentarii_generale.trim())
-    }
-    
-    const message = messageParts.length > 0 
-      ? messageParts.join('\n') 
-      : `Cerere adăugată din dashboard${agent_name ? ` de către ${agent_name}` : ''}`
-
-    // Prepare the request payload for REBS API
-    // REBS API ONLY accepts these 5 fields: name, phone, email, lead_source, message
-    // All other form fields (tip_proprietate, camere_min/max, buget_min/max, tip_contact, etc.)
-    // are included in the 'message' field above
-    const rebsPayload: Record<string, string> = {
-      name: fullName,
-      message,
-      lead_source: 'Dashboard Agent', // Must match an existing lead source in CRM
+    if (!contact?.id) {
+      throw new Error('Nu am putut obține ID-ul contactului din CRM.')
     }
 
-    // Add optional fields (only if provided)
-    if (telefon && telefon.trim()) {
-      rebsPayload.phone = telefon.trim()
-    }
-    if (email && email.trim()) {
-      rebsPayload.email = email.trim()
-    }
-
-    // Make the POST request to REBS API
-    const response = await fetch(`${REBS_API_BASE}/addrequest/`, {
+    const requestPayload = buildRequestPayload(parsed, contact.id)
+    const response = await rebsFetch('/requests/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': REBS_API_KEY,
-      },
-      body: JSON.stringify(rebsPayload),
+      body: JSON.stringify(requestPayload),
     })
 
     const responseData = await response.json()
-
     if (!response.ok) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: responseData.error || `HTTP ${response.status}: ${response.statusText}` 
+        {
+          success: false,
+          error: responseData?.detail || 'Nu am putut înregistra cererea în CRM.',
         },
         { status: response.status }
       )
@@ -142,20 +222,24 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      contact: responseData.contact,
-      request: responseData.request,
-      message: 'Cererea a fost adăugată cu succes în CRM REBS',
+      message: `Cererea pentru ${fullName} a fost înregistrată în CRM REBS.`,
+      request: responseData,
     })
-
   } catch (error) {
-    console.error('Error adding request to REBS:', error)
+    console.error('[AddRequest] Error:', error)
+    const message =
+      error instanceof z.ZodError
+        ? error.errors[0]?.message || 'Date invalide pentru cerere.'
+        : error instanceof Error
+          ? error.message
+          : 'Eroare necunoscută la adăugarea cererii.'
+
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Eroare necunoscută la adăugarea cererii' 
+      {
+        success: false,
+        error: message,
       },
-      { status: 500 }
+      { status: error instanceof z.ZodError ? 400 : 500 }
     )
   }
 }
-
