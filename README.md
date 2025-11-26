@@ -24,6 +24,29 @@ Result
 - Codul pentru push notifications este documentat, testabil și reutilizabil (poți trimite alte tipuri de alerte reutilizând helper-ul).
 - Bug-ul cu valori greșite în payload a dispărut, astfel încât leaderboard-ul monitorizat reflectă același criteriu ca UI-ul (comision total).
 
+## Francesco 26.11.2025 : Registru istoric al tranzacțiilor
+
+Summary
+- **Panel dedicat**: Admin-ul conține acum secțiunea „Registru Tranzacții” atât pe desktop, cât și pe mobil, cu explicații despre persistența datelor.
+- **Modal “Excel”**: `TransactionHistoryPanel` deschide un dialog full-width cu tabel sticky, scroll intern și stilizare tip spreadsheet (coloane pentru dată, agent, tip, valoare, comisioane).
+- **Filtre dinamice**: Se pot combina filtre după an, lună, tip de tranzacție și text (agent), plus buton de resetare și export CSV instant.
+- **Sumare live**: Cardurile din header afișează totalul tranzacțiilor filtrate, valoarea și comisionul agregat, astfel încât managerii observă impactul imediat.
+
+Why These Changes
+- Managerii aveau nevoie de o evidență completă, independentă de leaderboard, care să rămână chiar dacă o tranzacție e eliminată sau modificată ulterior.
+- Exportul rapid și filtrarea pe lună/an evită exportul manual din DB sau Google Sheets.
+- Un UI tip Excel este familiar și ușor de utilizat pe ecrane mari, păstrând totuși compatibilitatea cu mobilul.
+
+Technical Implementation
+- **Componente**: `src/components/admin/transaction-history-panel.tsx` conține atât panoul cât și modalul (folosește `Dialog`, `Select`, `Input`, `useTransactions`).
+- **Admin layout**: `src/app/admin/page.tsx` include noul panel în ambele layout-uri (desktop & mobile).
+- **Export**: `handleDownloadCsv` construiește un CSV direct din tranzacțiile filtrate și declanșează descărcarea browser-ului.
+
+Result
+- Întregul istoric rămâne accesibil “ca în Excel”, indiferent ce se întâmplă cu leaderboard-ul.
+- Managerii pot filtra pe perioade și pot exporta instant lista pentru audit sau raportări.
+- UI-ul rămâne performant chiar cu sute de rânduri datorită scroll-ului intern și sortării pe client.
+
 ## Francesco 24.11.2025 : Service Worker fixat pentru push pe mobil
 
 Summary

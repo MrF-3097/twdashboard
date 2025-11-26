@@ -7,6 +7,7 @@ import { AnimatedTransactionModal } from '@/components/admin/animated-transactio
 import { ResetControls } from '@/components/admin/reset-controls'
 import { QuestManager } from '@/components/admin/quest-manager'
 import { TokenUsageTracker } from '@/components/admin/token-usage-tracker'
+import { TransactionHistoryPanel } from '@/components/admin/transaction-history-panel'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowLeft, Plus, Settings, Shield } from 'lucide-react'
@@ -135,6 +136,11 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Transaction history section */}
+          <div className="mb-6">
+            <TransactionHistoryPanel />
+          </div>
+
           {/* Info Card - Full width below grid */}
           <div className="mb-6">
             <Card className="bg-slate-800/50 border-slate-700 p-6 shadow-lg">
@@ -209,6 +215,10 @@ export default function AdminDashboard() {
           <ResetControls />
           <TokenUsageTracker />
           </div>
+
+        <div className="mt-4">
+          <TransactionHistoryPanel />
+        </div>
 
         {/* Quest Management - Mobile */}
         <div className="mt-4">
