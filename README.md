@@ -489,6 +489,28 @@ Result
 - The modal provides clearer guidance, reducing mistakes and confirming the true commission structure.
 - Individual transactions can be corrected or removed safely, eliminating the need for destructive resets when one entry is wrong.
 
+- ## Francesco 26.11.2025 : Mapare completă proprietăți → CRM
+
+Summary
+- **Schema nouă**: payload-ul trimis din `AddPropertyModal` către `/api/rebs/add-property` respectă acum structura `PropertyRequest` (OpenAPI) – nu mai trimitem tag-urile în `description`.
+- **Tags ca în CRM**: caracteristici precum „Bucătărie deschisă”, „Mansardă”, „Pod”, „Demisol” se convertesc în câmpurile dedicate (`has_open_kitchen`, `has_mansard`, etc.), astfel încât apar în CRM la secțiunea „Caracteristici”.
+- **Pricing complet**: câmpurile de preț includ acum `vat_sale`/`vat_rent`, `currency_sale`/`currency_rent`, opțiuni de colaborare și KPIs (€/mp).
+
+Why These Changes
+- Până acum mapam aproape toate caracteristicile în `description`, ceea ce nu activa tag-urile CRM și le făcea greu de filtrat.
+- Schema nouă oferă câmpuri dedicate pentru suprafețe, structuri, TVA, boolene (pod, mansardă) și trebuia să le folosim pentru ca agenții să poată filtra/corela datele corect.
+
+Technical Implementation
+- **`src/app/api/rebs/add-property/route.ts`**:
+  - `mapPropertyPayload` reconstruiește obiectul trimis la `POST /api/properties/`, completând câmpurile din exemplul YAML (suprafețe, camere, bool-urile `has_*`, `for_sale`/`for_rent`, `availability`, etc.).
+  - Helper nou `buildFeatureFlags` normalizează chips-urile din UI (kitchen/flags/otherSpaces) și le transformă în bool-urile CRM (`has_open_kitchen`, `has_basement`, `has_mansard`, etc.).
+  - `mapVatSaleValue`/`mapVatRentValue` setează enum-urile corecte (`VatSaleEnum`, `VatRentEnum`) în funcție de toggle-ul TVA.
+  - Descrierea rămâne doar notele introduse de user; caracteristicile nu mai sunt concatenate în text.
+
+Result
+- Proprietățile create din dashboard apar în CRM cu toate tag-urile și filtrele populate (fără copy/paste în descriere).
+- Agenții pot căuta imediat după mansardă, demisol, bucătărie deschisă, etc., iar rapoartele folosesc valori numerice reale (suprafețe, prețuri, comisioane).
+
 ## Francesco 12.11.2025 : Client Request Modal cu integrare REBS (schema nouă)
 
 Summary

@@ -158,7 +158,8 @@ const propertyTypeMap: Record<string, number> = {
   'Spațiu industrial': 7,
   'Spațiu de birouri': 4,
   Hotel: 8,
-  Pensiune: 8
+  Pensiune: 8,
+  Altele: 9,
 }
 
 const currencyMap: Record<'EUR' | 'RON', number> = {
@@ -167,22 +168,6 @@ const currencyMap: Record<'EUR' | 'RON', number> = {
 }
 
 type FabCharacteristics = z.infer<typeof fabPropertySchema>['property']['characteristics']
-
-const multiFieldLabels: Partial<Record<keyof FabCharacteristics, string>> = {
-  straziAmenajate: 'Amenajare străzi',
-  straziNeamenajate: 'Străzi neamenajate',
-  utilities: 'Utilități',
-  dotariImobil: 'Dotări imobil',
-  parking: 'Parcări',
-  heating: 'Sisteme de încălzire',
-  views: 'Priveliști',
-  doors: 'Uși',
-  floors: 'Podele',
-  windows: 'Ferestre',
-  metering: 'Contorizare',
-  kitchen: 'Bucătărie',
-  otherSpaces: 'Alte spații'
-}
 
 const floorKeywordMap: Record<string, number> = {
   demisol: 1,
@@ -400,22 +385,46 @@ function mapComfortValue(value?: string): number | undefined {
   return undefined
 }
 
-function buildCharacteristicSummary(characteristics: FabCharacteristics) {
-  const sections: string[] = []
-  const entries = Object.entries(multiFieldLabels) as Array<[keyof FabCharacteristics, string]>
-  for (const [field, label] of entries) {
-    const values = characteristics[field]
-    if (Array.isArray(values) && values.length > 0) {
-      sections.push(`${label}: ${values.join(', ')}`)
-    }
+const normalizeValue = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+
+const hasKeyword = (values: string[] = [], keywords: string[]): boolean => {
+  if (!values.length) return false
+  const normalized = new Set(values.map(normalizeValue))
+  return keywords.some((needle) => normalized.has(normalizeValue(needle)))
+}
+
+const mapVatSaleValue = (vat?: string) => {
+  if (!vat || vat === 'nu') return 1 // nu se aplică
+  return 4 // TVA inclus
+}
+
+const mapVatRentValue = (vat?: string) => {
+  if (!vat || vat === 'nu') return 1 // nu se aplică
+  return 3 // TVA inclus
+}
+
+const buildFeatureFlags = (characteristics: FabCharacteristics) => {
+  const normalizedFlags = [
+    ...(characteristics.flags || []),
+    ...(characteristics.otherSpaces || []),
+  ]
+  const kitchenOptions = characteristics.kitchen || []
+
+  return {
+    hasOpenKitchen: hasKeyword(kitchenOptions, ['Bucătărie deschisă']),
+    hasClosedKitchen: hasKeyword(kitchenOptions, ['Bucătărie închisă']),
+    hasBasement:
+      hasKeyword(normalizedFlags, ['Pivniță', 'Pivnita']) || hasKeyword(normalizedFlags, ['Subsol']),
+    hasSemiBasement: hasKeyword(normalizedFlags, ['Demisol']),
+    hasMansard: hasKeyword(normalizedFlags, ['Mansardă', 'Mansarda']),
+    hasTechnicalFloor: hasKeyword(normalizedFlags, ['Etaj tehnic']),
+    hasAttic: hasKeyword(normalizedFlags, ['Pod']),
   }
-  if (characteristics.flags && characteristics.flags.length > 0) {
-    sections.push(`Observații: ${characteristics.flags.join(', ')}`)
-  }
-  if (sections.length === 0) {
-    return ''
-  }
-  return `Caracteristici selectate:\n${sections.map((section) => `- ${section}`).join('\n')}`
 }
 
 function mapPropertyPayload(
@@ -434,14 +443,14 @@ function mapPropertyPayload(
   const areas = parsed.property.areas
   const counts = parsed.property.counts
   const construction = parsed.property.construction
-  const descriptionSummary = buildCharacteristicSummary(parsed.property.characteristics)
-  const description = [parsed.property.media.notes?.trim(), descriptionSummary]
-    .filter((section) => section && section.length > 0)
-    .join('\n\n')
-    .trim()
+  const description = parsed.property.media.notes?.trim() || undefined
+  const featureFlags = buildFeatureFlags(parsed.property.characteristics)
+  const vatValue = parsed.property.pricing.vat
 
   return {
     title: `${parsed.property.propertyType} - ${parsed.contact.lastName}`.trim(),
+    description,
+    agent: parsed.agentId ?? null,
     property_type: propertyTypeMap[parsed.property.propertyType] ?? 9,
     apartment_type: parseInteger(meta.apartmentType),
     house_type: parseInteger(meta.houseType),
@@ -450,16 +459,24 @@ function mapPropertyPayload(
     special_property_type: parseInteger(meta.specialPropertyType),
     for_sale: forSale,
     for_rent: forRent,
+    availability: 5,
     contact_ids: contactIds,
     street: parsed.property.location.street,
     street_number: streetNumber,
     location_number: parsed.property.location.streetNumber || undefined,
     location_unit: parsed.property.location.unit || undefined,
-    city: parsed.property.location.city || undefined,
-    region: parsed.property.location.county || undefined,
+    city_obj: undefined,
+    region_obj: undefined,
     lat: parsed.property.location.lat ? Number(parsed.property.location.lat) : undefined,
     lng: parsed.property.location.lng ? Number(parsed.property.location.lng) : undefined,
     has_bathroom_window: parsed.property.characteristics.hasBathroomWindow,
+    has_open_kitchen: featureFlags.hasOpenKitchen,
+    has_closed_kitchen: featureFlags.hasClosedKitchen,
+    has_basement: featureFlags.hasBasement,
+    has_semibasement: featureFlags.hasSemiBasement,
+    has_mansard: featureFlags.hasMansard,
+    has_technical_floor: featureFlags.hasTechnicalFloor,
+    has_attic: featureFlags.hasAttic,
     rooms: parseNumeric(parsed.property.characteristics.rooms),
     bathrooms: parseNumeric(parsed.property.characteristics.bathrooms),
     bedrooms: parseNumeric(parsed.property.characteristics.bedrooms),
@@ -473,7 +490,7 @@ function mapPropertyPayload(
     surface_total: parseNumeric(areas.surfaceTotal),
     surface_unit: parseInteger(areas.surfaceUnit),
     floor: floorCode,
-    floor_multi: floorCode,
+    floor_multi: floorCode ? [floorCode] : undefined,
     comfort: comfortCode,
     balconies: parseNumeric(parsed.property.characteristics.balconies),
     terraces: parseNumeric(parsed.property.characteristics.terraces),
@@ -496,17 +513,27 @@ function mapPropertyPayload(
     currency_rent: forRent ? currencyMap[parsed.property.pricing.currency] : undefined,
     negotiable_sale_price: parsed.property.pricing.negotiable && forSale,
     negotiable_rent_price: parsed.property.pricing.negotiable && forRent,
-    collaboration_commission_percent_sale: parseNumeric(parsed.property.pricing.commissionPercent),
-    description: description || undefined,
+    vat_sale: forSale ? mapVatSaleValue(vatValue) : undefined,
+    vat_rent: forRent ? mapVatRentValue(vatValue) : undefined,
+    collaboration_commission_percent_sale: forSale
+      ? parseNumeric(parsed.property.pricing.commissionPercent)
+      : undefined,
+    collaboration_commission_percent_rent: forRent
+      ? parseNumeric(parsed.property.pricing.commissionPercent)
+      : undefined,
+    collab_commission_choice_sale: forSale ? 3 : undefined,
+    collab_commission_choice_rent: forRent ? 3 : undefined,
     video_link: parsed.property.media.videoUrl || undefined,
     virtual_tour_link: parsed.property.media.virtualTourUrl || undefined,
     pet_friendly: parsed.property.rentalExtras.acceptsPets,
     guarantee_cost: parseNumeric(parsed.property.rentalExtras.deposit),
     upfront_cost: parseNumeric(parsed.property.rentalExtras.advance),
     maintenance_cost: parseNumeric(parsed.property.rentalExtras.maintenance),
+    date_available: parsed.property.rentalExtras.hasTenant
+      ? parsed.property.rentalExtras.tenantUntil || undefined
+      : undefined,
     rented_until: parsed.property.rentalExtras.tenantUntil || undefined,
     ...representationFlags,
-    agent: parsed.agentId
   }
 }
 
