@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import path from 'path'
 import { promises as fs } from 'fs'
+import OpenAI from 'openai'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -9,6 +10,10 @@ export const runtime = 'nodejs'
 const REBS_PRIVATE_API_BASE = process.env.REBS_PRIVATE_API_BASE || 'https://towerimob.crmrebs.com/api'
 const REBS_WRITE_TOKEN =
   process.env.REBS_API_TOKEN || process.env.REBS_WRITE_API_KEY || process.env.REBS_API_KEY
+const openai =
+  process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 0
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    : null
 
 const contactSchema = z.object({
   firstName: z.string().min(1, 'Prenumele este obligatoriu'),
@@ -246,6 +251,176 @@ function parseInteger(value?: string): number | undefined {
   return Number.isFinite(num) ? num : undefined
 }
 
+const normalizeValue = (value: string) =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+
+const hasKeyword = (values: string[] = [], keywords: string[]): boolean => {
+  if (!values.length) return false
+  const normalized = new Set(values.map(normalizeValue))
+  return keywords.some((needle) => normalized.has(normalizeValue(needle)))
+}
+
+const mapVatSaleValue = (vat?: string) => {
+  if (!vat || vat === 'nu') return 1
+  return 4
+}
+
+const mapVatRentValue = (vat?: string) => {
+  if (!vat || vat === 'nu') return 1
+  return 3
+}
+
+const buildFeatureFlags = (characteristics: FabCharacteristics) => {
+  const normalizedFlags = [
+    ...(characteristics.flags || []),
+    ...(characteristics.otherSpaces || []),
+  ]
+  const kitchenOptions = characteristics.kitchen || []
+
+  return {
+    hasOpenKitchen: hasKeyword(kitchenOptions, ['Bucătărie deschisă']),
+    hasClosedKitchen: hasKeyword(kitchenOptions, ['Bucătărie închisă']),
+    hasBasement:
+      hasKeyword(normalizedFlags, ['Pivniță', 'Pivnita']) || hasKeyword(normalizedFlags, ['Subsol']),
+    hasSemiBasement: hasKeyword(normalizedFlags, ['Demisol']),
+    hasMansard: hasKeyword(normalizedFlags, ['Mansardă', 'Mansarda']),
+    hasTechnicalFloor: hasKeyword(normalizedFlags, ['Etaj tehnic']),
+    hasAttic: hasKeyword(normalizedFlags, ['Pod']),
+  }
+}
+
+const formatCurrency = (value?: number, currency: 'EUR' | 'RON' = 'EUR') => {
+  if (!value || !Number.isFinite(value)) return null
+  try {
+    return new Intl.NumberFormat('ro-RO', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value)
+  } catch {
+    return `${value} ${currency === 'RON' ? 'RON' : '€'}`
+  }
+}
+
+const buildPropertyTitle = (parsed: z.infer<typeof fabPropertySchema>) => {
+  const mode = parsed.property.transactionMode
+  const forSale = mode === 'sale' || mode === 'both'
+  const forRent = mode === 'rent' || mode === 'both'
+  const modeLabel =
+    forSale && forRent ? 'de vânzare & de închiriat' : forSale ? 'de vânzare' : 'de închiriat'
+
+  const roomsValue = parseInteger(parsed.property.characteristics.rooms)
+  const roomsLabel = roomsValue ? `${roomsValue} camere` : ''
+
+  const salePrice = parseNumeric(parsed.property.pricing.salePrice)
+  const rentPrice = parseNumeric(parsed.property.pricing.rentPrice)
+  const priceLabel =
+    (forSale && salePrice && formatCurrency(salePrice, parsed.property.pricing.currency)) ||
+    (forRent && rentPrice && formatCurrency(rentPrice, parsed.property.pricing.currency)) ||
+    ''
+
+  return [
+    parsed.property.propertyType,
+    modeLabel,
+    roomsLabel && `${roomsLabel}`,
+    priceLabel && `| ${priceLabel}`,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const buildDescriptionSummary = (parsed: z.infer<typeof fabPropertySchema>) => {
+  const locationParts = [parsed.property.location.city, parsed.property.location.street]
+    .filter(Boolean)
+    .join(', ')
+  const priceSummary = [
+    parseNumeric(parsed.property.pricing.salePrice) &&
+      `Preț vânzare: ${formatCurrency(
+        parseNumeric(parsed.property.pricing.salePrice),
+        parsed.property.pricing.currency
+      )}`,
+    parseNumeric(parsed.property.pricing.rentPrice) &&
+      `Preț închiriere: ${formatCurrency(
+        parseNumeric(parsed.property.pricing.rentPrice),
+        parsed.property.pricing.currency
+      )}/lună`,
+  ]
+    .filter(Boolean)
+    .join(' | ')
+
+  const features = [
+    parsed.property.characteristics.rooms && `${parsed.property.characteristics.rooms} camere`,
+    parsed.property.characteristics.bathrooms &&
+      `${parsed.property.characteristics.bathrooms} băi`,
+    parsed.property.characteristics.surfaceUseable &&
+      `${parsed.property.characteristics.surfaceUseable} mp utili`,
+    parsed.property.characteristics.floor && `Etaj: ${parsed.property.characteristics.floor}`,
+  ]
+    .filter(Boolean)
+    .join(', ')
+
+  const amenities = [
+    ...(parsed.property.characteristics.utilities || []),
+    ...(parsed.property.characteristics.dotariImobil || []),
+    ...(parsed.property.characteristics.parking || []),
+    ...(parsed.property.characteristics.otherSpaces || []),
+  ].join(', ')
+
+  return [
+    `Tip proprietate: ${parsed.property.propertyType}`,
+    `Transacție: ${parsed.property.transactionMode}`,
+    locationParts && `Localizare: ${locationParts}`,
+    features && `Caracteristici: ${features}`,
+    parsed.property.characteristics.flags.length > 0 &&
+      `Notă: ${parsed.property.characteristics.flags.join(', ')}`,
+    priceSummary,
+    amenities && `Dotări: ${amenities}`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+const fallbackDescription = (summary: string) =>
+  `Tower Imob prezintă o proprietate configurată astfel:\n${summary}\nPentru detalii suplimentare și vizionări, contactează echipa noastră.`
+
+const generateDescription = async (parsed: z.infer<typeof fabPropertySchema>) => {
+  const summary = buildDescriptionSummary(parsed)
+  if (!openai) {
+    return fallbackDescription(summary)
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Ești copywriter pentru Tower Imob. Scrie descrieri concise, profesioniste și atrăgătoare, în limba română, max 160 de cuvinte. Include avantajele principale și îndeamnă clientul să programeze o vizionare.',
+        },
+        {
+          role: 'user',
+          content: `Folosește următoarele date despre proprietate pentru a scrie descrierea:\n${summary}`,
+        },
+      ],
+      max_tokens: 400,
+      temperature: 0.6,
+    })
+
+    const text = completion.choices[0]?.message?.content?.trim()
+    return text && text.length > 0 ? text : fallbackDescription(summary)
+  } catch (error) {
+    console.error('[OpenAI] Failed to generate description:', error)
+    return fallbackDescription(summary)
+  }
+}
+
 function normaliseId(entity: any): number | null {
   if (entity?.id && Number.isFinite(entity.id)) {
     return Number(entity.id)
@@ -385,51 +560,11 @@ function mapComfortValue(value?: string): number | undefined {
   return undefined
 }
 
-const normalizeValue = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-
-const hasKeyword = (values: string[] = [], keywords: string[]): boolean => {
-  if (!values.length) return false
-  const normalized = new Set(values.map(normalizeValue))
-  return keywords.some((needle) => normalized.has(normalizeValue(needle)))
-}
-
-const mapVatSaleValue = (vat?: string) => {
-  if (!vat || vat === 'nu') return 1 // nu se aplică
-  return 4 // TVA inclus
-}
-
-const mapVatRentValue = (vat?: string) => {
-  if (!vat || vat === 'nu') return 1 // nu se aplică
-  return 3 // TVA inclus
-}
-
-const buildFeatureFlags = (characteristics: FabCharacteristics) => {
-  const normalizedFlags = [
-    ...(characteristics.flags || []),
-    ...(characteristics.otherSpaces || []),
-  ]
-  const kitchenOptions = characteristics.kitchen || []
-
-  return {
-    hasOpenKitchen: hasKeyword(kitchenOptions, ['Bucătărie deschisă']),
-    hasClosedKitchen: hasKeyword(kitchenOptions, ['Bucătărie închisă']),
-    hasBasement:
-      hasKeyword(normalizedFlags, ['Pivniță', 'Pivnita']) || hasKeyword(normalizedFlags, ['Subsol']),
-    hasSemiBasement: hasKeyword(normalizedFlags, ['Demisol']),
-    hasMansard: hasKeyword(normalizedFlags, ['Mansardă', 'Mansarda']),
-    hasTechnicalFloor: hasKeyword(normalizedFlags, ['Etaj tehnic']),
-    hasAttic: hasKeyword(normalizedFlags, ['Pod']),
-  }
-}
-
 function mapPropertyPayload(
   parsed: z.infer<typeof fabPropertySchema>,
-  contactIds: number[]
+  contactIds: number[],
+  description: string | undefined,
+  title: string
 ): Record<string, unknown> {
   const mode = parsed.property.transactionMode
   const forSale = mode === 'sale' || mode === 'both'
@@ -443,12 +578,11 @@ function mapPropertyPayload(
   const areas = parsed.property.areas
   const counts = parsed.property.counts
   const construction = parsed.property.construction
-  const description = parsed.property.media.notes?.trim() || undefined
   const featureFlags = buildFeatureFlags(parsed.property.characteristics)
   const vatValue = parsed.property.pricing.vat
 
   return {
-    title: `${parsed.property.propertyType} - ${parsed.contact.lastName}`.trim(),
+    title: title || `${parsed.property.propertyType} - ${parsed.contact.lastName}`.trim(),
     description,
     agent: parsed.agentId ?? null,
     property_type: propertyTypeMap[parsed.property.propertyType] ?? 9,
@@ -653,7 +787,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const propertyPayload = mapPropertyPayload(parsed, contactIds)
+    const propertyTitle = buildPropertyTitle(parsed)
+    const aiDescription = await generateDescription(parsed)
+    const finalDescription = [aiDescription, parsed.property.media.notes?.trim()]
+      .filter(Boolean)
+      .join('\n\n')
+      .trim()
+    const propertyPayload = mapPropertyPayload(parsed, contactIds, finalDescription || undefined, propertyTitle)
     const propertyResponse = await rebsFetch('/properties/', {
       method: 'POST',
       body: JSON.stringify(propertyPayload)
@@ -677,7 +817,7 @@ export async function POST(request: NextRequest) {
     if (propertyId && (cfFile || photoUploads.length > 0)) {
       if (cfFile) {
         try {
-          await uploadPropertyFile(propertyId, cfFile, { isSketch: true })
+await uploadPropertyFile(propertyId, cfFile, { isSketch: true })
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Nu am putut încărca documentul CF.'

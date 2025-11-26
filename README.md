@@ -505,7 +505,7 @@ Technical Implementation
   - `mapPropertyPayload` reconstruiește obiectul trimis la `POST /api/properties/`, completând câmpurile din exemplul YAML (suprafețe, camere, bool-urile `has_*`, `for_sale`/`for_rent`, `availability`, etc.).
   - Helper nou `buildFeatureFlags` normalizează chips-urile din UI (kitchen/flags/otherSpaces) și le transformă în bool-urile CRM (`has_open_kitchen`, `has_basement`, `has_mansard`, etc.).
   - `mapVatSaleValue`/`mapVatRentValue` setează enum-urile corecte (`VatSaleEnum`, `VatRentEnum`) în funcție de toggle-ul TVA.
-  - Descrierea rămâne doar notele introduse de user; caracteristicile nu mai sunt concatenate în text.
+  - Titlul se generează automat după template-ul „Tip tranzacție camere | preț” iar descrierea este compusă în pre-submit via OpenAI (gpt-4o-mini) din datele wizardului + notele agentului, apoi atașată payload-ului.
 
 Result
 - Proprietățile create din dashboard apar în CRM cu toate tag-urile și filtrele populate (fără copy/paste în descriere).
