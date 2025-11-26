@@ -31,6 +31,7 @@ Summary
 - **Modal “Excel”**: `TransactionHistoryPanel` deschide un dialog full-width cu tabel sticky, scroll intern și stilizare tip spreadsheet (coloane pentru dată, agent, tip, valoare, comisioane).
 - **Filtre dinamice**: Se pot combina filtre după an, lună, tip de tranzacție și text (agent), plus buton de resetare și export CSV instant.
 - **Sumare live**: Cardurile din header afișează totalul tranzacțiilor filtrate, valoarea și comisionul agregat, astfel încât managerii observă impactul imediat.
+- **Log complet**: Ledger-ul citește acum `transaction_events`, astfel încât se păstrează și ștergerile (marcate separat), iar tabelul funcționează corect și pe mobil (scroll orizontal, layout flexibil).
 
 Why These Changes
 - Managerii aveau nevoie de o evidență completă, independentă de leaderboard, care să rămână chiar dacă o tranzacție e eliminată sau modificată ulterior.
@@ -41,6 +42,8 @@ Technical Implementation
 - **Componente**: `src/components/admin/transaction-history-panel.tsx` conține atât panoul cât și modalul (folosește `Dialog`, `Select`, `Input`, `useTransactions`).
 - **Admin layout**: `src/app/admin/page.tsx` include noul panel în ambele layout-uri (desktop & mobile).
 - **Export**: `handleDownloadCsv` construiește un CSV direct din tranzacțiile filtrate și declanșează descărcarea browser-ului.
+- **Event logging**: Nou tabel `transaction_events` (Drizzle) + helper `logTransactionEvent` asigură înregistrarea automată la `POST /api/admin/add-transaction` și `DELETE /api/admin/transactions/[id]`.
+- **API nou**: `GET /api/admin/transaction-events` expune istoricul complet pentru UI, iar modalul folosește `useSWR` + scroll responsiv pentru mobil.
 
 Result
 - Întregul istoric rămâne accesibil “ca în Excel”, indiferent ce se întâmplă cu leaderboard-ul.

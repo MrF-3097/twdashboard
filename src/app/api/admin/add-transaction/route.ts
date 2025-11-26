@@ -6,6 +6,7 @@ import {
   checkAndNotifyLeaderboardChange,
   getLeaderboardSnapshot,
 } from '@/lib/leaderboard-monitor'
+import { logTransactionEvent } from '@/lib/transaction-events'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +44,8 @@ export async function POST(request: NextRequest) {
     console.log(`✅ [API] Inserted transaction with ID: ${inserted.id}`)
 
     try {
+      await logTransactionEvent(inserted, 'created')
+
       const leaderboardSnapshot = await getLeaderboardSnapshot()
       await checkAndNotifyLeaderboardChange(leaderboardSnapshot)
     } catch (notificationError) {

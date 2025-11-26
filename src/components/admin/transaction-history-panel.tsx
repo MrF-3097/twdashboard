@@ -1,7 +1,17 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { CalendarDays, Download, Filter, Loader2, ListOrdered, Search, Table } from 'lucide-react'
+import {
+  CalendarDays,
+  Download,
+  Filter,
+  Loader2,
+  ListOrdered,
+  Search,
+  Table,
+  Trash2,
+  Undo2,
+} from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -13,21 +23,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useTransactions } from '@/hooks/use-commissions'
+import useSWR from 'swr'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 type TransactionType = 'Inchiriere' | 'Vanzare'
 
-interface ParsedTransaction {
+type TransactionEventAction = 'created' | 'deleted'
+
+interface TransactionEventRow {
   id: number
+  transactionId: number | null
+  agent: string
+  valoareTranzactie: number
+  tipTranzactie: TransactionType
+  comisionPct: number
+  comision: number
+  action: TransactionEventAction
+  eventTimestamp: string
+  createdAt: number
+}
+
+interface ParsedTransactionEvent {
+  id: number
+  transactionId: number | null
   agent: string
   value: number
   type: TransactionType
   commissionPct: number
   commission: number
+  action: TransactionEventAction
   timestamp: string
   date: Date
   year: number
   month: number
+}
+
+const fetchTransactionEvents = async (): Promise<TransactionEventRow[]> => {
+  const response = await fetch('/api/admin/transaction-events')
+  const json = await response.json()
+  if (!json.success) {
+    throw new Error(json.error || 'Failed to fetch transaction events')
+  }
+  return json.data
 }
 
 const monthLabels = [
@@ -99,28 +136,32 @@ interface TransactionHistoryModalProps {
 }
 
 const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalProps) => {
-  const { data, isLoading, error } = useTransactions()
+  const { data, isLoading, error } = useSWR('admin/transaction-events', fetchTransactionEvents, {
+    refreshInterval: 30000,
+  })
   const [search, setSearch] = useState('')
   const [selectedYear, setSelectedYear] = useState<'all' | string>('all')
   const [selectedMonth, setSelectedMonth] = useState<'all' | string>('all')
   const [selectedType, setSelectedType] = useState<'all' | TransactionType>('all')
 
-  const transactions = useMemo<ParsedTransaction[]>(() => {
-    if (!data?.rows) {
+  const transactions = useMemo<ParsedTransactionEvent[]>(() => {
+    if (!data) {
       return []
     }
 
-    return data.rows
+    return data
       .map((row, index) => {
-        const date = new Date(row.Timestamp)
+        const date = new Date(row.eventTimestamp)
         return {
           id: index,
-          agent: row.Agent,
-          value: Number(row['Valoare Tranzactie']) || 0,
-          type: row['Tip Tranzactie'],
-          commissionPct: typeof row['Comision %'] === 'number' ? row['Comision %'] : 0,
-          commission: Number(row.Comision) || 0,
-          timestamp: row.Timestamp,
+          transactionId: row.transactionId,
+          agent: row.agent,
+          value: row.valoareTranzactie,
+          type: row.tipTranzactie,
+          commissionPct: row.comisionPct,
+          commission: row.comision,
+          action: row.action,
+          timestamp: row.eventTimestamp,
           date,
           year: date.getFullYear(),
           month: date.getMonth() + 1,
@@ -203,7 +244,7 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => (!open ? onClose() : null)}>
-      <DialogContent className="max-h-[90vh] w-[95vw] max-w-6xl overflow-hidden border-slate-700 bg-slate-900 text-white shadow-2xl">
+      <DialogContent className="flex max-h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden border-slate-700 bg-slate-900 text-white shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-white">Registru Tranzacții</DialogTitle>
           <DialogDescription className="text-sm text-slate-300">
@@ -211,7 +252,8 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <ScrollArea className="h-full pr-4">
+        <div className="space-y-6 pb-6">
           <div className="grid gap-4 md:grid-cols-3">
             <Card className="border-slate-700/80 bg-slate-900/60 p-4">
               <p className="text-xs uppercase text-slate-400">Tranzacții filtrate</p>
@@ -328,13 +370,15 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
 
           <div className="rounded-2xl border border-slate-700/70 bg-slate-900/60 shadow-inner">
             <div className="max-h-[50vh] overflow-auto">
-              <table className="min-w-[1100px] w-full text-left text-sm text-slate-200">
+              <div className="min-w-full overflow-x-auto">
+              <table className="w-full min-w-[780px] text-left text-sm text-slate-200">
                 <thead className="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wide text-slate-400 backdrop-blur">
                   <tr className="border-b border-slate-700/50">
                     <th className="px-4 py-3">#</th>
                     <th className="px-4 py-3">Data</th>
                     <th className="px-4 py-3">Agent</th>
                     <th className="px-4 py-3">Tip</th>
+                    <th className="px-4 py-3">Acțiune</th>
                     <th className="px-4 py-3">Valoare (€)</th>
                     <th className="px-4 py-3">Comision %</th>
                     <th className="px-4 py-3">Comision (€)</th>
@@ -343,7 +387,7 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
                 <tbody>
                   {isLoading && (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
+                      <td colSpan={8} className="py-12 text-center text-slate-400">
                         <span className="inline-flex items-center gap-2 text-sm">
                           <Loader2 className="h-4 w-4 animate-spin" />
                           Se încarcă tranzacțiile...
@@ -353,14 +397,14 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
                   )}
                   {!isLoading && error && (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-red-400">
+                      <td colSpan={8} className="py-10 text-center text-red-400">
                         Nu am putut încărca tranzacțiile. Încearcă din nou.
                       </td>
                     </tr>
                   )}
                   {!isLoading && !error && filteredTransactions.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-slate-400">
+                      <td colSpan={8} className="py-10 text-center text-slate-400">
                         Nicio tranzacție pentru filtrele selectate.
                       </td>
                     </tr>
@@ -388,6 +432,27 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
                             {tx.type}
                           </span>
                         </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold ${
+                              tx.action === 'created'
+                                ? 'bg-emerald-500/15 text-emerald-300'
+                                : 'bg-rose-500/15 text-rose-300'
+                            }`}
+                          >
+                            {tx.action === 'created' ? (
+                              <>
+                                <Undo2 className="h-3.5 w-3.5" />
+                                Adăugată
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Ștearsă
+                              </>
+                            )}
+                          </span>
+                        </td>
                         <td className="px-4 py-3 font-semibold text-white">
                           {currencyFormatter.format(tx.value)}
                         </td>
@@ -401,9 +466,11 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
                     ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

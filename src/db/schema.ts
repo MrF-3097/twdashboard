@@ -89,6 +89,19 @@ export const leaderboardStandings = sqliteTable(
   })
 )
 
+export const transactionEvents = sqliteTable('transaction_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  transactionId: integer('transaction_id'),
+  agent: text('agent').notNull(),
+  valoareTranzactie: real('valoare_tranzactie').notNull(),
+  tipTranzactie: text('tip_tranzactie').notNull(),
+  comisionPct: real('comision_pct').notNull(),
+  comision: real('comision').notNull(),
+  action: text('action').notNull(), // 'created' | 'deleted'
+  eventTimestamp: text('event_timestamp').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export type Transaction = typeof transactions.$inferSelect
 export type NewTransaction = typeof transactions.$inferInsert
 export type AgentTarget = typeof agentTargets.$inferSelect
@@ -105,4 +118,6 @@ export type LeaderboardHistory = typeof leaderboardHistory.$inferSelect
 export type NewLeaderboardHistory = typeof leaderboardHistory.$inferInsert
 export type LeaderboardStanding = typeof leaderboardStandings.$inferSelect
 export type NewLeaderboardStanding = typeof leaderboardStandings.$inferInsert
+export type TransactionEvent = typeof transactionEvents.$inferSelect
+export type NewTransactionEvent = typeof transactionEvents.$inferInsert
 

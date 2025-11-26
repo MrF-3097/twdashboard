@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { transactions } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { transactionSchema } from '@/types/commissions'
+import { logTransactionEvent } from '@/lib/transaction-events'
 
 type RouteContext = {
   params: {
@@ -95,6 +96,8 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     if (!deleted) {
       return NextResponse.json({ success: false, error: 'Transaction not found' }, { status: 404 })
     }
+
+    await logTransactionEvent(deleted, 'deleted')
 
     const leaderboardMeta = buildLeaderboardHeader()
 
