@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/select'
 import useSWR from 'swr'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Badge } from '@/components/ui/badge'
 
 type TransactionType = 'Inchiriere' | 'Vanzare'
 
@@ -369,7 +370,80 @@ const TransactionHistoryModal = ({ isOpen, onClose }: TransactionHistoryModalPro
           </div>
 
           <div className="rounded-2xl border border-slate-700/70 bg-slate-900/60 shadow-inner">
-            <div className="max-h-[50vh] overflow-auto">
+            <div className="md:hidden space-y-3 p-4">
+              {isLoading && (
+                <div className="py-6 text-center text-slate-400">
+                  <span className="inline-flex items-center gap-2 text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Se încarcă tranzacțiile...
+                  </span>
+                </div>
+              )}
+              {!isLoading && error && (
+                <p className="py-4 text-center text-red-400 text-sm">Nu am putut încărca tranzacțiile.</p>
+              )}
+              {!isLoading && !error && filteredTransactions.length === 0 && (
+                <p className="py-4 text-center text-slate-400 text-sm">Nicio tranzacție pentru filtrele selectate.</p>
+              )}
+              {!isLoading &&
+                !error &&
+                filteredTransactions.map((tx, index) => (
+                  <div
+                    key={`mobile-${tx.agent}-${tx.timestamp}-${index}`}
+                    className="rounded-2xl border border-slate-700/70 bg-slate-900/80 p-4 shadow-sm"
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs uppercase text-slate-500">Agent</p>
+                        <p className="text-base font-semibold text-white">{tx.agent}</p>
+                      </div>
+                      <Badge
+                        className={`gap-1 text-xs ${tx.action === 'created' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'}`}
+                      >
+                        {tx.action === 'created' ? (
+                          <>
+                            <Undo2 className="h-3.5 w-3.5" />
+                            Adăugată
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Ștearsă
+                          </>
+                        )}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs uppercase text-slate-500">Data</p>
+                        <p className="font-medium text-white">{dateFormatter.format(tx.date)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase text-slate-500">Tip</p>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            tx.type === 'Vanzare' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-sky-500/15 text-sky-300'
+                          }`}
+                        >
+                          {tx.type}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase text-slate-500">Valoare</p>
+                        <p className="font-semibold text-white">{currencyFormatter.format(tx.value)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase text-slate-500">Comision</p>
+                        <p className="font-semibold text-amber-300">
+                          {currencyFormatter.format(tx.commission)}{' '}
+                          <span className="text-xs text-slate-400">({(tx.commissionPct * 100).toFixed(2)}%)</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            <div className="hidden md:block max-h-[50vh] overflow-auto">
               <div className="min-w-full overflow-x-auto">
               <table className="w-full min-w-[780px] text-left text-sm text-slate-200">
                 <thead className="sticky top-0 z-10 bg-slate-900/95 text-xs uppercase tracking-wide text-slate-400 backdrop-blur">
