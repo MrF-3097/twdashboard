@@ -229,6 +229,27 @@ Result
 - Istoricul schimbărilor din clasament este păstrat în baza de date pentru analiză ulterioară.
 - Experiența de gamification este amplificată prin notificări push care cresc engagement-ul și competitivitatea.
 
+## Francesco 27.11.2025 : CRM Agents în Admin Transactions
+
+Summary
+- **Client REBS unic**: `src/lib/rebs-client.ts` expune acum `rebsFetch` și `ensureRebsEnv`, astfel încât toate endpoint-urile private folosesc același helper pentru `Authorization: Token …`, antete implicite și fallback `REBS_PRIVATE_API_BASE`.
+- **API /api/agents real**: `src/app/api/agents/route.ts` merge direct în `/api/users/` din CRM REBS, filtrează `is_agent=true` și normalizează răspunsul (nume complet, avatar, rol) înainte să-l trimită UI-ului. Dacă serverul respinge cererea, revenim pe `rebsMockAgents`.
+- **Modale admin sincronizate**: Atât `TransactionModal` cât și `AnimatedTransactionModal` folosesc acum lista deja normalizată din `/api/agents`, fără mappers suplimentare, eliminând discrepanțele dintre varianta “Add Transaction” clasică și cea cu colaboratori.
+
+Why These Changes
+- Fluxul “Adaugă tranzacție” încărca agenții prin endpoint-ul public `agent/` ce avea probleme de caching și nu includea utilizatorii noi.
+- Backend-ul avea mai multe helper-e ad-hoc pentru REBS (add-property, add-request) și apăreau erori greu de urmărit când lipsesc token-urile.
+
+Technical Implementation
+- `src/lib/rebs-client.ts`: helper comun pentru URL-uri, token și multipart vs. JSON.
+- `src/app/api/rebs/add-property/route.ts`: importă helper-ul nou (zero schimbări de comportament).
+- `src/app/api/agents/route.ts`: fetch la `/users/`, mapare la `Agent` și fallback curat la mock.
+- `src/components/admin/transaction-modal.tsx` & `src/components/admin/animated-transaction-modal.tsx`: state `allAgents` primește direct `result.data`.
+
+Result
+- Ambele modale admin au aceeași listă de agenți cu date reale din CRM, indiferent de câți useri sunt adăugați ulterior.
+- Integrarea REBS scrie acum într-un singur loc regulile de autentificare și formatul antetelor, reducând riscul de “Token nevalid”.
+
 ## Francesco 20.11.2025 : FAB Wizard UI Simplificat
 
 Summary

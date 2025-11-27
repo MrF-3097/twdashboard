@@ -3,13 +3,11 @@ import { z } from 'zod'
 import path from 'path'
 import { promises as fs } from 'fs'
 import OpenAI from 'openai'
+import { ensureRebsEnv, rebsFetch } from '@/lib/rebs-client'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const REBS_PRIVATE_API_BASE = process.env.REBS_PRIVATE_API_BASE || 'https://towerimob.crmrebs.com/api'
-const REBS_WRITE_TOKEN =
-  process.env.REBS_API_TOKEN || process.env.REBS_WRITE_API_KEY || process.env.REBS_API_KEY
 const openai =
   process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 0
     ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -203,37 +201,6 @@ async function writeDraft(record: unknown) {
   const drafts = await readDrafts()
   drafts.push(record)
   await fs.writeFile(draftsPath, JSON.stringify(drafts, null, 2))
-}
-
-function ensureRebsEnv() {
-  if (!REBS_WRITE_TOKEN) {
-    throw new Error('Missing REBS_API_TOKEN environment variable for authenticated requests.')
-  }
-}
-
-function buildUrl(pathname: string): string {
-  if (!pathname.startsWith('/')) {
-    return `${REBS_PRIVATE_API_BASE}/${pathname}`
-  }
-  return `${REBS_PRIVATE_API_BASE}${pathname}`
-}
-
-async function rebsFetch(pathname: string, init: RequestInit = {}) {
-  ensureRebsEnv()
-  const url = buildUrl(pathname)
-  const headers = new Headers(init.headers)
-  headers.set('Authorization', `Token ${REBS_WRITE_TOKEN}`)
-  headers.set('Accept', 'application/json')
-
-  const isMultipart = init.body instanceof FormData
-  if (!isMultipart && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
-  }
-
-  return fetch(url, {
-    ...init,
-    headers
-  })
 }
 
 function parseNumeric(value?: string): number | undefined {

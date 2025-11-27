@@ -1,93 +1,111 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rebsMockAgents } from '@/lib/rebs-agent-mock'
+import type { Agent } from '@/types'
+import { rebsFetch } from '@/lib/rebs-client'
 
-const REBS_API_BASE = 'https://towerimob.crmrebs.com/api/public'
-const REBS_API_KEY = 'ee93793d23fb4cdfc27e581a300503bda245b7c8'
-const USE_MOCK_DATA = false // Using real REBS API now
+type RebsUserPayload = {
+  id?: number | string
+  user_id?: number | string
+  first_name?: string
+  last_name?: string
+  name?: string
+  full_name?: string
+  email?: string
+  phone?: string
+  mobile?: string
+  avatar?: string
+  profile_picture?: string
+  photo_url?: string
+  position?: string
+  role?: string
+  is_active?: boolean
+  is_agent?: boolean
+  resource_uri?: string
+  [key: string]: unknown
+}
+
+const extractAgents = (payload: unknown): RebsUserPayload[] => {
+  if (Array.isArray(payload)) {
+    return payload
+  }
+  if (payload && typeof payload === 'object') {
+    const maybeArray =
+      Array.isArray((payload as any).results)
+        ? (payload as any).results
+        : Array.isArray((payload as any).objects)
+        ? (payload as any).objects
+        : []
+    return Array.isArray(maybeArray) ? maybeArray : []
+  }
+  return []
+}
+
+const normalizeAgent = (agent: RebsUserPayload, index: number): Agent => {
+  const fullName = [agent.first_name, agent.last_name].filter(Boolean).join(' ').trim()
+  const fallbackName = agent.name || agent.full_name || `Agent ${index + 1}`
+
+  return {
+    id: agent.id ?? agent.user_id ?? index,
+    name: fullName || fallbackName,
+    email: agent.email || undefined,
+    phone: agent.phone || agent.mobile || undefined,
+    avatar: agent.avatar || agent.profile_picture || agent.photo_url || undefined,
+    profile_picture: agent.profile_picture || undefined,
+    first_name: agent.first_name,
+    last_name: agent.last_name,
+    position: agent.position || agent.role || undefined,
+    is_active: agent.is_active,
+    resource_uri: agent.resource_uri,
+  }
+}
+
+const buildQueryString = (request: NextRequest) => {
+  const params = request.nextUrl.searchParams
+  const limit = params.get('limit') || params.get('page_size') || '200'
+  const page = params.get('page') || '1'
+  const ordering = params.get('ordering') || 'first_name'
+
+  const query = new URLSearchParams({
+    is_agent: 'true',
+    is_active: 'true',
+    ordering,
+    page_size: limit,
+    page,
+  })
+
+  return query.toString()
+}
 
 export async function GET(request: NextRequest) {
-  // Return mock data if enabled
-  if (USE_MOCK_DATA) {
-    console.log('Using mock agent data (REBS API endpoints return 404)')
-    return NextResponse.json({
-      success: true,
-      data: rebsMockAgents,
-      timestamp: new Date().toISOString(),
-      source: 'mock_data'
-    })
-  }
-
   try {
-    // Try both authentication methods as per REBS documentation
-    const methods = [
-      // Method 1: API key as GET parameter (recommended)
-      {
-        url: `${REBS_API_BASE}/agent/?api_key=${REBS_API_KEY}`,
-        headers: { 'Content-Type': 'application/json' }
-      },
-      // Method 2: API key in Authorization header (direct, not Bearer)
-      {
-        url: `${REBS_API_BASE}/agent/`,
-        headers: { 
-          'Authorization': REBS_API_KEY,
-          'Content-Type': 'application/json'
-        }
-      },
-    ]
+    const queryString = buildQueryString(request)
+    const response = await rebsFetch(`/users/?${queryString}`)
 
-    let lastError = null
-    
-    for (const method of methods) {
-      try {
-        console.log(`Trying REBS API: ${method.url}`)
-        // Filter out undefined headers
-        const cleanHeaders: Record<string, string> = {}
-        for (const [key, value] of Object.entries(method.headers)) {
-          if (value !== undefined) {
-            cleanHeaders[key] = value
-          }
-        }
-        const response = await fetch(method.url, { 
-          headers: cleanHeaders,
-          cache: 'no-store'
-        })
-        
-        if (response.ok) {
-          const data = await response.json()
-          console.log('✅ Successfully fetched agents from REBS API')
-          return NextResponse.json({
-            success: true,
-            data,
-            timestamp: new Date().toISOString(),
-            source: 'rebs_api'
-          })
-        }
-        
-        lastError = `Status ${response.status}: ${response.statusText}`
-        console.log(`❌ Failed: ${lastError}`)
-      } catch (err) {
-        lastError = err instanceof Error ? err.message : 'Unknown error'
-        console.log(`❌ Error: ${lastError}`)
-      }
+    if (!response.ok) {
+      const body = await response.text()
+      throw new Error(`REBS users request failed (${response.status}): ${body}`)
     }
 
-    // If all methods fail, return mock data as fallback
-    console.log('All REBS API methods failed, returning mock data')
+    const payload = await response.json()
+    const agents = extractAgents(payload).map((agent, index) => normalizeAgent(agent, index))
+
+    if (!agents.length) {
+      throw new Error('REBS returned an empty agent list.')
+    }
+
     return NextResponse.json({
       success: true,
-      data: rebsMockAgents,
-      timestamp: new Date().toISOString(),
-      source: 'mock_data_fallback',
-      error: lastError
+      data: agents,
+      source: 'rebs_api',
+      total: payload?.count ?? agents.length,
     })
   } catch (error) {
-    console.error('Error fetching agents:', error)
-    // Return mock data even on error
+    console.error('Error fetching REBS agents (users endpoint):', error)
     return NextResponse.json({
       success: true,
       data: rebsMockAgents,
-      timestamp: new Date().toISOString(),
-      source: 'mock_data_error_fallback'
+      source: 'mock_data_fallback',
+      error: error instanceof Error ? error.message : 'Unknown error',
     })
   }
 }

@@ -231,27 +231,13 @@ export const AnimatedTransactionModal = ({ isOpen, onClose }: AnimatedTransactio
       try {
         const response = await fetch('/api/agents')
         const result = await response.json()
-        
-        if (result.success && result.data) {
-          // Handle REBS API structure
-          const agents = Array.isArray(result.data) ? result.data : (result.data?.objects || [])
-          
-          const processedAgents = agents.map((agent: any, index: number) => {
-            const name = agent.first_name && agent.last_name 
-              ? `${agent.first_name} ${agent.last_name}`
-              : agent.name || agent.full_name || `Agent ${index + 1}`
-            
-            return {
-              id: agent.id || index,
-              name,
-              email: agent.email,
-              phone: agent.phone,
-              avatar: agent.avatar || agent.profile_picture,
-            }
-          })
-          
-          setAllAgents(processedAgents)
+
+        if (result.success && Array.isArray(result.data)) {
+          setAllAgents(result.data)
+          return
         }
+
+        console.warn('Unexpected agents payload shape', result)
       } catch (err) {
         console.error('Error fetching agents:', err)
       } finally {
