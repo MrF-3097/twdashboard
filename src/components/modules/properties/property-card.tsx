@@ -4,14 +4,23 @@ import React from 'react'
 import { Bed, Bath, Square, MessageCircle, Image as ImageIcon } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import type { Property } from '@/hooks/use-properties'
+import { usePropertyImages } from '@/hooks/use-property-images'
 
 interface PropertyCardProps {
   property: Property
 }
 
 export const PropertyCard = ({ property }: PropertyCardProps) => {
-  // Get first image from resized_images, full_images, or thumbnail
+  // Fetch images from new /api/properties/{id}/images/ endpoint
+  const { firstImage: fetchedImage, isLoading: imagesLoading } = usePropertyImages(property.id, true)
+
+  // Get first image with fallback priority:
+  // 1. Fetched image from /api/properties/{id}/images/ (new API)
+  // 2. Legacy fields (resized_images, full_images, thumbnail) for backward compatibility
   const getFirstImage = () => {
+    if (fetchedImage) {
+      return fetchedImage
+    }
     if (property.resized_images && Array.isArray(property.resized_images) && property.resized_images.length > 0) {
       return property.resized_images[0]
     }
@@ -185,6 +194,18 @@ export const PropertyCard = ({ property }: PropertyCardProps) => {
             loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+          {imagesLoading && (
+            <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
+            </div>
+          )}
+        </div>
+      ) : imagesLoading ? (
+        <div className="relative w-full h-48 overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 cursor-pointer">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2" />
+            <p className="text-xs text-slate-400">Se încarcă imaginea...</p>
+          </div>
         </div>
       ) : (
         <div className="relative w-full h-48 overflow-hidden bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 cursor-pointer">
