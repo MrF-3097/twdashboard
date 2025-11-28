@@ -4,11 +4,9 @@ import { transactions } from '@/db/schema'
 import { gte, eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { rebsMockAgents } from '@/lib/rebs-agent-mock'
+import { rebsFetch } from '@/lib/rebs-client'
 
 export const dynamic = 'force-dynamic'
-
-const REBS_API_BASE = process.env.REBS_API_BASE || 'https://towerimob.crmrebs.com/api/public'
-const REBS_API_KEY = process.env.REBS_API_KEY || 'ee93793d23fb4cdfc27e581a300503bda245b7c8'
 
 interface LeaderboardAgent {
   id: string | number
@@ -53,63 +51,45 @@ interface LeaderboardResponse {
 
 /**
  * Fetches REBS agents data for enriching leaderboard
+ * Uses the new /api/users/ endpoint with is_agent=true filter
  */
 async function fetchRebsAgents(): Promise<any[]> {
-  const methods = [
-    {
-      url: `${REBS_API_BASE}/agent/?api_key=${REBS_API_KEY}`,
-      headers: {
-        Accept: 'application/json',
-      },
-    },
-    {
-      url: `${REBS_API_BASE}/agent/`,
-      headers: {
-        Accept: 'application/json',
-        Authorization: REBS_API_KEY,
-      },
-    },
-  ]
+  try {
+    const queryParams = new URLSearchParams({
+      is_agent: 'true',
+      is_active: 'true',
+      ordering: 'first_name',
+      page_size: '200',
+    })
 
-  let lastError: string | null = null
-
-  for (const method of methods) {
-    try {
-      // Filter out undefined headers
-      const cleanHeaders: Record<string, string> = {}
-      for (const [key, value] of Object.entries(method.headers)) {
-        if (value !== undefined) {
-          cleanHeaders[key] = value
-        }
-      }
-      
-      const response = await fetch(method.url, {
-        headers: cleanHeaders,
-        next: { revalidate: 300 },
+    const response = await rebsFetch(`/users/?${queryParams.toString()}`, {
+      cache: 'no-store',
     })
 
     if (!response.ok) {
-        lastError = `Status ${response.status} ${response.statusText}`
-        console.warn(`⚠️ [API] Failed to fetch REBS agents via ${method.url}: ${lastError}`)
-        continue
+      const body = await response.text()
+      throw new Error(`REBS users request failed (${response.status}): ${body}`)
     }
 
-    const result = await response.json()
-      const payload = Array.isArray(result) ? result : result?.objects
-      if (Array.isArray(payload)) {
-        return payload
-      }
+    const payload = await response.json()
+    const agents = Array.isArray(payload) 
+      ? payload 
+      : Array.isArray(payload?.results) 
+        ? payload.results 
+        : Array.isArray(payload?.objects) 
+          ? payload.objects 
+          : []
 
-      lastError = 'Unexpected REBS response format'
-      console.warn(`⚠️ [API] Unexpected REBS payload shape via ${method.url}`)
+    if (agents.length > 0) {
+      return agents
+    }
+
+    throw new Error('REBS returned an empty agent list')
   } catch (error) {
-      lastError = error instanceof Error ? error.message : 'Unknown error'
-      console.error(`❌ [API] Error fetching REBS agents via ${method.url}:`, error)
-    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.warn('⚠️ [API] Falling back to mock REBS agents:', errorMessage)
+    return rebsMockAgents
   }
-
-  console.warn('⚠️ [API] Falling back to mock REBS agents:', lastError)
-  return rebsMockAgents
 }
 
 /**
