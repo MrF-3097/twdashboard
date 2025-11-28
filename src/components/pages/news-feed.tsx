@@ -45,20 +45,20 @@ export const NewsFeed = () => {
     })
   }, [])
 
-  // Fetch REBS agents for avatar data
+  // Fetch REBS users (agents) for avatar data from new /api/users/ endpoint
   useEffect(() => {
     const fetchRebsAgents = async () => {
       try {
         const response = await fetch('/api/agents')
         const result = await response.json()
         if (result.success && result.data) {
-          const agentsList = Array.isArray(result.data) 
-            ? result.data 
-            : (result.data?.objects || [])
+          // /api/agents already returns normalized array from /api/users/ with is_agent=true
+          const agentsList = Array.isArray(result.data) ? result.data : []
           setRebsAgents(agentsList)
+          console.log(`✅ Loaded ${agentsList.length} agents from REBS users API`)
         }
       } catch (err) {
-        console.error('Error fetching REBS agents:', err)
+        console.error('Error fetching REBS agents (users):', err)
       }
     }
     fetchRebsAgents()
@@ -108,8 +108,8 @@ export const NewsFeed = () => {
         const isRental = 
           closedTransactionType === 1 || 
           closedTransactionType === '1' ||
-          closedTransactionType === 'Chirie' || 
-          closedTransactionType === 'Rental' || 
+                                closedTransactionType === 'Chirie' || 
+                                closedTransactionType === 'Rental' || 
           closedTransactionType === 'Rent' ||
           closedTransactionType === 'Închiriere' ||
           String(closedTransactionType).toLowerCase().includes('chirie') ||
@@ -125,7 +125,8 @@ export const NewsFeed = () => {
         return {
           id: `${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`,
           agentName,
-          agentAvatar: rebsAgent?.profile_picture || rebsAgent?.avatar || rebsAgent?.photo,
+          // Use avatar field from YAML schema (primary), with fallbacks for compatibility
+          agentAvatar: rebsAgent?.avatar || rebsAgent?.profile_picture || rebsAgent?.photo,
           transactionValue: valoare,
           commission: Math.round(com),
           transactionType,
@@ -426,24 +427,24 @@ export const NewsFeed = () => {
                         onClick={() => setShowReactionPicker(null)}
                       />
                       <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-                        <motion.div
+                      <motion.div
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.8 }}
                           transition={{ type: 'spring', damping: 20, stiffness: 300 }}
                           className="bg-slate-800/95 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl p-3 flex gap-2 pointer-events-auto"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {reactionEmojis.map((emoji) => (
-                            <button
-                              key={emoji}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {reactionEmojis.map((emoji) => (
+                          <button
+                            key={emoji}
                               onClick={() => handleEmojiSelect(item.id, emoji)}
                               className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center text-3xl md:text-4xl hover:scale-125 active:scale-110 transition-transform rounded-xl hover:bg-white/10"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </motion.div>
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </motion.div>
                       </div>
                     </>
                   )}
