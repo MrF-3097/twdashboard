@@ -2,56 +2,70 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { agentPropertyCounts, questProgress } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
-
-const REBS_API_BASE = 'https://towerimob.crmrebs.com/api/public'
-const REBS_API_KEY = 'ee93793d23fb4cdfc27e581a300503bda245b7c8'
+import { rebsFetch } from '@/lib/rebs-client'
 
 /**
- * Fetches all properties from REBS API with pagination
+ * Fetches all active properties from new REBS API with pagination
  */
-async function fetchAllProperties(baseUrl: string, headers: Record<string, string>) {
+async function fetchAllProperties() {
   const allProperties: any[] = []
-  let offset = 0
-  const limit = 100
+  let page = 1
+  const pageSize = 100
   let hasMore = true
 
   while (hasMore) {
     try {
-      const url = `${baseUrl}/property/?api_key=${REBS_API_KEY}&limit=${limit}&offset=${offset}`
-      const response = await fetch(url, {
-        headers,
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        page_size: pageSize.toString(),
+        ordering: '-date_added',
+      })
+
+      const response = await rebsFetch(`/properties/?${queryParams.toString()}`, {
         cache: 'no-store'
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        const body = await response.text()
+        throw new Error(`HTTP ${response.status}: ${body}`)
       }
 
       const data = await response.json()
       
-      if (data.objects && Array.isArray(data.objects)) {
+      // New API returns results array (or objects for backward compatibility)
+      const properties = Array.isArray(data) 
+        ? data 
+        : Array.isArray(data?.results) 
+          ? data.results 
+          : Array.isArray(data?.objects) 
+            ? data.objects 
+            : []
+
+      if (properties.length > 0) {
         // Only fetch active properties (availability === 1)
-        const activeProperties = data.objects.filter((property: any) => property.availability === 1)
+        const activeProperties = properties.filter((property: any) => {
+          const availability = property.availability ?? property.active
+          return availability === 1 || availability === true || availability === '1'
+        })
         allProperties.push(...activeProperties)
         
-        if (data.meta) {
-          const currentCount = offset + data.objects.length
-          hasMore = currentCount < (data.meta.total_count || 0) && data.objects.length === limit
-          offset += limit
+        // Check if there are more pages
+        if (data.next) {
+          hasMore = true
+          page++
         } else {
-          hasMore = data.objects.length === limit
-          offset += limit
+          hasMore = false
         }
       } else {
         hasMore = false
       }
 
       // Safety limit
-      if (offset > 10000) {
+      if (page > 100) {
         hasMore = false
       }
     } catch (error) {
-      console.error(`Error fetching properties page at offset ${offset}:`, error)
+      console.error(`Error fetching properties page ${page}:`, error)
       throw error
     }
   }
@@ -67,9 +81,8 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔍 Starting property count tracking...')
     
-    // Fetch all properties from REBS API
-    const headers = { 'Content-Type': 'application/json' }
-    const allProperties = await fetchAllProperties(REBS_API_BASE, headers)
+    // Fetch all properties from new REBS API
+    const allProperties = await fetchAllProperties()
     
     console.log(`✅ Fetched ${allProperties.length} active properties from REBS API`)
     

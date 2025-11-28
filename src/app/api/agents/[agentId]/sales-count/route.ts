@@ -2,40 +2,52 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { agentTransactionCounts } from '@/db/schema'
 import { eq } from 'drizzle-orm'
-
-const REBS_API_BASE = 'https://towerimob.crmrebs.com/api/public'
-const REBS_API_KEY = 'ee93793d23fb4cdfc27e581a300503bda245b7c8'
+import { rebsFetch } from '@/lib/rebs-client'
 
 /**
- * Fetches all properties from REBS API with pagination
+ * Fetches sales properties from new REBS API with pagination
  * Filters for properties with availability=4 AND closed_transaction_type=2
  */
-async function fetchAllSalesProperties(baseUrl: string, headers: Record<string, string>) {
+async function fetchAllSalesProperties(agentId: number) {
   const allProperties: any[] = []
-  let offset = 0
-  const limit = 100
+  let page = 1
+  const pageSize = 100
   let hasMore = true
 
   while (hasMore) {
     try {
-      const url = `${baseUrl}/property/?api_key=${REBS_API_KEY}&limit=${limit}&offset=${offset}`
-      const response = await fetch(url, {
-        headers,
+      const queryParams = new URLSearchParams({
+        agents: agentId.toString(), // Filter by agent
+        availability: '4', // Filter for "Tranzacționată de noi"
+        page: page.toString(),
+        page_size: pageSize.toString(),
+        ordering: '-date_added',
+      })
+
+      const response = await rebsFetch(`/properties/?${queryParams.toString()}`, {
         cache: 'no-store'
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        const body = await response.text()
+        throw new Error(`HTTP ${response.status}: ${body}`)
       }
 
       const data = await response.json()
       
-      if (data.objects && Array.isArray(data.objects)) {
-        // Filter for properties with availability=4 (Tranzacționată de noi) AND closed_transaction_type=2 (Vânzare)
-        // Note: closed_transaction_type might be null for some properties, so we check explicitly for === 2
-        const salesProperties = data.objects.filter(
+      // New API returns results array (or objects for backward compatibility)
+      const properties = Array.isArray(data) 
+        ? data 
+        : Array.isArray(data?.results) 
+          ? data.results 
+          : Array.isArray(data?.objects) 
+            ? data.objects 
+            : []
+
+      if (properties.length > 0) {
+        // Filter for closed_transaction_type=2 (Vânzare)
+        const salesProperties = properties.filter(
           (property: any) => 
-            property.availability === 4 && 
             property.closed_transaction_type !== null &&
             property.closed_transaction_type !== undefined &&
             property.closed_transaction_type === 2
@@ -43,30 +55,29 @@ async function fetchAllSalesProperties(baseUrl: string, headers: Record<string, 
         allProperties.push(...salesProperties)
         
         // Debug logging for first page
-        if (offset === 0) {
-          const avail4Count = data.objects.filter((p: any) => p.availability === 4).length
-          const salesCountAll = data.objects.filter((p: any) => p.availability === 4 && p.closed_transaction_type === 2).length
+        if (page === 1) {
+          const avail4Count = properties.filter((p: any) => p.availability === 4).length
+          const salesCountAll = salesProperties.length
           console.log(`Page 1: ${avail4Count} properties with availability=4, ${salesCountAll} with availability=4 AND closed_transaction_type=2`)
         }
         
-        if (data.meta) {
-          const currentCount = offset + data.objects.length
-          hasMore = currentCount < (data.meta.total_count || 0) && data.objects.length === limit
-          offset += limit
+        // Check if there are more pages
+        if (data.next) {
+          hasMore = true
+          page++
         } else {
-          hasMore = data.objects.length === limit
-          offset += limit
+          hasMore = false
         }
       } else {
         hasMore = false
       }
 
       // Safety limit
-      if (offset > 10000) {
+      if (page > 100) {
         hasMore = false
       }
     } catch (error) {
-      console.error(`Error fetching sales properties page at offset ${offset}:`, error)
+      console.error(`Error fetching sales properties page ${page}:`, error)
       throw error
     }
   }
@@ -116,18 +127,12 @@ export async function GET(
       console.log('Database check failed, will fetch from API:', dbError)
     }
     
-    // Fetch all sales properties from REBS API
-    const headers = { 'Content-Type': 'application/json' }
-    const salesProperties = await fetchAllSalesProperties(REBS_API_BASE, headers)
+    // Fetch sales properties from new REBS API (already filtered by agent)
+    const salesProperties = await fetchAllSalesProperties(agentId)
     
-    console.log(`✅ Fetched ${salesProperties.length} total sales properties from REBS API (availability=4 AND closed_transaction_type=2)`)
+    console.log(`✅ Fetched ${salesProperties.length} sales properties from REBS API for agent ${agentId} (availability=4 AND closed_transaction_type=2)`)
     
-    // Filter properties by agent ID
-    const agentSalesProperties = salesProperties.filter(
-      (property: any) => property.agent?.id === agentId
-    )
-    
-    const salesCount = agentSalesProperties.length
+    const salesCount = salesProperties.length
     console.log(`Agent ${agentId} has ${salesCount} sales properties`)
     
     // If API returns 0 but we know the agent should have sales, check if availability=4 is enabled

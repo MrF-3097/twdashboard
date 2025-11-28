@@ -1,66 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rebsFetch } from '@/lib/rebs-client'
 
-const REBS_API_BASE = 'https://towerimob.crmrebs.com/api/public'
-const REBS_API_KEY = 'ee93793d23fb4cdfc27e581a300503bda245b7c8'
-
-// Helper function to fetch all properties with pagination
-async function fetchAllProperties(baseUrl: string, headers: Record<string, string>) {
+// Helper function to fetch all properties with pagination using new API
+async function fetchAllProperties() {
   const allProperties: any[] = []
-  let offset = 0
-  const limit = 100 // Fetch 100 properties per page to reduce number of requests
+  let page = 1
+  const pageSize = 100 // Fetch 100 properties per page
   let hasMore = true
   let totalCount = 0
 
   while (hasMore) {
     try {
-      const url = `${baseUrl}/property/?api_key=${REBS_API_KEY}&limit=${limit}&offset=${offset}`
-      console.log(`📥 Fetching properties page: offset=${offset}, limit=${limit}`)
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        page_size: pageSize.toString(),
+        ordering: '-date_added', // Most recent first
+      })
+
+      console.log(`📥 Fetching properties page ${page} (page_size=${pageSize})`)
       
-      const response = await fetch(url, {
-        headers,
+      const response = await rebsFetch(`/properties/?${queryParams.toString()}`, {
         cache: 'no-store'
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        const body = await response.text()
+        throw new Error(`HTTP ${response.status}: ${body}`)
       }
 
       const data = await response.json()
       
-      if (data.objects && Array.isArray(data.objects)) {
-        const activeProperties = data.objects.filter((property: any) => property.availability === 1)
+      // New API returns results array (or objects for backward compatibility)
+      const properties = Array.isArray(data) 
+        ? data 
+        : Array.isArray(data?.results) 
+          ? data.results 
+          : Array.isArray(data?.objects) 
+            ? data.objects 
+            : []
+
+      if (properties.length > 0) {
+        // Filter active properties (availability === 1 or active === true)
+        const activeProperties = properties.filter((property: any) => {
+          const availability = property.availability ?? property.active
+          return availability === 1 || availability === true || availability === '1'
+        })
         allProperties.push(...activeProperties)
         
-        console.log(`✅ Fetched ${data.objects.length} properties (${activeProperties.length} active) from page ${Math.floor(offset / limit) + 1}`)
+        console.log(`✅ Fetched ${properties.length} properties (${activeProperties.length} active) from page ${page}`)
         
         // Check if there are more pages
-        if (data.meta) {
-          totalCount = data.meta.total_count || 0
-          const currentCount = offset + data.objects.length
-          hasMore = currentCount < totalCount && data.objects.length === limit
-          
-          if (data.meta.next) {
-            // Use meta.next if available, otherwise calculate next offset
-            offset += limit
-          } else {
-            hasMore = false
-          }
+        if (data.count !== undefined) {
+          totalCount = data.count
+          const currentCount = (page - 1) * pageSize + properties.length
+          hasMore = currentCount < totalCount && properties.length === pageSize
+        } else if (data.next) {
+          // If there's a next URL, there are more pages
+          hasMore = true
         } else {
-          // If no meta, check if we got less than limit (means last page)
-          hasMore = data.objects.length === limit
-          offset += limit
+          // No next URL means last page
+          hasMore = false
         }
+        
+        page++
       } else {
         hasMore = false
       }
 
       // Safety limit to prevent infinite loops
-      if (offset > 10000) {
-        console.warn('⚠️ Reached safety limit of 10,000 properties, stopping pagination')
+      if (page > 100) {
+        console.warn('⚠️ Reached safety limit of 100 pages, stopping pagination')
         hasMore = false
       }
     } catch (error) {
-      console.error(`❌ Error fetching page at offset ${offset}:`, error)
+      console.error(`❌ Error fetching page ${page}:`, error)
       throw error
     }
   }
@@ -70,8 +83,8 @@ async function fetchAllProperties(baseUrl: string, headers: Record<string, strin
   return {
     objects: allProperties,
     meta: {
-      total_count: allProperties.length,
-      limit: limit,
+      total_count: totalCount || allProperties.length,
+      limit: pageSize,
       offset: 0,
     }
   }
@@ -79,54 +92,25 @@ async function fetchAllProperties(baseUrl: string, headers: Record<string, strin
 
 export async function GET(request: NextRequest) {
   try {
-    // Try both authentication methods as per REBS documentation
-    const methods = [
-      // Method 1: API key as GET parameter (recommended)
-      {
-        url: `${REBS_API_BASE}/property/?api_key=${REBS_API_KEY}`,
-        headers: { 'Content-Type': 'application/json' }
-      },
-      // Method 2: API key in Authorization header (direct, not Bearer)
-      {
-        url: `${REBS_API_BASE}/property/`,
-        headers: { 
-          'Authorization': REBS_API_KEY,
-          'Content-Type': 'application/json'
-        }
-      },
-    ]
-
-    let lastError = null
+    console.log('🔄 Fetching properties from new REBS API endpoint')
     
-    for (const method of methods) {
-      try {
-        console.log(`🔄 Trying REBS API method: ${method.url.includes('api_key') ? 'GET parameter' : 'Authorization header'}`)
-        
-        // Fetch all properties with pagination
-        const allPropertiesData = await fetchAllProperties(REBS_API_BASE, method.headers as Record<string, string>)
-        
-        console.log(`✅ Successfully fetched ALL properties from REBS API: ${allPropertiesData.objects.length} active properties`)
-        
-        return NextResponse.json({
-          success: true,
-          data: allPropertiesData,
-          timestamp: new Date().toISOString()
-        })
-        
-      } catch (err) {
-        lastError = err instanceof Error ? err.message : 'Unknown error'
-        console.log(`❌ Failed: ${lastError}`)
-      }
-    }
-
-    throw new Error(`All authentication methods failed. Last error: ${lastError}`)
+    // Fetch all properties with pagination using new API
+    const allPropertiesData = await fetchAllProperties()
+    
+    console.log(`✅ Successfully fetched ALL properties from REBS API: ${allPropertiesData.objects.length} active properties`)
+    
+    return NextResponse.json({
+      success: true,
+      data: allPropertiesData,
+      timestamp: new Date().toISOString()
+    })
   } catch (error) {
-    console.error('Error fetching properties:', error)
+    console.error('❌ Error fetching properties:', error)
     return NextResponse.json(
       {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch properties',
-        details: 'Tried multiple authentication methods. Please check API documentation.'
+        details: 'Failed to fetch from REBS API. Please check API token and endpoint configuration.'
       },
       { status: 500 }
     )

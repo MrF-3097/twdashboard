@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const REBS_API_BASE = 'https://towerimob.crmrebs.com/api/public'
-const REBS_API_KEY = 'ee93793d23fb4cdfc27e581a300503bda245b7c8'
+import { rebsFetch } from '@/lib/rebs-client'
 
 // Mock data for development/testing - using actual agent IDs from REBS CRM
 const mockAgentProperties: Record<number, number> = {
@@ -34,38 +32,54 @@ export async function GET(
   const agentId = params.agentId
 
   try {
-    // Fetch all properties from REBS API and filter by agent
-    const url = `${REBS_API_BASE}/property/?api_key=${REBS_API_KEY}&limit=1000`
-    console.log(`Fetching properties from REBS API for agent ${agentId}: ${url}`)
+    // Fetch properties from new REBS API filtered by agent ID
+    const queryParams = new URLSearchParams({
+      agents: agentId, // Filter by agent ID
+      page_size: '1000', // Get up to 1000 properties
+      ordering: '-date_added',
+    })
     
-    const response = await fetch(url, { 
-      headers: { 'Content-Type': 'application/json' },
+    console.log(`Fetching properties from new REBS API for agent ${agentId}`)
+    
+    const response = await rebsFetch(`/properties/?${queryParams.toString()}`, {
       cache: 'no-store'
     })
     
-    if (response.ok) {
-      const data = await response.json()
-      console.log(`✅ Successfully fetched ${data.objects?.length || 0} properties from REBS API`)
-      
-      // Filter properties by agent ID
-      const agentProperties = data.objects?.filter((property: any) => 
-        property.agent?.id === parseInt(agentId)
-      ) || []
-      
-      const propertiesCount = agentProperties.length
-      console.log(`Agent ${agentId} has ${propertiesCount} properties`)
-      
-      return NextResponse.json({
-        success: true,
-        agentId: parseInt(agentId),
-        propertiesCount,
-        properties: agentProperties,
-        timestamp: new Date().toISOString(),
-        source: 'rebs_api'
-      })
+    if (!response.ok) {
+      const body = await response.text()
+      throw new Error(`HTTP ${response.status}: ${body}`)
     }
     
-    throw new Error(`Status ${response.status}: ${response.statusText}`)
+    const data = await response.json()
+    
+    // New API returns results array (or objects for backward compatibility)
+    const properties = Array.isArray(data) 
+      ? data 
+      : Array.isArray(data?.results) 
+        ? data.results 
+        : Array.isArray(data?.objects) 
+          ? data.objects 
+          : []
+    
+    // Filter active properties and ensure they match the agent
+    const agentProperties = properties.filter((property: any) => {
+      const propertyAgentId = property.agent?.id ?? property.agent
+      const matchesAgent = propertyAgentId === parseInt(agentId)
+      const isActive = property.availability === 1 || property.active === true || property.availability === '1'
+      return matchesAgent && isActive
+    })
+    
+    const propertiesCount = agentProperties.length
+    console.log(`✅ Agent ${agentId} has ${propertiesCount} active properties`)
+    
+    return NextResponse.json({
+      success: true,
+      agentId: parseInt(agentId),
+      propertiesCount,
+      properties: agentProperties,
+      timestamp: new Date().toISOString(),
+      source: 'rebs_api'
+    })
   } catch (error) {
     console.error(`Error fetching properties for agent ${agentId}:`, error)
     

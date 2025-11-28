@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDashboardAgentByEmail, hashPassword } from '@/lib/dashboard-agents-store'
+import { rebsFetch } from '@/lib/rebs-client'
 
 /**
  * POST /api/auth/login
@@ -48,32 +49,45 @@ export async function POST(request: NextRequest) {
 
     console.log('Agent logged in:', agent.name)
 
-    // Fetch real properties count for this agent from REBS API
+    // Fetch real properties count for this agent from new REBS API
     let propertiesCount = 0
     try {
-      // Call REBS API directly to get properties count
-      const REBS_API_BASE = 'https://towerimob.crmrebs.com/api/public'
-      const REBS_API_KEY = 'ee93793d23fb4cdfc27e581a300503bda245b7c8'
-      const propertiesUrl = `${REBS_API_BASE}/property/?api_key=${REBS_API_KEY}&limit=1000`
+      // Call new REBS API to get properties count filtered by agent
+      const queryParams = new URLSearchParams({
+        agents: agent.id.toString(),
+        page_size: '1000',
+        ordering: '-date_added',
+      })
       
-      console.log(`Fetching properties count from REBS API for agent ${agent.id}`)
+      console.log(`Fetching properties count from new REBS API for agent ${agent.id}`)
       
-      const propertiesResponse = await fetch(propertiesUrl, {
-        headers: { 'Content-Type': 'application/json' },
+      const propertiesResponse = await rebsFetch(`/properties/?${queryParams.toString()}`, {
         cache: 'no-store'
       })
       
       if (propertiesResponse.ok) {
         const data = await propertiesResponse.json()
-        // Filter properties by agent ID
-        const agentProperties = data.objects?.filter((property: any) => 
-          property.agent?.id === agent.id
-        ) || []
         
-        propertiesCount = agentProperties.length
-        console.log(`✅ Agent ${agent.name} has ${propertiesCount} properties (from REBS API)`)
+        // New API returns results array (or objects for backward compatibility)
+        const properties = Array.isArray(data) 
+          ? data 
+          : Array.isArray(data?.results) 
+            ? data.results 
+            : Array.isArray(data?.objects) 
+              ? data.objects 
+              : []
+        
+        // Filter active properties
+        const activeProperties = properties.filter((property: any) => {
+          const availability = property.availability ?? property.active
+          return availability === 1 || availability === true || availability === '1'
+        })
+        
+        propertiesCount = activeProperties.length
+        console.log(`✅ Agent ${agent.name} has ${propertiesCount} active properties (from new REBS API)`)
       } else {
-        console.log(`❌ REBS API failed: ${propertiesResponse.status}`)
+        const body = await propertiesResponse.text()
+        console.log(`❌ REBS API failed: ${propertiesResponse.status} - ${body}`)
         // Fallback to calculated value
         propertiesCount = Math.floor((agent.id * 3) % 15) + 3
         console.log(`Using fallback: Agent ${agent.name} has ${propertiesCount} properties (calculated)`)
