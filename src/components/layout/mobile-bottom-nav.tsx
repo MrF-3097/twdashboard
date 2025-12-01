@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Home, TrendingUp, User, FileText, Building2, Printer, Image, FolderOpen, Plus, X, Bell, UserPlus } from 'lucide-react'
+import { Home, TrendingUp, User, FileText, Building2, Printer, Image, FolderOpen, Plus, X, Bell, UserPlus, Wrench, ClipboardList } from 'lucide-react'
 
 interface MobileBottomNavProps {
   activeTab: 'home' | 'tools' | 'leaderboard' | 'profile' | 'news'
@@ -10,6 +10,7 @@ interface MobileBottomNavProps {
   onModuleSelect?: (module: string) => void
   onAddRequest?: () => void
   onAddProperty?: () => void
+  onOpenToolsModal?: () => void
   variant?: 'default' | 'portfolio' | 'profile' | 'stats' | 'imobiliare' | 'documents' | 'news'
 }
 
@@ -20,6 +21,7 @@ export const MobileBottomNav = ({
   onModuleSelect,
   onAddRequest,
   onAddProperty,
+  onOpenToolsModal,
   variant = 'default'
 }: MobileBottomNavProps) => {
   const [showToolsDropdown, setShowToolsDropdown] = useState(() => {
@@ -44,11 +46,9 @@ export const MobileBottomNav = ({
   ] as const
 
   const tools = [
-    { id: 'documents', icon: FileText, label: 'Documente' },
-    { id: 'real-estate', icon: Building2, label: 'Imobiliare' },
-    { id: 'printer', icon: Printer, label: 'Driver' },
-    { id: 'image-editor', icon: Image, label: 'Imagini' },
+    { id: 'tools', icon: Wrench, label: 'Unelte', isGroup: true },
     { id: 'portfolio', icon: FolderOpen, label: 'Portofoliu' },
+    { id: 'requests', icon: ClipboardList, label: 'Cereri' },
     { id: 'add-property', icon: Home, label: 'Adaugă Proprietate', isAction: true },
     { id: 'add-request', icon: UserPlus, label: 'Adaugă Cerere', isAction: true },
   ]
@@ -119,6 +119,15 @@ export const MobileBottomNav = ({
 
   const handleToolSelect = (toolId: string) => {
     const tool = tools.find(t => t.id === toolId)
+    
+    // If it's a grouped tool (tools), open the tools modal
+    if (tool?.isGroup && toolId === 'tools') {
+      if (onOpenToolsModal) {
+        onOpenToolsModal()
+        setShowToolsDropdown(false)
+        return
+      }
+    }
     
     // If it's an action (like add-request), call the action handler instead
     if (tool?.isAction) {

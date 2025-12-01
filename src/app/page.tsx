@@ -8,6 +8,7 @@ export const runtime = 'edge'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { ClipboardList } from 'lucide-react'
 import { Footer } from '@/components/layout/footer'
 import { MobileStatsBar } from '@/components/layout/mobile-stats-bar'
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav'
@@ -36,6 +37,8 @@ import { ImageEditor } from '@/components/modules/image-editor'
 import { AgentRanking } from '@/components/modules/agent-ranking'
 import { PhotoFixer } from '@/components/modules/photo-fixer'
 import { Portfolio } from '@/components/modules/portfolio'
+import { RequestsPortfolio } from '@/components/modules/requests-portfolio'
+import { ToolsModal } from '@/components/modules/tools-modal'
 import { NewsFeed } from '@/components/pages/news-feed'
 import { QuestDropdown } from '@/components/modules/quest-dropdown'
 import { GamifiedLeaderboard } from '@/components/modules/leaderboard/gamified-leaderboard'
@@ -85,6 +88,7 @@ function DashboardContent() {
   const [showLoginAnimation, setShowLoginAnimation] = useState(true) // Start with animation shown
   const [showAddRequestModal, setShowAddRequestModal] = useState(false)
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
+  const [showToolsModal, setShowToolsModal] = useState(false)
   
   const { isLoggedIn, agentData, isLoading, login, logout } = useAuth()
 
@@ -289,6 +293,7 @@ function DashboardContent() {
           onModuleSelect={handleModuleSelect}
           onAddRequest={() => setShowAddRequestModal(true)}
           onAddProperty={() => setShowAddPropertyModal(true)}
+          onOpenToolsModal={() => setShowToolsModal(true)}
           variant="profile"
         />
         <AddRequestModal 
@@ -326,6 +331,7 @@ function DashboardContent() {
           if (tab === 'news') return 'news'
           if (tab === 'home') return 'default'
           if (selectedModule === 'portfolio') return 'portfolio'
+          if (selectedModule === 'requests') return 'portfolio'
           if (selectedModule === 'real-estate') return 'imobiliare'
           if (selectedModule === 'documents') return 'documents'
           return 'default'
@@ -377,7 +383,7 @@ function DashboardContent() {
         <Tabs value={selectedModule} onValueChange={setSelectedModule} className="w-full px-3 md:px-0">
 
           {/* Desktop Tabs */}
-          <TabsList className="hidden md:grid w-full grid-cols-7 mb-8 relative overflow-hidden">
+          <TabsList className="hidden md:grid w-full grid-cols-8 mb-8 relative overflow-hidden">
             <TabsTrigger 
               value="documents" 
               className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
@@ -433,6 +439,14 @@ function DashboardContent() {
               <FolderOpen className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-300" />
               <span className="hidden md:inline">Portofoliu</span>
               <span className="md:hidden">Portofoliu</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="requests" 
+              className="flex items-center gap-1 md:gap-2 relative z-10 transition-all duration-300 ease-in-out hover:scale-105 text-[10px] md:text-sm"
+            >
+              <ClipboardList className="h-3 w-3 md:h-5 md:w-5 transition-transform duration-300" />
+              <span className="hidden md:inline">Cereri</span>
+              <span className="md:hidden">Cereri</span>
             </TabsTrigger>
           </TabsList>
 
@@ -590,6 +604,28 @@ function DashboardContent() {
             </Card>
           </TabsContent>
 
+          <TabsContent 
+            value="requests" 
+            className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+          >
+            <Card className="transform transition-all duration-500 hover:shadow-lg hover:scale-[1.02] border-0 md:border shadow-lg md:shadow-sm">
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 md:bg-transparent">
+                    <ClipboardList className="h-4 w-4 md:h-5 md:w-5 text-blue-600 transition-transform duration-300 hover:rotate-12" />
+                  </div>
+                  <span className="hidden md:inline">Cereri Clienți</span>
+                </CardTitle>
+                <CardDescription className="hidden md:block">
+                  Vizualizează și filtrează toate cererile clienților din CRM
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RequestsPortfolio />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
         </div>
 
@@ -607,11 +643,13 @@ function DashboardContent() {
         onModuleSelect={handleModuleSelect}
         onAddRequest={() => setShowAddRequestModal(true)}
         onAddProperty={() => setShowAddPropertyModal(true)}
+        onOpenToolsModal={() => setShowToolsModal(true)}
         variant={
           mobileTab === 'profile' ? 'profile' :
           mobileTab === 'leaderboard' ? 'stats' :
           mobileTab === 'home' ? 'default' :
           selectedModule === 'portfolio' ? 'portfolio' :
+          selectedModule === 'requests' ? 'portfolio' :
           selectedModule === 'real-estate' ? 'imobiliare' :
           selectedModule === 'documents' ? 'documents' :
           'default'
@@ -626,6 +664,16 @@ function DashboardContent() {
       <AddPropertyModal 
         isOpen={showAddPropertyModal} 
         onClose={() => setShowAddPropertyModal(false)} 
+      />
+      
+      {/* Tools Modal */}
+      <ToolsModal 
+        isOpen={showToolsModal}
+        onClose={() => setShowToolsModal(false)}
+        onSelectTool={(toolId) => {
+          setSelectedModule(toolId)
+          setMobileTab('tools')
+        }}
       />
       
       {/* Notification Permission Dialog */}
