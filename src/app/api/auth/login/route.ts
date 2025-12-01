@@ -49,6 +49,28 @@ export async function POST(request: NextRequest) {
 
     console.log('Agent logged in:', agent.name)
 
+    // Fetch user data from REBS API to get avatar and other details
+    let rebsUserAvatar: string | null = null
+    let rebsUserPosition: string | null = null
+    try {
+      // Fetch user data from REBS /api/users/ endpoint
+      const userResponse = await rebsFetch(`/users/${agent.id}/`, {
+        cache: 'no-store'
+      })
+      
+      if (userResponse.ok) {
+        const userData = await userResponse.json()
+        // Get avatar field (per YAML schema)
+        rebsUserAvatar = userData.avatar || null
+        rebsUserPosition = userData.position || null
+        console.log(`✅ Fetched user data from REBS: avatar=${!!rebsUserAvatar}, position=${rebsUserPosition}`)
+      } else {
+        console.log(`⚠️ Could not fetch user data from REBS: ${userResponse.status}`)
+      }
+    } catch (error) {
+      console.log('Could not fetch user data from REBS API:', error)
+    }
+
     // Fetch real properties count for this agent from new REBS API
     let propertiesCount = 0
     try {
@@ -101,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     const createdAt = (agent as { created_at?: string; createdAt?: string }).created_at ?? agent.createdAt ?? null
 
-    // Return authenticated agent data with real properties count
+    // Return authenticated agent data with real properties count and avatar from REBS
     return NextResponse.json({
       success: true,
       agent: {
@@ -112,6 +134,8 @@ export async function POST(request: NextRequest) {
         created_at: createdAt,
         updatedAt: agent.updatedAt,
         propertiesCount: propertiesCount,
+        avatar: rebsUserAvatar, // Avatar from /api/users/ endpoint (per YAML schema)
+        position: rebsUserPosition || agent.position, // Position from REBS or fallback
       }
     })
 

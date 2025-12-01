@@ -219,7 +219,8 @@ export const ProfilePage = ({ onBack, agentData, onLogout }: ProfilePageProps) =
   const userData = {
     name: agentData?.name || 'Agent Necunoscut',
     email: agentData?.email || 'agent@towerimob.ro',
-    image: agentData?.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${agentData?.id || 'default'}`,
+    // Use avatar field from /api/users/ endpoint (per YAML schema), with fallbacks
+    image: agentData?.avatar || agentData?.photo || agentData?.profile_picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${agentData?.id || 'default'}`,
     joinedDate: formatDate(agentData?.created_at),
     rating: Math.min(5, Math.max(3.5, rating)),
     seniority: agentData?.position || 'Agent Imobiliar',
