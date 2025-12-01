@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trophy, TrendingUp, Users, DollarSign, RefreshCcw, Volume2, VolumeX, Shuffle, ChevronDown, ChevronUp, X } from 'lucide-react'
 import { useAgentLeaderboard } from '@/hooks/use-agent-leaderboard'
@@ -22,7 +22,7 @@ export const GamifiedLeaderboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [previousTopAgent, setPreviousTopAgent] = useState<Agent | null>(null)
+  const previousTopAgentIdRef = useRef<number | null>(null)
   const [showControls, setShowControls] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [debugLogs, setDebugLogs] = useState<Array<{ time: number; message: string }>>([])
@@ -35,8 +35,15 @@ export const GamifiedLeaderboard: React.FC = () => {
   }, [])
 
   // Handle rank changes with sound effects
+  // Use a ref to track the last processed rankChanges to prevent infinite loops
+  const previousRankChangesRef = useRef<string>('')
+  
   useEffect(() => {
-    if (rankChanges.length > 0 && soundEnabled) {
+    // Create a stable key from rankChanges content
+    const currentKey = JSON.stringify(rankChanges.map(rc => `${rc.agentId}-${rc.type}`))
+    
+    // Only process if rankChanges actually changed (not just reference)
+    if (rankChanges.length > 0 && soundEnabled && currentKey !== previousRankChangesRef.current) {
       rankChanges.forEach((change) => {
         if (change.type === 'up') {
           playSound('rank_up')
@@ -44,21 +51,24 @@ export const GamifiedLeaderboard: React.FC = () => {
           playSound('rank_down')
         }
       })
+      previousRankChangesRef.current = currentKey
     }
   }, [rankChanges, soundEnabled])
 
   // Celebration for new top agent
+  // Use ref to track previous top agent ID to prevent infinite loops
   useEffect(() => {
     if (agents.length > 0 && agents[0]) {
-      if (previousTopAgent && previousTopAgent.id !== agents[0].id) {
+      const currentTopAgentId = agents[0].id
+      if (previousTopAgentIdRef.current !== null && previousTopAgentIdRef.current !== currentTopAgentId) {
         setShowConfetti(true)
         if (soundEnabled) {
           playCelebration()
         }
       }
-      setPreviousTopAgent(agents[0])
+      previousTopAgentIdRef.current = currentTopAgentId
     }
-  }, [agents, previousTopAgent, soundEnabled])
+  }, [agents, soundEnabled])
 
   const handleAgentClick = (agent: Agent) => {
     addDebugLog(`[Click] Agent: ${agent.name}`)
