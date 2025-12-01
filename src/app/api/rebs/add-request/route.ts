@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { db } from '@/db'
+import { leadEvents } from '@/db/schema'
 
 const REBS_API_BASE = process.env.REBS_PRIVATE_API_BASE || 'https://towerimob.crmrebs.com/api'
 const REBS_API_TOKEN = process.env.REBS_API_TOKEN || process.env.REBS_WRITE_API_KEY || process.env.REBS_API_KEY
@@ -218,6 +220,33 @@ export async function POST(request: NextRequest) {
         },
         { status: response.status }
       )
+    }
+
+    // Log lead event to database
+    try {
+      const minRooms = parseInteger(parsed.camere_min)
+      const maxRooms = parseInteger(parsed.camere_max)
+      const minPrice = parseInteger(parsed.buget_min)
+      const maxPrice = parseInteger(parsed.buget_max)
+
+      await db.insert(leadEvents).values({
+        requestId: responseData?.id || null,
+        contactId: contact.id,
+        agentName: parsed.agent_name || 'Necunoscut',
+        agentId: parsed.agentId || null,
+        clientName: fullName,
+        phone: parsed.telefon?.trim() || null,
+        email: parsed.email?.trim() || null,
+        tipProprietate: parsed.tip_proprietate || null,
+        camereMin: minRooms,
+        camereMax: maxRooms,
+        bugetMin: minPrice ? minPrice : null,
+        bugetMax: maxPrice ? maxPrice : null,
+        eventTimestamp: new Date().toISOString(),
+      })
+    } catch (dbError) {
+      // Log error but don't fail the request
+      console.error('[AddRequest] Failed to log lead event:', dbError)
     }
 
     return NextResponse.json({

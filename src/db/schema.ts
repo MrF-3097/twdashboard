@@ -102,6 +102,24 @@ export const transactionEvents = sqliteTable('transaction_events', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
+export const leadEvents = sqliteTable('lead_events', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  requestId: integer('request_id'), // REBS request ID
+  contactId: integer('contact_id'), // REBS contact ID
+  agentName: text('agent_name').notNull(),
+  agentId: integer('agent_id'),
+  clientName: text('client_name').notNull(), // Full name (prenume + nume)
+  phone: text('phone'),
+  email: text('email'),
+  tipProprietate: text('tip_proprietate'),
+  camereMin: integer('camere_min'),
+  camereMax: integer('camere_max'),
+  bugetMin: real('buget_min'),
+  bugetMax: real('buget_max'),
+  eventTimestamp: text('event_timestamp').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export type Transaction = typeof transactions.$inferSelect
 export type NewTransaction = typeof transactions.$inferInsert
 export type AgentTarget = typeof agentTargets.$inferSelect
@@ -120,4 +138,6 @@ export type LeaderboardStanding = typeof leaderboardStandings.$inferSelect
 export type NewLeaderboardStanding = typeof leaderboardStandings.$inferInsert
 export type TransactionEvent = typeof transactionEvents.$inferSelect
 export type NewTransactionEvent = typeof transactionEvents.$inferInsert
+export type LeadEvent = typeof leadEvents.$inferSelect
+export type NewLeadEvent = typeof leadEvents.$inferInsert
 
