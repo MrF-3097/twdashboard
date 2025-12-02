@@ -1,8 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Bed, Euro, User, Calendar, FileText } from 'lucide-react'
 import { Card } from '@/components/ui/card'
+import { RequestDetailModal } from './request-detail-modal'
 import type { Request } from '@/hooks/use-requests'
 
 interface RequestCardProps {
@@ -10,6 +11,7 @@ interface RequestCardProps {
 }
 
 export const RequestCard = ({ request }: RequestCardProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const formatPrice = (min?: number | null, max?: number | null) => {
     if (min && max) {
       return `${new Intl.NumberFormat('ro-RO', {
@@ -94,8 +96,12 @@ export const RequestCard = ({ request }: RequestCardProps) => {
   }
 
   return (
-    <Card className="bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 transition-all overflow-hidden group">
-      <div className="p-4 space-y-3">
+    <>
+      <Card 
+        className="bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 transition-all overflow-hidden group cursor-pointer"
+        onClick={() => setIsModalOpen(true)}
+      >
+        <div className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -169,6 +175,13 @@ export const RequestCard = ({ request }: RequestCardProps) => {
         )}
       </div>
     </Card>
+
+    <RequestDetailModal
+      request={request}
+      isOpen={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+    />
+    </>
   )
 }
 
