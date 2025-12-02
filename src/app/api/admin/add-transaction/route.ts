@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { transactionSchema } from '@/types/commissions'
 import { db } from '@/db'
-import { transactions } from '@/db/schema'
+import { transactions, newsItems } from '@/db/schema'
 import {
   checkAndNotifyLeaderboardChange,
   getLeaderboardSnapshot,
@@ -42,6 +42,22 @@ export async function POST(request: NextRequest) {
     }).returning()
     
     console.log(`✅ [API] Inserted transaction with ID: ${inserted.id}`)
+
+    // Create news item for this transaction
+    try {
+      await db.insert(newsItems).values({
+        itemType: 'transaction',
+        agentName: tx.Agent,
+        transactionValue: tx['Valoare Tranzactie'],
+        commission: tx.Comision,
+        transactionType: tx['Tip Tranzactie'],
+        timestamp: tx.Timestamp,
+      })
+      console.log(`✅ [API] Created news item for transaction ${inserted.id}`)
+    } catch (newsError) {
+      console.error('⚠️ [API] Failed to create news item:', newsError)
+      // Don't fail the transaction if news item creation fails
+    }
 
     try {
       await logTransactionEvent(inserted, 'created')

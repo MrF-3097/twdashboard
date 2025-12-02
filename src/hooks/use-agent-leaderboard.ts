@@ -140,7 +140,7 @@ export const useAgentLeaderboard = (
 
   const fetchAgents = useCallback(async () => {
     try {
-      setError(commissionError || null)
+      setError(commissionError ? (commissionError instanceof Error ? commissionError.message : String(commissionError)) : null)
       setIsLoading(commissionLoading)
       
       if (!commissionData?.rows || commissionData.rows.length === 0) {

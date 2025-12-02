@@ -1,6 +1,6 @@
 import { db } from '@/db'
 import { leaderboardHistory, leaderboardStandings, transactions } from '@/db/schema'
-import { desc, sql } from 'drizzle-orm'
+import { desc, sql, eq } from 'drizzle-orm'
 import { sendPushNotification } from '@/lib/push-notification-service'
 
 /**
@@ -254,8 +254,11 @@ const getPreviousStandings = async () => {
 
 const refreshStandings = async (currentLeaderboard: LeaderboardEntry[]) => {
   try {
-    await db.delete(leaderboardStandings)
-    if (!currentLeaderboard.length) return
+    if (!currentLeaderboard.length) {
+      // If no entries, clear all standings
+      await db.delete(leaderboardStandings)
+      return
+    }
 
     const seenAgents = new Set<string>()
     const uniqueEntries = currentLeaderboard.filter((entry) => {
@@ -275,14 +278,59 @@ const refreshStandings = async (currentLeaderboard: LeaderboardEntry[]) => {
       return
     }
 
-    await db.insert(leaderboardStandings).values(
-      uniqueEntries.map((entry, index) => ({
+    // Use upsert pattern: insert or update for each agent
+    // First, get existing standings to know which ones to update vs insert
+    const existingStandings = await db.select().from(leaderboardStandings)
+    const existingAgentNames = new Set(existingStandings.map(s => s.agentName))
+
+    // Process each entry with upsert logic
+    for (const entry of uniqueEntries) {
+      const rank = uniqueEntries.indexOf(entry) + 1
+      const values = {
         agentName: entry.agent,
-        rank: index + 1,
+        rank,
         total: entry.total,
         updatedAt: new Date(),
-      }))
-    )
+      }
+
+      if (existingAgentNames.has(entry.agent)) {
+        // Update existing
+        await db.update(leaderboardStandings)
+          .set({
+            rank,
+            total: entry.total,
+            updatedAt: new Date(),
+          })
+          .where(eq(leaderboardStandings.agentName, entry.agent))
+      } else {
+        // Insert new
+        try {
+          await db.insert(leaderboardStandings).values(values)
+        } catch (insertError: any) {
+          // If insert fails due to unique constraint (race condition), try update instead
+          if (insertError?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            await db.update(leaderboardStandings)
+              .set({
+                rank,
+                total: entry.total,
+                updatedAt: new Date(),
+              })
+              .where(eq(leaderboardStandings.agentName, entry.agent))
+          } else {
+            throw insertError
+          }
+        }
+      }
+    }
+
+    // Remove agents that are no longer in the leaderboard
+    const currentAgentNames = new Set(uniqueEntries.map(e => e.agent))
+    for (const existing of existingStandings) {
+      if (!currentAgentNames.has(existing.agentName)) {
+        await db.delete(leaderboardStandings)
+          .where(eq(leaderboardStandings.agentName, existing.agentName))
+      }
+    }
   } catch (error) {
     console.error('[Leaderboard Monitor] Error refreshing standings:', error)
   }

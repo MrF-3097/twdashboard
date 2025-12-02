@@ -8,14 +8,18 @@ import { Bell, SmilePlus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface NewsItem {
-  id: string
+  id: string | number
+  itemType: 'transaction' | 'welcome'
   agentName: string
   agentAvatar?: string
-  transactionValue: number
-  commission: number
+  // For transaction items
+  transactionValue?: number
+  commission?: number
   transactionType?: 'Vanzare' | 'Chirie'
   propertyType?: string
   location?: string
+  // For welcome items
+  welcomeMessage?: string
   timestamp: Date
 }
 
@@ -27,6 +31,7 @@ export const NewsFeed = () => {
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null)
   const [selectedReactions, setSelectedReactions] = useState<Record<string, string>>({}) // itemId -> emoji
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   // Generate stable random values for vertical lines
   const verticalLines = useMemo(() => {
@@ -64,82 +69,121 @@ export const NewsFeed = () => {
     fetchRebsAgents()
   }, [])
 
-
-  // Convert transactions to news items
+  // Fetch news items from database AND convert transactions
   useEffect(() => {
-    if (!transactions?.rows) return
+    const fetchAllNewsItems = async () => {
+      setIsLoading(true)
+      try {
+        // Fetch news items from database (welcome messages and newer transactions)
+        const dbResponse = await fetch('/api/news/items?limit=50')
+        const dbResult = dbResponse.ok ? await dbResponse.json() : { success: false, data: [] }
+        
+        const dbItems: NewsItem[] = dbResult.success && dbResult.data 
+          ? dbResult.data.map((item: any) => ({
+              id: `db-${item.id}`,
+              itemType: item.itemType || 'transaction',
+              agentName: item.agentName,
+              agentAvatar: item.agentAvatar,
+              transactionValue: item.transactionValue,
+              commission: item.commission,
+              transactionType: item.transactionType,
+              propertyType: item.propertyType,
+              location: item.location,
+              welcomeMessage: item.welcomeMessage,
+              timestamp: new Date(item.timestamp),
+            }))
+          : []
 
-    const items: NewsItem[] = transactions.rows
-      .filter(t => t.Agent && t['Valoare Tranzactie'])
-      .map((t, index) => {
-        const agentName = t.Agent
-        const rebsAgent = rebsAgents.find(ra => {
-          if (ra.first_name && ra.last_name) {
-            const fullName = `${ra.first_name} ${ra.last_name}`
-            return fullName.toLowerCase() === agentName.toLowerCase()
-          }
-          return ra.name?.toLowerCase() === agentName.toLowerCase()
-        })
+        // Also convert transactions to news items (for backward compatibility)
+        let transactionItems: NewsItem[] = []
+        if (transactions?.rows) {
+          transactionItems = transactions.rows
+            .filter(t => t.Agent && t['Valoare Tranzactie'])
+            .map((t, index) => {
+              const agentName = t.Agent
+              const rebsAgent = rebsAgents.find(ra => {
+                if (ra.first_name && ra.last_name) {
+                  const fullName = `${ra.first_name} ${ra.last_name}`
+                  return fullName.toLowerCase() === agentName.toLowerCase()
+                }
+                return ra.name?.toLowerCase() === agentName.toLowerCase()
+              })
 
-        const valoare = typeof t['Valoare Tranzactie'] === 'number' ? t['Valoare Tranzactie'] : 0
-        const pct = typeof t['Comision %'] === 'number' 
-          ? (t['Comision %'] > 1 ? t['Comision %'] / 100 : t['Comision %']) 
-          : 0
-        const com = t.Comision && t.Comision > 0 
-          ? t.Comision 
-          : (valoare * pct)
+              const valoare = typeof t['Valoare Tranzactie'] === 'number' ? t['Valoare Tranzactie'] : 0
+              const pct = typeof t['Comision %'] === 'number' 
+                ? (t['Comision %'] > 1 ? t['Comision %'] / 100 : t['Comision %']) 
+                : 0
+              const com = t.Comision && t.Comision > 0 
+                ? t.Comision 
+                : (valoare * pct)
 
-        let transactionDate: Date
-        if (t.Timestamp) {
-          transactionDate = new Date(t.Timestamp)
-        } else if ((t as any)['Data Tranzactie']) {
-          transactionDate = new Date((t as any)['Data Tranzactie'])
-        } else if ((t as any).Date) {
-          transactionDate = new Date((t as any).Date)
-        } else {
-          transactionDate = new Date()
+              let transactionDate: Date
+              if (t.Timestamp) {
+                transactionDate = new Date(t.Timestamp)
+              } else if ((t as any)['Data Tranzactie']) {
+                transactionDate = new Date((t as any)['Data Tranzactie'])
+              } else if ((t as any).Date) {
+                transactionDate = new Date((t as any).Date)
+              } else {
+                transactionDate = new Date()
+              }
+
+              const closedTransactionType = (t as any)['closed_transaction_type'] || t['Tip Tranzactie'] || (t as any)['Transaction Type']
+              const isRental = 
+                closedTransactionType === 1 || 
+                closedTransactionType === '1' ||
+                closedTransactionType === 'Chirie' || 
+                closedTransactionType === 'Rental' || 
+                closedTransactionType === 'Rent' ||
+                closedTransactionType === 'Închiriere' ||
+                String(closedTransactionType).toLowerCase().includes('chirie') ||
+                String(closedTransactionType).toLowerCase().includes('rent')
+              
+              const transactionType: 'Vanzare' | 'Chirie' = isRental ? 'Chirie' : 'Vanzare'
+
+              return {
+                id: `tx-${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`,
+                itemType: 'transaction' as const,
+                agentName,
+                agentAvatar: rebsAgent?.avatar || rebsAgent?.profile_picture || rebsAgent?.photo,
+                transactionValue: valoare,
+                commission: Math.round(com),
+                transactionType,
+                propertyType: (t as any)['Tip Proprietate'] || (t as any)['Property Type'],
+                location: (t as any)['Locatie'] || (t as any)['Location'],
+                timestamp: transactionDate
+              }
+            })
         }
 
-        // Determine transaction type (Sale or Rental)
-        // closed_transaction_type: 2 = Vânzare, 1 = Închiriere
-        const closedTransactionType = (t as any)['closed_transaction_type'] || t['Tip Tranzactie'] || (t as any)['Transaction Type']
-        
-        // Check if it's a rental transaction
-        const isRental = 
-          closedTransactionType === 1 || 
-          closedTransactionType === '1' ||
-                                closedTransactionType === 'Chirie' || 
-                                closedTransactionType === 'Rental' || 
-          closedTransactionType === 'Rent' ||
-          closedTransactionType === 'Închiriere' ||
-          String(closedTransactionType).toLowerCase().includes('chirie') ||
-          String(closedTransactionType).toLowerCase().includes('rent')
-        
-        const transactionType: 'Vanzare' | 'Chirie' = isRental ? 'Chirie' : 'Vanzare'
-        
-        // Debug logging for transaction type detection
-        if (isRental) {
-          console.log(`[Rental Transaction Detected] Agent: ${agentName}, Value: €${valoare}, Type Field: ${closedTransactionType}`)
-        }
+        // Combine both sources and deduplicate by timestamp and agent
+        const allItems = [...dbItems, ...transactionItems]
+        const uniqueItems = allItems
+          .filter((item, index, self) => 
+            index === self.findIndex((i) => 
+              i.agentName === item.agentName && 
+              i.timestamp.getTime() === item.timestamp.getTime() &&
+              (item.itemType === 'welcome' || 
+               (item.transactionValue === i.transactionValue && item.commission === i.commission))
+            )
+          )
+          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+          .slice(0, 50) // Limit to 50 most recent
 
-        return {
-          id: `${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`,
-          agentName,
-          // Use avatar field from YAML schema (primary), with fallbacks for compatibility
-          agentAvatar: rebsAgent?.avatar || rebsAgent?.profile_picture || rebsAgent?.photo,
-          transactionValue: valoare,
-          commission: Math.round(com),
-          transactionType,
-          propertyType: (t as any)['Tip Proprietate'] || (t as any)['Property Type'],
-          location: (t as any)['Locatie'] || (t as any)['Location'],
-          timestamp: transactionDate
-        }
-      })
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, 50) // Limit to 50 most recent
-
-    setNewsItems(items)
+        setNewsItems(uniqueItems)
+        console.log(`✅ Loaded ${uniqueItems.length} news items (${dbItems.length} from DB, ${transactionItems.length} from transactions)`)
+      } catch (err) {
+        console.error('Error fetching news items:', err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchAllNewsItems()
   }, [transactions?.rows, rebsAgents])
+
+
+  // Note: News items are now fetched from the database API instead of converting transactions
+  // This allows us to include both transaction news and welcome messages
 
   // Handle long press to show reaction picker
   const handleLongPressStart = (itemId: string) => {
@@ -156,21 +200,57 @@ export const NewsFeed = () => {
   }
 
   // Handle emoji selection
-  const handleEmojiSelect = (itemId: string, emoji: string) => {
+  const handleEmojiSelect = async (itemId: string, emoji: string) => {
     setSelectedReactions(prev => ({
       ...prev,
       [itemId]: emoji
     }))
     setShowReactionPicker(null)
+
+    // Save reaction to server
+    if (agentData?.name) {
+      try {
+        await fetch('/api/news/likes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            itemId,
+            agentName: agentData.name,
+            emoji,
+            action: 'add',
+          }),
+        })
+      } catch (err) {
+        console.error('Error saving reaction:', err)
+      }
+    }
   }
 
   // Handle reaction removal
-  const handleRemoveReaction = (itemId: string) => {
+  const handleRemoveReaction = async (itemId: string) => {
     setSelectedReactions(prev => {
       const newReactions = { ...prev }
       delete newReactions[itemId]
       return newReactions
     })
+
+    // Remove reaction from server
+    if (agentData?.name) {
+      try {
+        await fetch('/api/news/likes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            itemId,
+            agentName: agentData.name,
+            emoji: selectedReactions[itemId],
+            action: 'remove',
+          }),
+        })
+      } catch (err) {
+        console.error('Error removing reaction:', err)
+      }
+    }
   }
 
   // Cleanup long press timer on unmount
@@ -312,7 +392,12 @@ export const NewsFeed = () => {
 
       {/* News Feed */}
       <div className="relative z-10 px-4 md:px-8 py-6 pb-32">
-        {newsItems.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12 text-white/70">
+            <Bell className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
+            <p>Se încarcă știrile...</p>
+          </div>
+        ) : newsItems.length === 0 ? (
           <div className="text-center py-12 text-white/70">
             <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nu există știri disponibile</p>
@@ -320,24 +405,29 @@ export const NewsFeed = () => {
         ) : (
           <div className="grid gap-5 md:gap-6 xl:gap-7 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 auto-rows-fr">
             {newsItems.map((item, index) => {
-            const reactionEmojis = ['👑', '❤️', '💰', '👏', '🤩'] // Crown, Heart, Moneybag, Clapping, Starstruck
-            const selectedEmoji = selectedReactions[item.id]
+            // Different emojis for welcome vs transaction items
+            const reactionEmojis = item.itemType === 'welcome' 
+              ? ['🤝', '👑', '❤️', '👏', '🎉'] // Handshake for welcome, then others
+              : ['👑', '❤️', '💰', '👏', '🤩'] // Crown, Heart, Moneybag, Clapping, Starstruck
+            const selectedEmoji = selectedReactions[String(item.id)]
             const hasReaction = !!selectedEmoji
             
             return (
               <div
                 key={item.id}
                 className="relative flex h-full flex-col justify-between rounded-3xl border border-white/20 bg-white/10 px-5 py-6 shadow-[0_25px_45px_rgba(2,6,23,0.35)] backdrop-blur-2xl transition-all hover:border-white/40 hover:bg-white/15"
-                onMouseDown={() => handleLongPressStart(item.id)}
+                onMouseDown={() => handleLongPressStart(String(item.id))}
                 onMouseUp={handleLongPressEnd}
                 onMouseLeave={handleLongPressEnd}
-                onTouchStart={() => handleLongPressStart(item.id)}
+                onTouchStart={() => handleLongPressStart(String(item.id))}
                 onTouchEnd={handleLongPressEnd}
               >
                 <div className="flex flex-col gap-5">
                   <div className="flex items-start justify-between">
                     <div className="flex flex-col">
-                      <span className="text-xs text-white/40">Felicitări agentului</span>
+                      <span className="text-xs text-white/40">
+                        {item.itemType === 'welcome' ? 'Bun venit!' : 'Felicitări agentului'}
+                      </span>
                     </div>
                     
                     {/* Top Right - Add Reaction Button or Reactions Display */}
@@ -351,7 +441,7 @@ export const NewsFeed = () => {
                           transition={{ type: 'spring', damping: 15, stiffness: 300 }}
                           onClick={(e) => {
                             e.stopPropagation()
-                            handleRemoveReaction(item.id)
+                            handleRemoveReaction(String(item.id))
                           }}
                           className="relative flex items-center justify-center w-10 h-10 rounded-full bg-slate-800/90 backdrop-blur-md border-2 border-white/30 shadow-xl cursor-pointer hover:scale-110 transition-transform"
                         >
@@ -362,7 +452,7 @@ export const NewsFeed = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            setShowReactionPicker(item.id)
+                            setShowReactionPicker(String(item.id))
                           }}
                           className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-800/60 backdrop-blur-md border-2 border-white/20 hover:border-white/40 hover:bg-slate-800/80 transition-all shadow-lg"
                         >
@@ -372,27 +462,41 @@ export const NewsFeed = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-white/15 bg-slate-900/40 p-4 text-center">
-                    <div className={`text-[12px] uppercase tracking-[0.5em] font-semibold ${
-                      item.transactionType === 'Chirie' ? 'text-emerald-300' : 'text-white/60'
-                    }`}>
-                      {(item.transactionType || 'Vanzare').toUpperCase()}
+                  {item.itemType === 'welcome' ? (
+                    // Welcome message card
+                    <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-sky-900/40 to-blue-900/40 p-6 text-center">
+                      <div className="text-4xl mb-3">🎉</div>
+                      <div className="text-lg md:text-xl font-bold text-white mb-2">
+                        {item.welcomeMessage || `Bun venit la Tower Imob, ${item.agentName}!`}
+                      </div>
+                      <div className="text-sm text-white/70 mt-2">
+                        Îți dorim mult succes în noua ta carieră!
+                      </div>
                     </div>
-                    <div className="mt-3 text-3xl md:text-4xl font-black text-white">
-                      €{item.transactionValue.toLocaleString('ro-RO')}
-                      {item.transactionType === 'Chirie' && (
-                        <span className="text-base text-white/60 ml-1">/lună</span>
+                  ) : (
+                    // Transaction card
+                    <div className="rounded-2xl border border-white/15 bg-slate-900/40 p-4 text-center">
+                      <div className={`text-[12px] uppercase tracking-[0.5em] font-semibold ${
+                        item.transactionType === 'Chirie' ? 'text-emerald-300' : 'text-white/60'
+                      }`}>
+                        {(item.transactionType || 'Vanzare').toUpperCase()}
+                      </div>
+                      <div className="mt-3 text-3xl md:text-4xl font-black text-white">
+                        €{(item.transactionValue || 0).toLocaleString('ro-RO')}
+                        {item.transactionType === 'Chirie' && (
+                          <span className="text-base text-white/60 ml-1">/lună</span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-sky-200">
+                        Comision €{(item.commission || 0).toLocaleString('ro-RO')}
+                      </div>
+                      {item.location && (
+                        <div className="mt-1 text-xs text-white/50">
+                          {item.location}
+                        </div>
                       )}
                     </div>
-                    <div className="mt-1 text-sm font-semibold text-sky-200">
-                      Comision €{item.commission.toLocaleString('ro-RO')}
-                    </div>
-                    {item.location && (
-                      <div className="mt-1 text-xs text-white/50">
-                        {item.location}
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   <div className="flex flex-col items-center gap-2 text-center">
                     {item.agentAvatar ? (
@@ -420,7 +524,7 @@ export const NewsFeed = () => {
 
                 {/* Reaction Picker - Centered in card */}
                 <AnimatePresence>
-                  {showReactionPicker === item.id && (
+                  {showReactionPicker === String(item.id) && (
                     <>
                       <div
                         className="fixed inset-0 z-40"
@@ -438,7 +542,7 @@ export const NewsFeed = () => {
                         {reactionEmojis.map((emoji) => (
                           <button
                             key={emoji}
-                              onClick={() => handleEmojiSelect(item.id, emoji)}
+                              onClick={() => handleEmojiSelect(String(item.id), emoji)}
                               className="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center text-3xl md:text-4xl hover:scale-125 active:scale-110 transition-transform rounded-xl hover:bg-white/10"
                           >
                             {emoji}

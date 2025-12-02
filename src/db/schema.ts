@@ -120,6 +120,35 @@ export const leadEvents = sqliteTable('lead_events', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 })
 
+export const knownAgents = sqliteTable('known_agents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  agentId: integer('agent_id').notNull(),
+  agentName: text('agent_name').notNull(),
+  email: text('email'),
+  firstSeenAt: integer('first_seen_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, table => ({
+  agentIdIdx: uniqueIndex('known_agents_agent_id_unique').on(table.agentId),
+}))
+
+export const newsItems = sqliteTable('news_items', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  itemType: text('item_type').notNull(), // 'transaction' | 'welcome'
+  agentId: integer('agent_id'),
+  agentName: text('agent_name').notNull(),
+  agentAvatar: text('agent_avatar'),
+  // For transaction items
+  transactionValue: real('transaction_value'),
+  commission: real('commission'),
+  transactionType: text('transaction_type'), // 'Vanzare' | 'Chirie'
+  propertyType: text('property_type'),
+  location: text('location'),
+  // For welcome items
+  welcomeMessage: text('welcome_message'),
+  timestamp: text('timestamp').notNull(), // ISO string
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+})
+
 export type Transaction = typeof transactions.$inferSelect
 export type NewTransaction = typeof transactions.$inferInsert
 export type AgentTarget = typeof agentTargets.$inferSelect
@@ -140,4 +169,8 @@ export type TransactionEvent = typeof transactionEvents.$inferSelect
 export type NewTransactionEvent = typeof transactionEvents.$inferInsert
 export type LeadEvent = typeof leadEvents.$inferSelect
 export type NewLeadEvent = typeof leadEvents.$inferInsert
+export type KnownAgent = typeof knownAgents.$inferSelect
+export type NewKnownAgent = typeof knownAgents.$inferInsert
+export type NewsItem = typeof newsItems.$inferSelect
+export type NewNewsItem = typeof newsItems.$inferInsert
 
