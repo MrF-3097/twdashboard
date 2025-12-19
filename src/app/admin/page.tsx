@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AgentManager } from '@/components/admin/agent-manager'
-import { AnimatedTransactionModal } from '@/components/admin/animated-transaction-modal'
+import { TransactionModal } from '@/components/admin/transaction-modal'
 import { ResetControls } from '@/components/admin/reset-controls'
 import { QuestManager } from '@/components/admin/quest-manager'
 import { TokenUsageTracker } from '@/components/admin/token-usage-tracker'
@@ -255,7 +255,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Transaction Modal */}
-      <AnimatedTransactionModal 
+      <TransactionModal 
         isOpen={showTransactionModal} 
         onClose={() => setShowTransactionModal(false)} 
       />

@@ -1,14 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { transactionSchema } from '@/types/commissions'
 import { db } from '@/db'
-import { transactions, newsItems } from '@/db/schema'
+import { transactions, transactionAgents, newsItems } from '@/db/schema'
 import {
   checkAndNotifyLeaderboardChange,
   getLeaderboardSnapshot,
 } from '@/lib/leaderboard-monitor'
 import { logTransactionEvent } from '@/lib/transaction-events'
+import { withRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 30 requests per minute for transaction additions
+  const rateLimit = withRateLimit(request, { maxRequests: 30, windowMs: 60 * 1000 })
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'Prea multe cereri. Te rugăm să încerci din nou mai târziu.',
+        retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+      },
+      { 
+        status: 429,
+        headers: {
+          'Retry-After': String(Math.ceil((rateLimit.resetTime - Date.now()) / 1000)),
+          'X-RateLimit-Limit': '30',
+          'X-RateLimit-Remaining': String(rateLimit.remaining),
+          'X-RateLimit-Reset': String(Math.ceil(rateLimit.resetTime / 1000)),
+        }
+      }
+    )
+  }
+
   try {
     console.log('🔵 [API] Starting POST /api/admin/add-transaction')
     const body = await request.json()
@@ -31,9 +53,14 @@ export async function POST(request: NextRequest) {
     const tx = parsed.data
     console.log('✅ [API] Validated transaction:', tx)
 
-    // Insert into database
+    // Determine primary agent for backward compatibility
+    const primaryAgent = tx.agents && tx.agents.length > 0 
+      ? tx.agents[0].agentName 
+      : tx.Agent || ''
+
+    // Insert transaction into database
     const [inserted] = await db.insert(transactions).values({
-      agent: tx.Agent,
+      agent: primaryAgent, // Keep for backward compatibility
       valoareTranzactie: tx['Valoare Tranzactie'],
       tipTranzactie: tx['Tip Tranzactie'],
       comisionPct: tx['Comision %'],
@@ -43,19 +70,46 @@ export async function POST(request: NextRequest) {
     
     console.log(`✅ [API] Inserted transaction with ID: ${inserted.id}`)
 
-    // Create news item for this transaction
+    // Insert transaction agents if provided
+    if (tx.agents && tx.agents.length > 0) {
+      try {
+        const agentRecords = tx.agents.map(agent => ({
+          transactionId: inserted.id,
+          agentName: agent.agentName,
+          role: agent.role,
+          commissionSource: agent.commissionSource,
+          splitPct: 'splitPct' in agent ? agent.splitPct : null, // Split percentage within role pool
+          commissionPct: agent.commissionPct,
+          commission: agent.commission,
+        }))
+
+        await db.insert(transactionAgents).values(agentRecords)
+        console.log(`✅ [API] Inserted ${agentRecords.length} transaction agents`)
+      } catch (agentError) {
+        console.error('⚠️ [API] Failed to insert transaction agents:', agentError)
+        // Don't fail the transaction if agent insertion fails, but log it
+      }
+    }
+
+    // Create news items for each agent in the transaction
     try {
-      await db.insert(newsItems).values({
-        itemType: 'transaction',
-        agentName: tx.Agent,
+      const agentsToNotify = tx.agents && tx.agents.length > 0 
+        ? tx.agents 
+        : [{ agentName: primaryAgent, commission: tx.Comision }]
+
+      const newsItemsToInsert = agentsToNotify.map(agent => ({
+        itemType: 'transaction' as const,
+        agentName: agent.agentName,
         transactionValue: tx['Valoare Tranzactie'],
-        commission: tx.Comision,
+        commission: 'commission' in agent ? agent.commission : tx.Comision,
         transactionType: tx['Tip Tranzactie'],
         timestamp: tx.Timestamp,
-      })
-      console.log(`✅ [API] Created news item for transaction ${inserted.id}`)
+      }))
+
+      await db.insert(newsItems).values(newsItemsToInsert)
+      console.log(`✅ [API] Created ${newsItemsToInsert.length} news item(s) for transaction ${inserted.id}`)
     } catch (newsError) {
-      console.error('⚠️ [API] Failed to create news item:', newsError)
+      console.error('⚠️ [API] Failed to create news items:', newsError)
       // Don't fail the transaction if news item creation fails
     }
 

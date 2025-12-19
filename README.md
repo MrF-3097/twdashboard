@@ -1,5 +1,196 @@
 # Agent Dashboard Minimal
 
+## Francesco 18.01.2025 : Multiple Agents per Transaction with Role-Based Commission Assignment
+
+Summary
+- **Multiple Agents Support**: Transactions can now have multiple agents assigned, each with their own role (buyer/rentee agent or owner agent) and commission source.
+- **Role-Based Commission**: Each agent can be assigned a role (Cumpărător/Chiriaș or Proprietar) and specify who they take their commission from (buyer/rentee or owner).
+- **Enhanced Transaction Modal**: Completely redesigned transaction creation flow with a multi-step wizard that allows adding multiple agents, setting their roles, and calculating individual commissions.
+- **Database Schema Update**: Added new `transactionAgents` table to support many-to-many relationship between transactions and agents with role and commission information.
+- **Backward Compatibility**: Maintained support for single-agent transactions through the legacy `agent` field while introducing the new multi-agent structure.
+
+Why These Changes
+- Previously, transactions only supported a single agent, making it difficult to properly split commissions when multiple agents were involved in a transaction.
+- There was no way to distinguish between agents representing buyers/rentees versus owners, making commission calculations and splits unclear.
+- The admin dashboard needed a more intuitive way to assign agents and specify commission sources to streamline transaction entry and reduce errors.
+
+Technical Implementation
+- **Database Schema** (`src/db/schema.ts`):
+  - Added `transactionAgents` table with fields: `transactionId`, `agentName`, `role` (buyer_rentee | owner), `commissionSource` (buyer_rentee | owner), `commissionPct`, `commission`.
+  - Made `agent` field in `transactions` table optional for backward compatibility.
+  - Added proper indexes for efficient queries.
+- **Type System** (`src/types/commissions.ts`):
+  - Created `transactionAgentSchema` Zod schema for validating agent assignments.
+  - Updated `transactionSchema` to support optional `agents` array while maintaining backward compatibility with `Agent` field.
+  - Added `agentRoleSchema` and `commissionSourceSchema` for type safety.
+- **Transaction Modal UI** (`src/components/admin/transaction-modal.tsx`):
+  - Redesigned as a 4-step wizard: (1) Add Agents with Roles, (2) Transaction Details, (3) Commission Calculation, (4) Confirmation.
+  - Step 1: Allows adding multiple agents, each with role selection (Cumpărător/Chiriaș or Proprietar) and commission source selection.
+  - Step 3: Shows individual commission calculation per agent with auto-calculation based on transaction value and commission percentage.
+  - Step 4: Displays comprehensive summary with all agents, their roles, commission sources, and individual commissions.
+  - Real-time validation ensures all required fields are filled before proceeding.
+- **API Endpoint** (`src/app/api/admin/add-transaction/route.ts`):
+  - Updated to handle both legacy single-agent and new multi-agent transaction formats.
+  - Inserts transaction agents into `transactionAgents` table when `agents` array is provided.
+  - Creates news items for each agent in the transaction.
+  - Maintains backward compatibility with existing single-agent transactions.
+- **Transaction Event Logging** (`src/lib/transaction-events.ts`):
+  - Updated to fetch primary agent from `transactionAgents` table if `agent` field is null.
+  - Maintains backward compatibility with existing event logging structure.
+
+Result
+- Admin users can now easily add transactions with multiple agents, clearly specifying each agent's role and commission source.
+- Commission splits are more transparent and easier to manage, with each agent's commission calculated and displayed individually.
+- The transaction creation process is more intuitive with a step-by-step wizard that guides users through the process.
+- The system maintains full backward compatibility with existing single-agent transactions while supporting the new multi-agent structure.
+- Database schema is ready for future enhancements like commission split percentages and more complex commission structures.
+
+**Note**: To apply the database schema changes, run `npm run db:generate` followed by `npm run db:push` to create the new `transactionAgents` table.
+
+## Francesco 27.01.2025 : Property Title & Description Generation - Debugging & Logging Enhancement
+
+Summary
+- **Enhanced Logging**: Added comprehensive logging throughout the property creation flow to track title and description generation, including OpenAI API calls, errors, and fallback scenarios.
+- **Test Endpoint**: Created `/api/rebs/test-property-generation` endpoint to test title and description generation without creating actual properties in REBS.
+- **Test Script**: Added `npm run test:property-generation` script for easy testing of OpenAI integration and property generation logic.
+- **Debugging Documentation**: Created detailed debugging guide (`docs/PROPERTY_GENERATION_DEBUG.md`) with troubleshooting steps, common issues, and solutions.
+
+Why These Changes
+- When properties were created via POST request, the AI-generated title and description were sometimes missing, making it difficult to debug the issue.
+- The OpenAI API integration for generating descriptions was failing silently without proper error logging, making it hard to identify root causes.
+- There was no way to test the title and description generation independently without creating actual properties in REBS.
+
+Technical Implementation
+- **Logging Enhancements** (`src/app/api/rebs/add-property/route.ts`):
+  - Added OpenAI client initialization status logging
+  - Enhanced `buildPropertyTitle()` with debug logs showing all inputs and generated title
+  - Enhanced `generateDescription()` with detailed logging:
+    - Logs when OpenAI API is called
+    - Logs API response details (usage, duration, choices count)
+    - Logs success/failure with detailed error information
+    - Logs when fallback description is used
+  - Added payload preparation logging showing final title and description before sending to REBS
+- **Test Endpoint** (`src/app/api/rebs/test-property-generation/route.ts`):
+  - Standalone endpoint that tests title and description generation
+  - Returns detailed test results including OpenAI status, generated title, description, and any errors
+  - Can be called independently to verify OpenAI integration
+- **Test Script** (`scripts/test-property-generation.js`):
+  - Node.js script that sends test payload to test endpoint
+  - Displays formatted test results with color-coded status indicators
+  - Shows OpenAI API key status, title generation, description generation, and property summary
+  - Added to `package.json` as `npm run test:property-generation`
+- **Documentation** (`docs/PROPERTY_GENERATION_DEBUG.md`):
+  - Complete debugging guide with step-by-step troubleshooting
+  - Common issues and solutions
+  - Code flow explanation
+  - Testing instructions
+
+Result
+- Property creation now has comprehensive logging that shows exactly what happens during title and description generation.
+- Developers can easily test OpenAI integration using the test endpoint or script without creating actual properties.
+- When issues occur, detailed error logs help identify the root cause (missing API key, API errors, empty responses, etc.).
+- The debugging guide provides clear steps for troubleshooting and understanding the generation flow.
+
+## Francesco 18.01.2025 : React Native Mobile App - Core Features Implementation
+
+Summary
+- **Mobile App Foundation**: Creată aplicația React Native cu Expo SDK 51, TypeScript, și structură de navigare completă (Expo Router) cu autentificare și 6 tab-uri principale.
+- **UI Components Library**: Librărie completă de componente UI (Button, Card, Input, LoadingSpinner, KPICard) care se potrivesc perfect cu design-ul web app-ului, adaptate pentru mobile.
+- **Data Fetching Hooks**: Hook-uri pentru toate datele (useProperties, useRequests, useLeaderboard, useTransactions) cu React Query pentru caching și real-time updates.
+- **Core Screens Implementate**: Toate cele 6 ecrane principale (Home, Leaderboard, Properties, Requests, Tools, Profile) cu funcționalități complete, filtre, search, și pull-to-refresh.
+- **Push Notifications**: Setup complet pentru Expo Notifications cu auto-registration la login și integrare cu backend-ul.
+
+Why These Changes
+- Agenții aveau nevoie de o aplicație mobilă nativă pentru a accesa dashboard-ul pe device-uri mobile, cu aceeași funcționalitate ca versiunea web dar optimizată pentru touch și ecrane mici.
+- Versiunea web funcționează pe mobile dar nu oferă experiența nativă optimă - aplicația React Native oferă performanță mai bună, notificări push native, și acces la funcții device (camera, file picker, etc.).
+
+Technical Implementation
+- **Project Setup**:
+  - Expo SDK 51 cu TypeScript
+  - Expo Router pentru file-based navigation
+  - React Query pentru data fetching
+  - Axios cu interceptors pentru API calls
+- **Navigation Structure**:
+  - Root layout cu providers (QueryClient, AuthContext)
+  - Auth stack (`(auth)/login`)
+  - Main tabs stack (`(tabs)`) cu 6 tab-uri
+  - Automatic redirects bazate pe auth state
+- **UI Components**:
+  - `Button` - 5 variante (default, destructive, outline, secondary, ghost)
+  - `Card` - cu Header, Content, Footer, Title, Description
+  - `Input` - cu label și error handling
+  - `LoadingSpinner` - full screen și inline
+  - `KPICard` - pentru KPI-uri cu trend indicators
+  - Color theme system matching web app
+- **Data Hooks**:
+  - `useProperties` - Properties cu caching (1 min stale, 5 min cache)
+  - `useRequests` - Requests cu caching
+  - `useLeaderboard` - Real-time updates (polls every 30s)
+  - `useTransactions` - Transactions cu filtering
+- **Screens**:
+  - **Home**: KPIs, progress bars, charts, stats grid, pull-to-refresh
+  - **Leaderboard**: Period selector, agent cards cu rank badges, XP progress, rank changes, "Your Position" card
+  - **Properties**: Search, collapsible filters (transaction type, property type, rooms, price), property cards cu images
+  - **Requests**: Search, filters, "Add Request" button, request cards
+  - **Profile**: Avatar, stats, monthly target, settings toggles, logout
+  - **Tools**: Grid cu 6 tools (Document Converter, Real Estate Generator, Printer Driver, Image Editor, Photo Fixer)
+- **Push Notifications**:
+  - Expo Notifications service
+  - Permission request
+  - Auto-registration la login
+  - Notification listeners (foreground și tap handlers)
+  - Backend integration pentru subscribe/unsubscribe
+
+Result
+- Aplicația mobilă este funcțională cu toate ecranele principale implementate și matching design-ul web app-ului.
+- Agenții pot accesa dashboard-ul pe mobile cu aceeași funcționalitate ca web, optimizată pentru touch.
+- Push notifications sunt configurate și se vor înregistra automat la login.
+- Structura este pregătită pentru implementarea tool-urilor individuale și feature-uri suplimentare.
+- Design-ul este consistent cu web app-ul, adaptat pentru mobile cu touch-friendly sizes și spacing optim.
+
+## Francesco 18.01.2025 : EPIC 7 - Monitoring & Observability Implementation
+
+Summary
+- **Sentry Error Tracking**: Integrat Sentry pentru tracking complet al erorilor (React errors, API errors, unhandled exceptions) cu session replay și performance tracing.
+- **Performance Monitoring**: Implementat tracking pentru API response times, database query performance, și Core Web Vitals (LCP, FID, CLS, FCP, TTFB, INP).
+- **Analytics Infrastructure**: Creat sistem de tracking pentru feature usage, user interactions, și custom events cu user context management.
+- **Monitoring Utilities**: Librării centralizate pentru tracking (`src/lib/monitoring.ts`, `src/lib/api-monitoring.ts`) și hook-uri ușor de folosit (`useAnalytics`).
+
+Why These Changes
+- Aplicația nu avea vizibilitate în producție - erorile nu erau track-uite, performanța nu era monitorizată, și nu exista insight despre utilizarea feature-urilor.
+- Pentru o aplicație în producție, este esențial să ai observability completă pentru a identifica probleme rapid, a optimiza performanța, și a înțelege comportamentul utilizatorilor.
+- Sentry oferă o soluție completă pentru error tracking, performance monitoring, și session replay, care permite debugging rapid al problemelor.
+
+Technical Implementation
+- **Sentry Configuration**: 
+  - `sentry.client.config.ts` - Configurare client-side cu browser tracing, session replay (10% sampling, 100% pe erori), și error filtering.
+  - `sentry.server.config.ts` - Configurare server-side cu Node.js profiling.
+  - `sentry.edge.config.ts` - Configurare pentru edge runtime.
+- **Error Tracking**:
+  - Actualizat `AppErrorBoundary` pentru a trimite erori către Sentry cu context complet.
+  - Funcție `trackApiError()` pentru tracking erori API cu context (endpoint, method, status code).
+  - Captură automată a unhandled promise rejections.
+- **Performance Monitoring**:
+  - `src/lib/api-monitoring.ts` - Wrapper `withMonitoring()` pentru API routes care track-uiește response times, cache hits, și slow requests.
+  - Integrat în `/api/properties` cu tracking pentru duration, cache status, și property count.
+  - `trackDatabaseOperation()` pentru tracking query performance.
+- **Web Vitals Tracking**:
+  - Componentă `WebVitals` (`src/components/monitoring/web-vitals.tsx`) care track-uiește toate Core Web Vitals.
+  - Integrată în root layout pentru tracking automat.
+- **Analytics**:
+  - `src/lib/monitoring.ts` - Librărie centralizată cu funcții pentru tracking events, features, performance, și Web Vitals.
+  - `src/hooks/use-analytics.ts` - Hook React pentru tracking ușor în componente.
+  - User context management automat în `useAuth` hook (set la login, clear la logout).
+- **Environment Configuration**:
+  - Adăugat `NEXT_PUBLIC_SENTRY_DSN` și `SENTRY_DSN` în `env.example`.
+
+Result
+- Aplicația are acum observability completă în producție cu error tracking, performance monitoring, și analytics.
+- Erorile sunt capturate automat cu context complet (user, route, stack trace) și pot fi vizualizate în Sentry dashboard.
+- Performance metrics (API response times, database queries, Web Vitals) sunt track-uite și pot fi analizate pentru optimizări.
+- Feature usage și user interactions pot fi track-uite pentru a înțelege comportamentul utilizatorilor și a lua decizii bazate pe date.
+- Session replay permite debugging rapid al problemelor prin vizualizarea exactă a acțiunilor utilizatorului înainte de eroare.
+
 ## Francesco 26.11.2025 : Pipeline push unificat & bug fix leaderboard
 
 Summary

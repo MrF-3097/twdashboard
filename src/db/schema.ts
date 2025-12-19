@@ -1,15 +1,35 @@
-import { sqliteTable, text, real, integer, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, real, integer, uniqueIndex, index } from 'drizzle-orm/sqlite-core'
 
 export const transactions = sqliteTable('transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  agent: text('agent').notNull(),
+  agent: text('agent'), // Deprecated: kept for backward compatibility, use transactionAgents table instead
   valoareTranzactie: real('valoare_tranzactie').notNull(),
   tipTranzactie: text('tip_tranzactie').notNull(), // 'Vanzare' | 'Inchiriere'
   comisionPct: real('comision_pct').notNull(),
   comision: real('comision').notNull(),
   timestamp: text('timestamp').notNull(), // ISO string
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-})
+}, (table) => ({
+  agentIdx: index('transactions_agent_idx').on(table.agent),
+  timestampIdx: index('transactions_timestamp_idx').on(table.timestamp),
+  createdAtIdx: index('transactions_created_at_idx').on(table.createdAt),
+}))
+
+// Transaction agents: supports multiple agents per transaction with roles
+export const transactionAgents = sqliteTable('transaction_agents', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  transactionId: integer('transaction_id').notNull().references(() => transactions.id, { onDelete: 'cascade' }),
+  agentName: text('agent_name').notNull(),
+  role: text('role').notNull(), // 'buyer_rentee' | 'owner'
+  commissionSource: text('commission_source').notNull(), // 'buyer_rentee' | 'owner'
+  splitPct: real('split_pct'), // Split percentage within the role's commission pool (0-100)
+  commissionPct: real('commission_pct').notNull(), // Commission percentage for this agent (of transaction value)
+  commission: real('commission').notNull(), // Commission amount for this agent
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  transactionIdIdx: index('transaction_agents_transaction_id_idx').on(table.transactionId),
+  agentNameIdx: index('transaction_agents_agent_name_idx').on(table.agentName),
+}))
 
 export const agentTargets = sqliteTable('agent_targets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -66,7 +86,10 @@ export const pushSubscriptions = sqliteTable('push_subscriptions', {
   auth: text('auth').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-})
+}, (table) => ({
+  agentIdIdx: index('push_subscriptions_agent_id_idx').on(table.agentId),
+  agentNameIdx: index('push_subscriptions_agent_name_idx').on(table.agentName),
+}))
 
 export const leaderboardHistory = sqliteTable('leaderboard_history', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -86,6 +109,8 @@ export const leaderboardStandings = sqliteTable(
   },
   table => ({
     agentNameIdx: uniqueIndex('leaderboard_standings_agent_name_unique').on(table.agentName),
+    rankIdx: index('leaderboard_standings_rank_idx').on(table.rank),
+    totalIdx: index('leaderboard_standings_total_idx').on(table.total),
   })
 )
 
@@ -147,7 +172,12 @@ export const newsItems = sqliteTable('news_items', {
   welcomeMessage: text('welcome_message'),
   timestamp: text('timestamp').notNull(), // ISO string
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-})
+}, (table) => ({
+  timestampIdx: index('news_items_timestamp_idx').on(table.timestamp),
+  createdAtIdx: index('news_items_created_at_idx').on(table.createdAt),
+  agentNameIdx: index('news_items_agent_name_idx').on(table.agentName),
+  itemTypeIdx: index('news_items_item_type_idx').on(table.itemType),
+}))
 
 export type Transaction = typeof transactions.$inferSelect
 export type NewTransaction = typeof transactions.$inferInsert
@@ -173,4 +203,6 @@ export type KnownAgent = typeof knownAgents.$inferSelect
 export type NewKnownAgent = typeof knownAgents.$inferInsert
 export type NewsItem = typeof newsItems.$inferSelect
 export type NewNewsItem = typeof newsItems.$inferInsert
+export type TransactionAgent = typeof transactionAgents.$inferSelect
+export type NewTransactionAgent = typeof transactionAgents.$inferInsert
 
