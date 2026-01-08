@@ -327,7 +327,9 @@ export async function GET(request: NextRequest) {
     const untilParam = searchParams.get('until')
     const allTime = searchParams.get('all_time') === 'true'
     const agent = searchParams.get('agent')
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
+    // Parse limit parameter - if provided and valid, use it; otherwise return all (undefined)
+    const limitParam = searchParams.get('limit')
+    const limit = limitParam ? (parseInt(limitParam, 10) || undefined) : undefined
     const includeStats = searchParams.get('include_stats') !== 'false'
 
     // Calculate default date range (current month)
@@ -344,9 +346,11 @@ export async function GET(request: NextRequest) {
       until, 
       allTime,
       agent, 
+      limitParam: limitParam,
       limit, 
       includeStats,
-      currentMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+      currentMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+      totalRowsBeforeLimit: rows.length
     })
 
     // Auto-save previous month snapshot (runs in background, doesn't block response)
@@ -384,10 +388,10 @@ export async function GET(request: NextRequest) {
     // Sort by commission descending
     const sortedRows = rows.sort((a, b) => b.SumaComision - a.SumaComision)
 
-    // Apply limit if specified
-    const limitedRows = limit ? sortedRows.slice(0, limit) : sortedRows
+    // Apply limit if specified (limit must be a positive number)
+    const limitedRows = limit && limit > 0 ? sortedRows.slice(0, limit) : sortedRows
 
-    console.log(`🔵 [API] Aggregated ${limitedRows.length} agents from database`)
+    console.log(`🔵 [API] Aggregated ${limitedRows.length} agents from database (limit: ${limit || 'none'}, total available: ${sortedRows.length})`)
 
     // Fetch REBS agents for enrichment
     const rebsAgents = await fetchRebsAgents()
