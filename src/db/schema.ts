@@ -179,6 +179,30 @@ export const newsItems = sqliteTable('news_items', {
   itemTypeIdx: index('news_items_item_type_idx').on(table.itemType),
 }))
 
+// Historic leaderboard snapshots - stores monthly leaderboard data for TV display
+export const historicSnapshots = sqliteTable('historic_snapshots', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  year: integer('year').notNull(),
+  month: integer('month').notNull(), // 1-12
+  // Snapshot data stored as JSON
+  agentsJson: text('agents_json').notNull(), // JSON array of agent data
+  statsJson: text('stats_json'), // JSON object with stats (total_agents, total_transactions, etc.)
+  // Metadata
+  totalAgents: integer('total_agents').notNull().default(0),
+  totalTransactions: integer('total_transactions').notNull().default(0),
+  totalCommission: real('total_commission').notNull().default(0),
+  topPerformerName: text('top_performer_name'),
+  topPerformerCommission: real('top_performer_commission'),
+  // Timestamps
+  snapshotTimestamp: integer('snapshot_timestamp', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => ({
+  // Unique constraint: only one snapshot per year-month
+  yearMonthIdx: uniqueIndex('historic_snapshots_year_month_unique').on(table.year, table.month),
+  yearIdx: index('historic_snapshots_year_idx').on(table.year),
+}))
+
 export type Transaction = typeof transactions.$inferSelect
 export type NewTransaction = typeof transactions.$inferInsert
 export type AgentTarget = typeof agentTargets.$inferSelect
@@ -205,4 +229,6 @@ export type NewsItem = typeof newsItems.$inferSelect
 export type NewNewsItem = typeof newsItems.$inferInsert
 export type TransactionAgent = typeof transactionAgents.$inferSelect
 export type NewTransactionAgent = typeof transactionAgents.$inferInsert
+export type HistoricSnapshot = typeof historicSnapshots.$inferSelect
+export type NewHistoricSnapshot = typeof historicSnapshots.$inferInsert
 

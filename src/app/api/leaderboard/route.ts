@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
-import { transactions } from '@/db/schema'
+import { transactions, historicSnapshots } from '@/db/schema'
 import { gte, eq, and } from 'drizzle-orm'
 import { sql } from 'drizzle-orm'
 import { rebsMockAgents } from '@/lib/rebs-agent-mock'
 import { rebsFetch } from '@/lib/rebs-client'
 
 export const dynamic = 'force-dynamic'
+
+// Track last snapshot check to avoid checking on every request
+let lastSnapshotCheck: string | null = null
 
 interface LeaderboardAgent {
   id: string | number
@@ -171,6 +174,116 @@ function calculateStats(agents: LeaderboardAgent[]): LeaderboardStats {
 }
 
 /**
+ * Automatically save a snapshot for the previous month if:
+ * 1. It's the first 5 days of a new month
+ * 2. We haven't already saved a snapshot for that month
+ * 
+ * This ensures we capture end-of-month data automatically.
+ */
+async function autoSavePreviousMonthSnapshot(): Promise<void> {
+  try {
+    const now = new Date()
+    const currentDay = now.getDate()
+    
+    // Only run on days 1-5 of the month
+    if (currentDay > 5) return
+
+    const checkKey = `${now.getFullYear()}-${now.getMonth()}`
+    
+    // Skip if we already checked this month
+    if (lastSnapshotCheck === checkKey) return
+    lastSnapshotCheck = checkKey
+
+    // Calculate previous month
+    let prevYear = now.getFullYear()
+    let prevMonth = now.getMonth() // 0-indexed, so this is actually previous month
+    
+    if (prevMonth === 0) {
+      prevMonth = 12
+      prevYear -= 1
+    }
+
+    // Check if snapshot already exists for previous month
+    const existing = await db
+      .select({ id: historicSnapshots.id })
+      .from(historicSnapshots)
+      .where(and(
+        eq(historicSnapshots.year, prevYear),
+        eq(historicSnapshots.month, prevMonth)
+      ))
+      .limit(1)
+
+    if (existing.length > 0) {
+      console.log(`📋 [Auto-Snapshot] Snapshot already exists for ${prevYear}-${String(prevMonth).padStart(2, '0')}`)
+      return
+    }
+
+    // Fetch previous month's leaderboard data
+    const startOfPrevMonth = new Date(prevYear, prevMonth - 1, 1)
+    const endOfPrevMonth = new Date(prevYear, prevMonth, 0, 23, 59, 59, 999)
+
+    console.log(`📋 [Auto-Snapshot] Creating snapshot for ${prevYear}-${String(prevMonth).padStart(2, '0')}`)
+
+    // Query transactions for previous month
+    const rows = await db
+      .select({
+        Agent: transactions.agent,
+        NrTranzactii: sql<number>`count(*)`,
+        SumaValoare: sql<number>`sum(${transactions.valoareTranzactie})`,
+        SumaComision: sql<number>`sum(${transactions.comision})`,
+      })
+      .from(transactions)
+      .where(and(
+        gte(transactions.timestamp, startOfPrevMonth.toISOString()),
+        sql`${transactions.timestamp} <= ${endOfPrevMonth.toISOString()}`
+      ))
+      .groupBy(transactions.agent)
+
+    if (rows.length === 0) {
+      console.log(`📋 [Auto-Snapshot] No transactions for ${prevYear}-${String(prevMonth).padStart(2, '0')}, skipping snapshot`)
+      return
+    }
+
+    // Sort by commission descending
+    const sortedRows = rows.sort((a, b) => b.SumaComision - a.SumaComision)
+
+    // Fetch REBS agents for enrichment
+    const rebsAgents = await fetchRebsAgents()
+
+    // Process leaderboard data
+    const agents = processLeaderboardData(sortedRows, rebsAgents)
+    const stats = calculateStats(agents)
+
+    // Save snapshot
+    const totalAgents = agents.length
+    const totalTransactions = agents.reduce((sum, a) => sum + a.closed_transactions, 0)
+    const totalCommission = agents.reduce((sum, a) => sum + a.total_commission, 0)
+    const topPerformer = agents[0] || null
+
+    await db.insert(historicSnapshots).values({
+      year: prevYear,
+      month: prevMonth,
+      agentsJson: JSON.stringify(agents),
+      statsJson: JSON.stringify(stats),
+      totalAgents,
+      totalTransactions,
+      totalCommission,
+      topPerformerName: topPerformer?.name || null,
+      topPerformerCommission: topPerformer?.total_commission || null,
+      snapshotTimestamp: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    console.log(`✅ [Auto-Snapshot] Saved snapshot for ${prevYear}-${String(prevMonth).padStart(2, '0')} with ${totalAgents} agents`)
+
+  } catch (error) {
+    console.error('❌ [Auto-Snapshot] Error:', error)
+    // Don't throw - auto-snapshot failure shouldn't break the main leaderboard
+  }
+}
+
+/**
  * GET /api/leaderboard
  * 
  * Returns the complete leaderboard data including:
@@ -215,6 +328,9 @@ export async function GET(request: NextRequest) {
       includeStats,
       currentMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
     })
+
+    // Auto-save previous month snapshot (runs in background, doesn't block response)
+    autoSavePreviousMonthSnapshot().catch(() => {})
 
     // Build query conditions
     const conditions = []
