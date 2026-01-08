@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 127.0.0.1",
     "dev:https": "node scripts/dev-https.js",
     "dev:prod": "NODE_ENV=production npm run build && NODE_ENV=production npm run start",
     "icons:generate": "node scripts/gen-icons.js",
