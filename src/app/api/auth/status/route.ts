@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDashboardAgentById } from '@/lib/dashboard-agents-store'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -40,12 +42,35 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error checking agent status:', error)
+    // Return 200 with success: false for graceful error handling
+    // This prevents mobile app from treating it as a network failure
     return NextResponse.json(
-      { success: false, error: 'Nu am putut verifica statutul agentului.' },
-      { status: 500 },
+      { 
+        success: false, 
+        error: 'Nu am putut verifica statutul agentului.',
+        data: {
+          isActive: false,
+        }
+      },
+      { status: 200 }, // Return 200 instead of 500 for graceful error handling
     )
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

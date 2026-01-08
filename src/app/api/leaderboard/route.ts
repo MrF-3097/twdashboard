@@ -180,7 +180,9 @@ function calculateStats(agents: LeaderboardAgent[]): LeaderboardStats {
  * - Overall statistics
  * 
  * Query parameters:
- * - since: Filter transactions since this date (ISO string)
+ * - since: Filter transactions since this date (ISO string). Defaults to start of current month.
+ * - until: Filter transactions until this date (ISO string). Defaults to end of current month.
+ * - all_time: If 'true', returns all transactions regardless of date
  * - agent: Filter by specific agent name
  * - limit: Limit number of results (default: all)
  * - include_stats: Include statistics (default: true)
@@ -188,17 +190,39 @@ function calculateStats(agents: LeaderboardAgent[]): LeaderboardStats {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const since = searchParams.get('since')
+    const sinceParam = searchParams.get('since')
+    const untilParam = searchParams.get('until')
+    const allTime = searchParams.get('all_time') === 'true'
     const agent = searchParams.get('agent')
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
     const includeStats = searchParams.get('include_stats') !== 'false'
 
-    console.log('🔵 [API] GET /api/leaderboard', { since, agent, limit, includeStats })
+    // Calculate default date range (current month)
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+    
+    // Use provided dates or default to current month (unless all_time is true)
+    const since = allTime ? null : (sinceParam || startOfMonth.toISOString())
+    const until = allTime ? null : (untilParam || endOfMonth.toISOString())
+
+    console.log('🔵 [API] GET /api/leaderboard', { 
+      since, 
+      until, 
+      allTime,
+      agent, 
+      limit, 
+      includeStats,
+      currentMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    })
 
     // Build query conditions
     const conditions = []
     if (since) {
       conditions.push(gte(transactions.timestamp, since))
+    }
+    if (until) {
+      conditions.push(sql`${transactions.timestamp} <= ${until}`)
     }
     if (agent) {
       conditions.push(eq(transactions.agent, agent))

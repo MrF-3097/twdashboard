@@ -934,46 +934,46 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
           <div className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">Prenume *</Label>
-                <Input
-                  value={formState.contact.firstName}
-                  onChange={(e) => updateContactField('firstName', e.target.value)}
-                  className="bg-slate-900/60 border-white/10 text-white"
+                    <Label className="text-xs text-white/70">Prenume *</Label>
+                    <Input
+                      value={formState.contact.firstName}
+                      onChange={(e) => updateContactField('firstName', e.target.value)}
+                      className="bg-slate-900/60 border-white/10 text-white"
                   placeholder="Prenume"
-                />
-              </div>
+                    />
+                  </div>
               <div className="space-y-1">
                 <Label className="text-xs text-white/70">Nume *</Label>
-                <Input
+                  <Input
                   value={formState.contact.lastName}
                   onChange={(e) => updateContactField('lastName', e.target.value)}
-                  className="bg-slate-900/60 border-white/10 text-white"
+                    className="bg-slate-900/60 border-white/10 text-white"
                   placeholder="Nume"
-                />
-              </div>
+                  />
+                </div>
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">CNP *</Label>
-                <Input
-                  value={formState.contact.cnp}
-                  onChange={(e) => updateContactField('cnp', e.target.value)}
-                  className="bg-slate-900/60 border-white/10 text-white"
-                  placeholder="13 cifre"
-                />
-              </div>
+                    <Label className="text-xs text-white/70">CNP *</Label>
+                    <Input
+                      value={formState.contact.cnp}
+                      onChange={(e) => updateContactField('cnp', e.target.value)}
+                      className="bg-slate-900/60 border-white/10 text-white"
+                      placeholder="13 cifre"
+                    />
+                  </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1">
-                <Label className="text-xs text-white/70 flex items-center gap-1">
-                  <Phone className="h-3.5 w-3.5" /> Telefon *
-                </Label>
-                <Input
-                  value={formState.contact.phone}
-                  onChange={(e) => updateContactField('phone', e.target.value)}
-                  className="bg-slate-900/60 border-white/10 text-white"
+                    <Label className="text-xs text-white/70 flex items-center gap-1">
+                      <Phone className="h-3.5 w-3.5" /> Telefon *
+                    </Label>
+                    <Input
+                      value={formState.contact.phone}
+                      onChange={(e) => updateContactField('phone', e.target.value)}
+                      className="bg-slate-900/60 border-white/10 text-white"
                   placeholder="07xx xxx xxx"
-                />
-              </div>
+                    />
+                  </div>
               <div className="space-y-1">
                 <Label className="text-xs text-white/70">Email</Label>
                 <Input
@@ -983,89 +983,89 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                   className="bg-slate-900/60 border-white/10 text-white"
                   placeholder="client@example.com"
                 />
-              </div>
+                </div>
               <div className="space-y-1">
                 <Label className="text-xs text-white/70">Data expirare buletin</Label>
-                <Input
-                  value={formState.contact.phoneExpiry}
+                    <Input
+                      value={formState.contact.phoneExpiry}
                   onChange={(e) => updateContactField('phoneExpiry', formatToDateMask(e.target.value))}
-                  className="bg-slate-900/60 border-white/10 text-white"
+                      className="bg-slate-900/60 border-white/10 text-white"
                   placeholder="00/00/0000"
                   inputMode="numeric"
                   maxLength={10}
-                />
-              </div>
+                    />
+                  </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label className="text-xs text-white/70">Adresă domiciliu</Label>
-                <Input
+                    <Input
                   value={formState.contact.address}
                   onChange={(e) => updateContactField('address', e.target.value)}
-                  className="bg-slate-900/60 border-white/10 text-white"
+                      className="bg-slate-900/60 border-white/10 text-white"
                   placeholder="Str. Exemplu nr. 10, Sibiu"
-                />
-              </div>
-              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/40 p-3">
-                <Checkbox
-                  id="allow-agent-email"
-                  checked={formState.contact.allowAgentEmail}
-                  onCheckedChange={(checked) => updateContactField('allowAgentEmail', Boolean(checked))}
-                />
+                    />
+                </div>
+                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/40 p-3">
+                  <Checkbox
+                    id="allow-agent-email"
+                    checked={formState.contact.allowAgentEmail}
+                    onCheckedChange={(checked) => updateContactField('allowAgentEmail', Boolean(checked))}
+                  />
                 <Label htmlFor="allow-agent-email" className="text-xs text-white/80">
                   Blochează emailul agentului în REBS
-                </Label>
-              </div>
+                  </Label>
+                </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={handleContactLookup} disabled={contactStatus === 'checking'}>
-                  {contactStatus === 'checking' ? 'Se verifică...' : 'Verifică duplicate'}
-                </Button>
-                {contactStatus === 'warning' && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={handleContactLookup} disabled={contactStatus === 'checking'}>
+                      {contactStatus === 'checking' ? 'Se verifică...' : 'Verifică duplicate'}
+                    </Button>
+                    {contactStatus === 'warning' && (
                   <span className="text-xs text-amber-400">
                     Există un contact cu același telefon în portofoliul unui coleg.
                   </span>
-                )}
-                {contactStatus === 'ok' && (
+                    )}
+                    {contactStatus === 'ok' && (
                   <span className="text-xs text-emerald-400">Contactul este disponibil.</span>
-                )}
-              </div>
-              <Textarea
-                value={formState.contact.notes}
-                onChange={(e) => updateContactField('notes', e.target.value)}
-                className="bg-slate-900/60 border-white/10 text-white"
-                placeholder="Observații contact, mandatari, acte..."
+                    )}
+                  </div>
+                  <Textarea
+                    value={formState.contact.notes}
+                    onChange={(e) => updateContactField('notes', e.target.value)}
+                    className="bg-slate-900/60 border-white/10 text-white"
+                    placeholder="Observații contact, mandatari, acte..."
                 rows={2}
-              />
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-white">Mandatari și coproprietari</p>
-                <div className="flex gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={() => addAssociate('mandatarList')}>
-                    + Mandatar
-                  </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={() => addAssociate('coproprietarList')}>
-                    + Coproprietar
-                  </Button>
+                  />
                 </div>
-              </div>
+
+                <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-white">Mandatari și coproprietari</p>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => addAssociate('mandatarList')}>
+                        + Mandatar
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => addAssociate('coproprietarList')}>
+                        + Coproprietar
+                      </Button>
+                    </div>
+                  </div>
               <div className="grid gap-3 md:grid-cols-2">
-                {formState.mandatarList.map((associate, index) => renderAssociateCard('mandatarList', associate, index))}
-                {formState.coproprietarList.map((associate, index) => renderAssociateCard('coproprietarList', associate, index))}
+                  {formState.mandatarList.map((associate, index) => renderAssociateCard('mandatarList', associate, index))}
+                  {formState.coproprietarList.map((associate, index) => renderAssociateCard('coproprietarList', associate, index))}
                 {formState.mandatarList.length === 0 && formState.coproprietarList.length === 0 && (
                   <p className="text-xs text-white/50">Nu ai adăugat încă mandatari sau coproprietari.</p>
                 )}
               </div>
-              {formState.requiresInternalDoc && (
-                <div className="flex items-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-300">
-                  <ShieldCheck className="h-4 w-4" /> Este necesar documentul intern de mandat/coproprietate.
-                </div>
-              )}
+                  {formState.requiresInternalDoc && (
+                    <div className="flex items-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-300">
+                      <ShieldCheck className="h-4 w-4" /> Este necesar documentul intern de mandat/coproprietate.
+                    </div>
+                  )}
             </div>
           </div>
         )
@@ -1125,48 +1125,48 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">Tip proprietate *</Label>
+                  <Label className="text-xs text-white/70">Tip proprietate *</Label>
                 <Select
                   value={formState.property.propertyType}
                   onValueChange={(value) =>
                     setFormState((prev) => ({
-                      ...prev,
-                      property: {
-                        ...prev.property,
-                        propertyType: value
-                      }
+                    ...prev,
+                    property: {
+                      ...prev.property,
+                      propertyType: value
+                    }
                     }))
                   }
                 >
-                  <SelectTrigger className="bg-slate-900/60 border-white/10 text-white">
-                    <SelectValue placeholder="Selectează" />
-                  </SelectTrigger>
+                    <SelectTrigger className="bg-slate-900/60 border-white/10 text-white">
+                      <SelectValue placeholder="Selectează" />
+                    </SelectTrigger>
                   <SelectContent className="bg-slate-900 text-white border-white/10 z-[1400]">
-                    {propertyTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                      {propertyTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">Număr CF *</Label>
-                <Input
-                  value={formState.property.cfNumber}
+                    <Label className="text-xs text-white/70">Număr CF *</Label>
+                    <Input
+                      value={formState.property.cfNumber}
                   onChange={(e) =>
                     setFormState((prev) => ({
-                      ...prev,
-                      property: {
-                        ...prev.property,
-                        cfNumber: e.target.value
-                      }
+                        ...prev,
+                        property: {
+                          ...prev.property,
+                          cfNumber: e.target.value
+                        }
                     }))
                   }
-                  className="bg-slate-900/60 border-white/10 text-white"
-                  placeholder="123456"
-                />
-              </div>
+                      className="bg-slate-900/60 border-white/10 text-white"
+                      placeholder="123456"
+                    />
+                  </div>
             </div>
 
             {subtypeConfig && (
@@ -1188,10 +1188,10 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
             )}
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-white/20 px-3 py-2 text-xs text-white/70">
-                <UploadCloud className="h-4 w-4" />
+                    <label className="flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-white/20 px-3 py-2 text-xs text-white/70">
+                      <UploadCloud className="h-4 w-4" />
                 <span>{formState.property.cfScan ? formState.property.cfScan.name : 'Încarcă poză CF'}</span>
-                <input type="file" className="hidden" onChange={(e) => handleCfUpload(e.target.files)} />
+                      <input type="file" className="hidden" onChange={(e) => handleCfUpload(e.target.files)} />
               </label>
               <div className="flex flex-wrap gap-3 pt-1">
                 <label className="flex items-center gap-2 text-xs text-white/80">
@@ -1218,9 +1218,9 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                     }
                   />
                   La revânzare
-                </label>
-              </div>
-            </div>
+                    </label>
+                  </div>
+                </div>
 
           </div>
         )
@@ -1229,16 +1229,16 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
         return (
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
-              {(
-                [
-                  { key: 'sale', label: 'Vânzare' },
-                  { key: 'rent', label: 'Închiriere' },
-                  { key: 'both', label: 'Ambele' }
-                ] as Array<{ key: PropertyFormState['property']['transactionMode']; label: string }>
-              ).map((option) => (
-                <button
-                  type="button"
-                  key={option.key}
+                {(
+                  [
+                    { key: 'sale', label: 'Vânzare' },
+                    { key: 'rent', label: 'Închiriere' },
+                    { key: 'both', label: 'Ambele' }
+                  ] as Array<{ key: PropertyFormState['property']['transactionMode']; label: string }>
+                ).map((option) => (
+                  <button
+                    type="button"
+                    key={option.key}
                   onClick={() =>
                     setFormState((prev) => ({
                       ...prev,
@@ -1248,21 +1248,21 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                       }
                     }))
                   }
-                  className={cn(
-                    'rounded-2xl border px-3 py-2 text-sm font-semibold transition-all duration-200',
-                    formState.property.transactionMode === option.key
-                      ? 'border-emerald-400 bg-emerald-500/10 text-white shadow-[0_0_20px_rgba(16,185,129,0.2)]'
-                      : 'border-white/10 bg-white/5 text-white/70 hover:border-white/30'
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+                    className={cn(
+                      'rounded-2xl border px-3 py-2 text-sm font-semibold transition-all duration-200',
+                      formState.property.transactionMode === option.key
+                        ? 'border-emerald-400 bg-emerald-500/10 text-white shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+                        : 'border-white/10 bg-white/5 text-white/70 hover:border-white/30'
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             <div className="space-y-1">
-              <Label className="text-xs text-white/70">Tip reprezentare</Label>
-              <Select
-                value={formState.property.representationType}
+                <Label className="text-xs text-white/70">Tip reprezentare</Label>
+                <Select
+                  value={formState.property.representationType}
                 onValueChange={(value) =>
                   setFormState((prev) => ({
                     ...prev,
@@ -1272,18 +1272,18 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                     }
                   }))
                 }
-              >
-                <SelectTrigger className="bg-slate-900/60 border-white/10 text-white">
-                  <SelectValue placeholder="Selectează" />
-                </SelectTrigger>
+                >
+                  <SelectTrigger className="bg-slate-900/60 border-white/10 text-white">
+                    <SelectValue placeholder="Selectează" />
+                  </SelectTrigger>
                 <SelectContent className="bg-slate-900 text-white border-white/10 z-[1400]">
-                  {representationOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {representationOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
             </div>
           </div>
         )
@@ -1292,9 +1292,9 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">Stradă *</Label>
-                <Input
-                  value={formState.property.location.street}
+                  <Label className="text-xs text-white/70">Stradă *</Label>
+                  <Input
+                    value={formState.property.location.street}
                   onChange={(e) =>
                     setFormState((prev) => ({
                       ...prev,
@@ -1307,14 +1307,14 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                       }
                     }))
                   }
-                  className="bg-slate-900/60 border-white/10 text-white"
-                  placeholder="Strada"
-                />
-              </div>
+                    className="bg-slate-900/60 border-white/10 text-white"
+                    placeholder="Strada"
+                  />
+                </div>
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">Număr</Label>
-                <Input
-                  value={formState.property.location.streetNumber}
+                  <Label className="text-xs text-white/70">Număr</Label>
+                  <Input
+                    value={formState.property.location.streetNumber}
                   onChange={(e) =>
                     setFormState((prev) => ({
                       ...prev,
@@ -1327,13 +1327,13 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                       }
                     }))
                   }
-                  className="bg-slate-900/60 border-white/10 text-white"
-                />
-              </div>
+                    className="bg-slate-900/60 border-white/10 text-white"
+                  />
+                </div>
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">Oraș *</Label>
-                <Input
-                  value={formState.property.location.city}
+                  <Label className="text-xs text-white/70">Oraș *</Label>
+                  <Input
+                    value={formState.property.location.city}
                   onChange={(e) =>
                     setFormState((prev) => ({
                       ...prev,
@@ -1346,14 +1346,14 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                       }
                     }))
                   }
-                  className="bg-slate-900/60 border-white/10 text-white"
-                  placeholder="Sibiu"
-                />
-              </div>
+                    className="bg-slate-900/60 border-white/10 text-white"
+                    placeholder="Sibiu"
+                  />
+                </div>
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">Județ</Label>
-                <Input
-                  value={formState.property.location.county}
+                  <Label className="text-xs text-white/70">Județ</Label>
+                  <Input
+                    value={formState.property.location.county}
                   onChange={(e) =>
                     setFormState((prev) => ({
                       ...prev,
@@ -1366,15 +1366,15 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                       }
                     }))
                   }
-                  className="bg-slate-900/60 border-white/10 text-white"
-                />
+                    className="bg-slate-900/60 border-white/10 text-white"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button type="button" variant="outline" size="sm" onClick={handleDuplicateScan}>
-                Verifică duplicate proprietate
-              </Button>
-              {duplicateWarning && <span className="text-xs text-emerald-300">{duplicateWarning}</span>}
+              <div className="flex flex-wrap gap-3">
+                <Button type="button" variant="outline" size="sm" onClick={handleDuplicateScan}>
+                  Verifică duplicate proprietate
+                </Button>
+                {duplicateWarning && <span className="text-xs text-emerald-300">{duplicateWarning}</span>}
             </div>
           </div>
         )
@@ -1491,19 +1491,19 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
               </div>
             </CollapsibleSection>
 
-            {Object.entries(multiGroupMap).map(([field, options]) => {
-              if (!options) return null
+                {Object.entries(multiGroupMap).map(([field, options]) => {
+                  if (!options) return null
               const label = featureGroupLabels[field] ?? field
-              return (
+                  return (
                 <CollapsibleSection key={field} sectionKey={field} title={label}>
-                  <MultiSelectChips
-                    options={options}
-                    values={(formState.property.characteristics as any)[field] as string[]}
-                    onToggle={(value) => toggleMultiValue(field as keyof PropertyFormState['property']['characteristics'], value)}
-                  />
+                    <MultiSelectChips
+                      options={options}
+                      values={(formState.property.characteristics as any)[field] as string[]}
+                      onToggle={(value) => toggleMultiValue(field as keyof PropertyFormState['property']['characteristics'], value)}
+                    />
                 </CollapsibleSection>
-              )
-            })}
+                  )
+                })}
           </div>
         )
       case 'pricing': {
@@ -1561,11 +1561,11 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                   />
                 </div>
               )}
-            </div>
+              </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">TVA</Label>
+                  <Label className="text-xs text-white/70">TVA</Label>
                 <Select value={vatValue} onValueChange={(value) => updatePropertyField('pricing', 'vat', value)}>
                   <SelectTrigger className="border-white/10 bg-transparent text-white">
                     <SelectValue placeholder="Selectează" />
@@ -1578,27 +1578,27 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                 {vatValue === 'da' && (
                   <p className="text-xs text-white/50">TVA standard 21% este inclus în preț.</p>
                 )}
-              </div>
+                </div>
               <div className="space-y-1">
-                <Label className="text-xs text-white/70">Comision (%)</Label>
-                <Input
-                  value={formState.property.pricing.commissionPercent}
-                  onChange={(e) => updatePropertyField('pricing', 'commissionPercent', e.target.value)}
-                  className="bg-slate-900/60 border-white/10 text-white"
+                  <Label className="text-xs text-white/70">Comision (%)</Label>
+                  <Input
+                    value={formState.property.pricing.commissionPercent}
+                    onChange={(e) => updatePropertyField('pricing', 'commissionPercent', e.target.value)}
+                    className="bg-slate-900/60 border-white/10 text-white"
                   placeholder="Ex: 3"
-                />
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/40 p-3 text-sm text-white">
-              <Checkbox
-                id="negotiable"
-                checked={formState.property.pricing.negotiable}
-                onCheckedChange={(checked) => updatePropertyField('pricing', 'negotiable', Boolean(checked))}
-              />
-              <Label htmlFor="negotiable" className="text-white/80">
-                Preț negociabil
-              </Label>
+              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/40 p-3 text-sm text-white">
+                <Checkbox
+                  id="negotiable"
+                  checked={formState.property.pricing.negotiable}
+                  onCheckedChange={(checked) => updatePropertyField('pricing', 'negotiable', Boolean(checked))}
+                />
+                <Label htmlFor="negotiable" className="text-white/80">
+                  Preț negociabil
+                </Label>
             </div>
           </div>
         )
@@ -1609,22 +1609,22 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
             <label className="flex cursor-pointer flex-col items-center gap-3 rounded-2xl border border-dashed border-white/20 px-4 py-12 text-white/70">
               <UploadCloud className="h-8 w-8" />
               <span className="text-base">Încarcă poze proprietate</span>
-              <input type="file" multiple className="hidden" onChange={(e) => handlePhotoUpload(e.target.files)} />
-              {formState.property.media.photos.length > 0 && (
+                  <input type="file" multiple className="hidden" onChange={(e) => handlePhotoUpload(e.target.files)} />
+                  {formState.property.media.photos.length > 0 && (
                 <p className="text-sm text-white/60">
-                  {formState.property.media.photos.length} fișiere selectate
-                </p>
-              )}
-            </label>
-            <Textarea
-              value={formState.property.media.notes}
-              onChange={(e) => updatePropertyField('media', 'notes', e.target.value)}
-              className="bg-slate-900/60 border-white/10 text-white"
-              placeholder="Note pentru matching automat"
-              rows={3}
-            />
-            <div className="rounded-2xl border border-white/10 bg-slate-900/40 p-3 text-xs text-white/70">
-              Matching automat se va executa după salvare și va propune proprietăți similare în zona selectată.
+                      {formState.property.media.photos.length} fișiere selectate
+                    </p>
+                  )}
+                </label>
+                <Textarea
+                  value={formState.property.media.notes}
+                  onChange={(e) => updatePropertyField('media', 'notes', e.target.value)}
+                  className="bg-slate-900/60 border-white/10 text-white"
+                  placeholder="Note pentru matching automat"
+                  rows={3}
+                />
+                <div className="rounded-2xl border border-white/10 bg-slate-900/40 p-3 text-xs text-white/70">
+                  Matching automat se va executa după salvare și va propune proprietăți similare în zona selectată.
             </div>
           </div>
         )
@@ -1776,12 +1776,12 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
             </Button>
             <div className={cn('flex h-full flex-col gap-4 px-6 py-6', commissionToast && 'blur-sm')}>
               <div className="flex items-start justify-between gap-3">
-                <div>
+              <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-white/60">Adaugă proprietate</p>
                   <h2 className="text-2xl font-semibold text-white">
                     {steps[stepIndex]?.title || 'Contact'}
                   </h2>
-                </div>
+              </div>
                 <Button
                   type="button"
                   variant="ghost"
@@ -1793,7 +1793,7 @@ export const AddPropertyModal = ({ isOpen, onClose }: AddPropertyModalProps) => 
                   title="Debug skip"
                 >
                   Debug skip
-                </Button>
+              </Button>
               </div>
 
               {stepErrors.length > 0 && (

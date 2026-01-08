@@ -1,0 +1,1033 @@
+Documentație API
+Parcurgerea feed-ului
+
+Pentru importul proprietăților din CRM REBS, se va consuma un feed JSON care conține o listă cu detaliile tuturor proprietăților active.
+
+Recomandăm parcurgerea feed-ului la un interval prestabilit de timp (de exemplu o oră) printr-un mecanism de gen Cron. Job-ul cron va parcurge toate proprietățile din feed, va salva proprietățile noi în baza de date proprie, va actualiza proprietățile care au fost modificate, și le va șterge pe cele care nu mai apar în feed.
+
+Feed-ul este disponibil la /api/public/property/
+
+Există și un feed pentru toti agenții activi, disponibil la /api/public/agent/
+Autentificare
+
+Pentru autentificarea la API, se folosește o cheie API care trebuie transmisă la accesarea oricărei resurse API.
+
+Cheia API poate fi specificată printr-un parametru GET cu numele api_key sau prin header-ul HTTP Authorization.
+
+De exemplu, dacă cheia API este abcdef, se poate accesa API-ul în următoarele moduri:
+
+    Prin parametru GET: /api/public/property/?api_key=abcdef
+    Prin header-ul HTTP Authorization (exemplu folosind curl):
+        curl -H "Authorization: abcdef" http://towerimob.crmrebs.com/api/public/property/
+
+Dacă echipa REBS nu v-a transmis o cheie API, vă rugăm să ne contactați la suport@crmrebs.com și să includeți în CC și pe managerul companiei pentru care se implementează API-ul.
+Câmpul "meta"
+
+Pentru evitarea timpului de răspuns mare și a unei dimensiuni mari, recomandăm parcurgerea API-ului folosind paginare. Pentru aceasta, se va folosi câmpul meta din răspuns.
+
+Câmpul meta conține informații utile pentru paginare:
+
+    limit - numărul maxim de proprietăți returnate într-o pagină
+    next - URL-ul către pagina următoare, dacă există
+    offset - numărul proprietății de la care se returnează proprietăți pentru această pagină
+    previous - URL-ul către pagină anterioară, dacă există
+    total_count - numărul total de proprietăți (pentru toate paginile)
+
+Pentru o parcurgere cât mai ușoară a API-ului, se poate face un request inițial pentru prima pagină, iar apoi se parcurge pagină cu pagină folosind câmpul next, până când acesta devine null.
+
+În mod implicit, o pagină conține 20 de proprietăți. Se pot cere mai multe proprietăți folosind parametrul limit.
+Exemplu:
+
+    Se accesează prima pagină: /api/public/property/
+    Se accesează apoi câmpul meta.next din răspuns: /api/public/property/?offset=20&limit=20
+    Și așa mai departe, până când câmpul meta.next devine null, moment în care au fost parcurse toate proprietățile
+
+Câmpul "objects"
+
+Acest câmp conține o listă de obiecte, fiecare obiect reprezentând o proprietate.
+Câmpuri:
+
+    access_road_width (float) - Lățime drum acces (m)
+    agency_zone (string) - Zonă internă a agenției
+    agent (related) - Agent
+    apartment_type (integer) - Tip apartament
+        6 - Apartament
+        1 - Garsonieră
+        2 - Penthouse
+        5 - Duplex
+        7 - Triplex
+    approved_construction (boolean) - Autorizație de construcție
+    approved_pud (boolean) - PUD Aprobat
+    approved_puz (boolean) - PUZ Aprobat
+    approved_urbanism_certificate (boolean) - Certificat de urbanism
+    availability (integer) - Valabilitate
+        5 - Incompletă
+        1 - Activă
+        7 - Antecontract / Rezervat
+        4 - Tranzacționată de noi
+        2 - Tranzacționată de alții
+        3 - Retrasă
+    balconies (integer) - Nr. balcoane
+    bathrooms (integer) - Nr. băi
+    bedrooms (integer) - Dormitoare
+    building_construction_year (integer) - An constr.
+    building_floors (integer) - Nr. et. clădire
+    building_retired_floors (integer) - Nr. et. retrase
+    building_structure (integer) - Tip constr.
+        1 - Beton
+        2 - Cărămidă
+        3 - BCA
+        4 - Lemn
+        5 - Metal
+        6 - Altele
+        7 - Cadre
+        8 - Plăci
+        9 - Monolit
+    building_type (integer) - Imobil
+        1 - Bloc de apart.
+        2 - Casă / Vilă
+        3 - Bloc de garsoniere
+        4 - Bloc mixt
+    building_underground_floors (integer) - Nr. subsoluri
+    city (string) - Localitate
+    closed_transaction_type (integer) - Tip tranzacționare
+        2 - Vânzare
+        1 - Închiriere
+    collaboration_commission_percent_rent (float) - Comision la colaborare închiriere (%)
+    collaboration_commission_percent_sale (float) - Comision la colaborare vânzare (%)
+    collaboration_commission_rent (float) - Comision la colaborare închiriere
+    collaboration_commission_sale (float) - Comision la colaborare vânzare
+    collaboration_rent (boolean) - Colaborare la închiriere
+    collaboration_sale (boolean) - Colaborare la vânzare
+    comfort (integer) - Confort
+        1 - 1
+        2 - 2
+        3 - 3
+        4 - Lux
+    commercial_building_type (integer) - Tip imobil
+        1 - Bloc de apart.
+        2 - Clădire birouri
+        3 - Casă / Vilă
+        4 - Hală
+        5 - Centru comercial
+        6 - Depozit
+        7 - Stradal
+    construction_on_land (boolean) - Construcție pe teren
+    construction_status (integer) - Stadiu construcție
+        1 - Finalizată
+        2 - Finisat
+        3 - Semifinisat
+        4 - În construcție
+        9 - La gri
+        5 - La roșu
+        6 - Necesită renovare
+        7 - De demolat
+        8 - Structură
+        10 - Proiect
+    currency_rent (integer) - Monedă
+        1 - €
+        2 - RON
+        3 - $
+    currency_sale (integer) - Monedă
+        1 - €
+        2 - RON
+        3 - $
+    cut (float) - CUT
+    date_added (datetime) - Data adăugării
+    date_modified (datetime) - Data ultimei modificări (identic cu 'date_modified_by_user')
+    date_modified_by_user (datetime) - Data ultimei modificări (identic cu 'date_modified')
+    date_transactioned (date) - Data tranzacționării
+    date_validated (datetime) - Data ultimei validări
+    description (string) - Descriere
+    destination (complex) - Listă de destinații ale proprietății
+    disponibility (string) - Disponibilitate
+    emission_index (float) - Indice emisii echivalent CO2 (kg)
+    energy_class (integer) - Clasă Energetică
+        1 - A
+        2 - B
+        3 - C
+        4 - D
+        5 - E
+        6 - F
+        7 - G
+    exclusive_rent (boolean) - Intermediere exclusivă
+    exclusive_representation_rent (boolean) - Reprezentare exclusivă
+    exclusive_representation_sale (boolean) - Reprezentare exclusivă
+    exclusive_sale (boolean) - Intermediere exclusivă
+    floor (integer) - Etaj
+        1 - Demisol
+        2 - Parter
+        102 - Mezanin
+        3 - 1
+        4 - 2
+        5 - 3
+        6 - 4
+        7 - 5
+        8 - 6
+        9 - 7
+        10 - 8
+        11 - 9
+        12 - 10
+        13 - 11
+        14 - 12
+        15 - 13
+        16 - 14
+        17 - 15
+        18 - 16
+        19 - 17
+        20 - 18
+        21 - 19
+        22 - 20
+        23 - 21
+        24 - 22
+        25 - 23
+        26 - 24
+        27 - 25
+        28 - 26
+        29 - 27
+        30 - 28
+        31 - 29
+        32 - 30
+        33 - 31
+        34 - 32
+        35 - 33
+        36 - 34
+        37 - 35
+        38 - 36
+        39 - 37
+        40 - 38
+        41 - 39
+        42 - 40
+        100 - Mansarda
+        101 - Ultimele 2 etaje
+    floor_multi (complex) - Listă de etaje ale proprietății. Aceleași valori ca și la "field"
+    footprint (float) - S. construită la sol (Amprentă) (mp)
+    for_rent (boolean) - De închiriat
+    for_sale (boolean) - De vânzare
+    full_images (complex) - Listă de URL-uri către imagini la dimensiunea originală
+    garages (integer) - Nr. garaje
+    guarantee_cost (integer) - Garanție
+    has_attic (boolean) - Are pod
+    has_basement (boolean) - Are subsol
+    has_bathroom_window (boolean) - Geam la baie
+    has_mansard (boolean) - Are mansardă
+    has_restaurant (boolean) - Restaurant
+    has_semibasement (boolean) - Are demisol
+    historical_monument (boolean) - Monument Istoric
+    hotel_type (integer) - Tip imobil
+        1 - Hotel
+        2 - Guest house
+        3 - Chalet
+        4 - Motel
+        5 - Complex turistic
+    house_type (integer) - Tip casă
+        1 - Individuală
+        6 - Vilă
+        2 - Calcan
+        3 - Duplex
+        5 - Triplex
+        4 - Casă înșiruită
+    id (integer) - ID
+    incidence (string) - Valoare incidență
+    interior_height (float) - Înălțime interioară
+    interior_state (integer) - Stare interior
+        1 - Ultrafinisat
+        2 - Finisat modern
+        3 - Semifinisat
+        4 - Finisat clasic
+        5 - Bună
+        6 - Nou
+        7 - Renovat
+        8 - Necesită renovare
+    internal_id (string) - ID intern
+    kitchens (integer) - Nr. bucătării
+    land_classification (integer) - Clasificare
+        1 - Intravilan
+        2 - Extravilan
+    land_distance_from_utilities (float) - Distanța față de utilități (m)
+    land_type (integer) - Tip teren
+        1 - Construcții
+        2 - Agricol
+        3 - Pădure
+    landmark (string) - Reper
+    lat (float) - Latitudine
+    lng (float) - Longitudine
+    location_apartment (string) - Apartament; Pentru spațiile comerciale va conține numărul spațiului
+    location_building (string) - Bloc
+    location_number (string) - Număr stradă
+    location_unit (string) - Scară
+    lockers (integer) - Nr. vestiare
+    maintenance_cost (float) - Valoare întreținere medie
+    nearby (string) - Vecinătăți
+    nearby_en (string) - Vecinătăți [en]
+    negotiable_rent_price (boolean) - Preț închiriere negociabil
+    negotiable_sale_price (boolean) - Preț vânzare negociabil
+    number_of_apartments (integer) - Nr. apartamente
+    office_building (related) - Clădire de birouri
+    office_class (integer) - Clasă birouri
+        1 - A
+        2 - B
+        3 - C
+    office_occupy_rate (integer) - Rata de ocupare (%)
+    office_partitioning (integer) - Compartimentare
+        1 - Open space
+        2 - Compartimentat
+        3 - Parțial compartimentat
+        4 - Flexibil
+    openings_length (float) - Deschidere (m)
+    orientation (integer) - Orientare
+        1 - Nord
+        2 - Nord-Est
+        3 - Est
+        4 - Sud-Est
+        5 - Sud
+        6 - Sud-Vest
+        7 - Vest
+        8 - Nord-Vest
+        9 - Nord-Sud
+        10 - Est-Vest
+    parking_overtheground (integer) - Parcări suprafață
+    parking_overtheground_cost (integer) - Cost / parcare suprafață (€)
+    parking_spots (integer) - Nr. locuri parcare
+    parking_underground (integer) - Parcări subterane
+    parking_underground_cost (integer) - Cost / parcare subterană (€)
+    partitioning (integer) - Compartimentare
+        1 - Decomandat
+        2 - Semidecomandat
+        3 - Nedecomandat
+        4 - Circular
+        5 - Vagon
+    pedestrian_traffic (integer) - Trafic pietonal
+        1 - Intens
+        2 - Moderat
+        3 - Fără trafic pietonal
+    pet_friendly (boolean) - Acceptă animale de companie
+    polish_year (integer) - Anul finisării
+    pot (float) - POT (%)
+    price_rent (integer) - Preț chirie/lună
+    price_rent_history (complex) - Istoric preț închiriere
+    price_sale (integer) - Preț vânzare
+    price_sale_history (complex) - Istoric preț vânzare
+    price_sqm_rent (float) - Preț chirie/mp/lună
+    price_sqm_sale (float) - Preț vânzare/mp
+    print_url (string) - URL pentru generare prezentare PDF pentru clienți
+    promote_carousel (boolean) - Promovat prima pagina
+    promote_commission_rent (string) - Comision cerut de la chiriaș la închiriere
+    promote_commission_sale (string) - Comision cerut de la cumpărător la vânzare
+    promote_custom_fields (complex) - Câmpuri de promovare specifice agenției
+    promote_exact_location (boolean) - Promovează locația exactă a proprietății
+    promote_external (boolean) - Portaluri externe
+    promote_featured (boolean) - Featured
+    promote_flags (string) - Alte opțiuni promovare
+        OLX-pro - OLX-pro
+        ziarul-sibiu - ziarul-sibiu
+        ziarul-tribuna - ziarul-tribuna
+        ziarul-de-toate - ziarul-de-toate
+    property_for_investment (boolean) - Imobil pentru investiție
+    property_type (integer) - Tip proprietate
+        1 - Apartament
+        3 - Casă / Vilă
+        6 - Teren
+        4 - Spațiu de birouri
+        5 - Spațiu comercial
+        7 - Spațiu industrial
+        8 - Hotel / Pensiune
+        9 - Proprietate specială
+    property_with_business_included (boolean) - Imobil cu preluare afacere
+    region (string) - Județ
+    renewable_sources_consumption (float) - Consum total din surse regenerabile (kWh)
+    residential_complex (related) - Ansamblu rezidențial
+    residential_complex_model (related) - Model apartament
+    resized_images (complex) - Listă de URL-uri către imagini redimensionate la maxim 1920x1080
+    resource_uri (string) - Unicode string data. Ex: "Hello World"
+    roof (integer) - Acoperiș
+        1 - Tablă
+        2 - Țiglă
+        3 - Șindrilă
+        4 - Terasă
+    rooms (integer) - Nr. camere
+    similar_properties (complex) - Listă de proprietăți similare
+    sketches (complex) - Listă de URL-uri pentru schițe la dimensiune originală
+    special_property_type (integer) - Tip imobil
+        1 - Ansamblu rezidențial
+        2 - Bloc de apartamente
+        3 - Centru comercial
+        4 - Mall
+        5 - Restaurant
+        6 - Clădire mixtă
+        7 - Garaj / Parcare
+        8 - Clădire istorică
+        9 - Farm
+        10 - Pescărie
+        11 - Silos
+        12 - Alt tip de proprietate
+    street (string) - Stradă
+    street_opening_length (float) - Front stradal (m)
+    street_opening_type (integer) - Deschidere la
+        1 - Șosea
+        2 - Drum principal
+        3 - DN
+        4 - Autostradă
+        5 - Șoseaua de centură
+        6 - Lac
+        7 - Pădure
+        8 - Drum de servitute
+    street_openings (integer) - Nr. fronturi stradale
+    surface_balconies (float) - S. balcoane (mp)
+    surface_built (float) - S. construită (mp)
+    surface_land (float) - S. teren (*)
+    surface_office (float) - S. totală birouri (mp)
+    surface_office_available (float) - Suprafață maximă (mp)
+    surface_office_minimum (float) - Suprafață minimă (mp)
+    surface_production (float) - S. producție (mp)
+    surface_storage (float) - S. depozitare (mp)
+    surface_terrace (float) - S. terasă (mp)
+    surface_total (float) - S. totală (mp)
+    surface_unit (integer) - Unitate Suprafață
+        1 - mp
+        2 - ha
+    surface_useable (float) - S. utilă (mp)
+    surface_yard (float) - S. curte (mp)
+    tags (complex) - Listă caracteristici
+    tags_en (complex) - Listă caracteristici (en)
+    terraces (integer) - Nr. terase
+    thumbnail (string) - Thumbnail URL
+    title (string) - Titlu Anunț
+    total_energy_consumption (float) - Consum total de energie primară (kWh)
+    upfront_cost (integer) - Avans
+    vat_rent (integer) - TVA
+        1 - Nu se aplică TVA
+        3 - TVA inclus
+        2 - + 21% TVA
+    vat_sale (integer) - TVA
+        1 - Nu se aplică TVA
+        4 - TVA inclus
+        3 - + 21% TVA
+    verbose_floor (string) - Formulă completă etaje pentru afișare (i.e. "2 / P+5E+M")
+    verbose_price (string) - Preț pentru afișare (i.e. "500 € / lună + TVA <br /> 50.000 €")
+    video_file (string) - Fișier video
+    video_link (string) - Link video
+    virtual_tour_link (string) - Link tur virtual
+    window (float) - Vitrină (m)
+    zero_commission_rent (boolean) - Comision 0% la închiriere cerut de la chiriaș
+    zero_commission_sale (boolean) - Comision 0% la vânzare cerut de la cumpărător
+    zone (string) - Zonă
+
+Imagini
+
+Imaginile redimensionate la maxim 1920 px x 1080 px sunt returnate în câmpul resized_images, reprezentat printr-o listă de URL-uri către imagini.
+
+Imaginile neredimensionate sunt returnate în câmpul full_images.
+
+Aceste imagini nu pot fi folosite direct în site. Ele trebuie descărcate, stocate pe serverele site-ului și servite de acolo către vizitatori.
+
+Pentru a seta un watermark pe toate imaginile, trimite-ne la adresa suport@crmrebs.com o imagine semitransparentă (PNG).
+Ordonare
+Ordonare
+
+Proprietățile returnate pot fi ordonate specificând parametrul order_by, ce va avea ca valoare numele câmpului după care se va face ordonarea. În mod implicit, ordonarea se face crescător. Pentru ordonare descrescătoare, se va adaugă “-” (caracterul minus) în fața câmpului după care se face ordonarea.
+
+Se poate specifica un singur câmp după care se face ordonarea.
+Exemple:
+
+    Sortare crescătoare după id: /api/public/property/?order_by=id
+    Sortare descrescătoare după data adăugării: /api/public/property/?order_by=-date_added
+
+Mecanism de reîncercare
+
+În cazul în care un apel către orice feed din acest API întoarce un cod de eroare, trebuie reîncercat apelul peste 5 minute - de cel puțin 3 ori și de maximum 10 ori.
+Atenție! În cazul în care spre exemplu API-ul de proprietăți întoarce o eroare, proprietățile preluate deja din API nu trebuie șterse. Se va folosi mecanismul de reîncercare, până când API-ul va răspunde din nou.
+
+Singurul caz în care o proprietate trebuie ștearsă este atunci când apelul API pentru detaliile proprietății întoarce cod HTTP 404.
+
+În caz că întâmpinați probleme cu accesarea API-ului, vă rugăm să ne scrieți la suport@crmrebs.com.
+Link din CRM către site
+
+Pentru a putea ajunge din CRM la proprietățile importate în site-ul companiei, se va folosi un endpoint care să redirecționeze spre pagina proprietății din site, în funcție de ID.
+
+De exemplu, pentru proprietatea CP1234 (cu id 1234), se va accesa o adresă de genul http://siteagentie.ro/id/1234/ care fie va servi direct pagina proprietății, fie va redirecționa către pagina finală a proprietății. Nu e obligatoriu /id/1234, poate avea orice formă, atât timp cât cuprinde ID-ul proprietății.
+
+Endpoint-ul va fi folosit pentru:
+
+    a putea ajunge direct din CRM - pe pagina proprietății de pe site-ul companiei
+    a redirecționa clientul din email-ul cu proprietăți propuse de către agent, către site-ul companiei
+    activarea canalelor de publicare care au nevoie de un link al proprietății, cum este PropertyBook.ro
+
+Vă rugăm să ne contactați la suport@crmrebs.com după ce este implementat endpoint-ul pentru activarea link-urilor din CRM.
+Număr vizualizări proprietate de pe Site-ul companiei
+
+Pentru a putea înregistra numărul de vizualizări pentru fiecare proprietate în site-urile proprii, am adăugat câmpul tracking_code în API-ul pentru proprietăți. Conținutul câmpului trebuie inclus oriunde pe pagina de detalii a proprietății, o singură dată, iar vizitele se vor înregistra automat în CRM REBS.
+
+Statisticile despre vizualizările proprietăților vor fi disponibile în modulul Rapoarte CRM REBS și în rapoarte trimise automat din CRM REBS către proprietari.
+Actualizarea în timp real
+Actualizarea proprietăților în timp real
+
+Pentru a putea actualiza proprietățile din site în timp real, în momentul în care se face o schimbare în CRM, punem la dispoziție un webhook care să semnaleze când se modifică o proprietate.
+
+Webhook-ul va face un apel POST către un URL setat de dvs. în care se va include ID-ul proprietății din CRM ca parametru POST cu numele property_id.
+
+Exemplu (presupunem că webhook-ul va fi la http://www.exemplu-agentie.ro/hooks/update):
+
+    Se configurează webhook-ul pe site-ul agenției și se trimite URL-ul către suport@crmrebs.com
+    Un agent modifică proprietatea CP1234
+    Se face un apel POST către http://www.exemplu-agentie.ro/hooks/update cu POST property_id=1234
+        curl -X POST -d "property_id=1234" http://www.exemplu-agentie.ro/hooks/update
+    În momentul primirii apelului din webhook, site-ul va apela /api/public/property/1234 pentru a extrage informațiile actualizate despre proprietate.
+    Dacă API-ul întoarce cod HTTP 404 înseamnă că în urma modificărilor, proprietatea nu se mai promovează pe site-ul companiei și trebuie ștearsă.
+
+URL-urile imaginilor proprietății sunt unice, ele vor trebui descărcate din nou doar dacă URL-ul se schimbă. Schimbarea ordinii imaginilor pe o proprietate nu modifică URL-urile imaginilor.
+
+În cazul în care webhook-ul nu întoarce un răspuns valid (HTTP 200), se va reîncerca apelul de un maxim de 3 ori la intervale de câte 5 minute.
+
+Chiar și cu folosirea webhook-ului, recomandăm ca periodic (de exemplu o dată pe zi) să se facă parcurgerea completă a feed-ului de proprietăți din API pentru a evita potențiale inconsistențe cauzate de erori de comunicare între site și CRM.
+
+Pentru testare, recomandăm folosirea unui tool precum cURL sau http://requestmaker.com/ cu body-ul property_id=1234.
+Actualizarea agenților în timp real
+
+Similar proprietăților, se poate trimite un webhook și la modificarea datelor oricărui agent. Webhook-ul pentru actualizarea agenților este diferit de cel pentru proprietăți.
+
+Acesta va primi prin POST un parametru cu numele user_id.
+
+Exemplu:
+
+    Se modifică un agent cu ID-ul 100
+    Se face un apel POST către http://www.exemplu-agentie.ro/hooks/update_agent cu POST user_id=100
+        curl -X POST -d "user_id=100" http://www.exemplu-agentie.ro/hooks/update_agent
+
+Exportarea proprietăților cu altă valabilitate
+
+În mod implicit, în feed apar numai proprietățile cu valabilitate “Activă” în CRM (cele care au availability=1).
+
+În cazul în care doriți să apară în API și proprietăți cu altă valabilitate (de exemplu dacă doriți să afișați în site și proprietăți care au fost deja tranzacționate), va rugăm să luați legătura cu managerul agenției, pentru a include și alte valabilități din modulul de administrare CRM, secțiunea Promovare Site Propriu.
+Exportarea unor câmpuri suplimentare
+
+Dacă doriți să apară în API și alte câmpuri din CRM, vă rugăm să ne contactați la suport@crmrebs.com.
+Ansambluri rezidențiale și clădiri de birouri
+
+Dacă doriți includerea ansamblurilor rezidențiale și a clădirilor de birouri în API, vă rugăm să ne contactați la suport@crmrebs.com.
+
+Ele vor fi disponibile la următoarele adrese:
+
+    Ansambluri rezidențiale: /api/public/residentialcomplex/
+    Clădiri de birouri: /api/public/officebuilding/
+
+Câmpurile feed-urilor de ansambluri rezidențiale și clădiri de birouri sunt aceleași ca la proprietăti, cu câteva excepții:
+
+    Pentru ansambluri rezidențiale, nu există un singur câmp agent, ci există 2 câmpuri de tip listă care pot conține mai mulți utilizatori:
+        project_managers - Manageri de proiect pentru ansamblul rezidențial
+        agents - Agenții de vânzare pentru ansamblul rezidențial
+
+Adăugare de cereri
+
+Pentru adăugarea de cereri prin API, se va face un apel HTTP POST către /api/public/addrequest/
+
+În body-ul request-ului, se vor transmite următoarele câmpuri:
+
+    name - Nume client
+    phone - Telefon client
+    email - Email
+    lead_source - Câmp text pentru sursă lead. Trebuie să existe în CRM o sursă lead cu nume identic, altfel va fi ignorat
+    lead_property - Un ID de proprietate (de exemplu 1234 pentru CP1234), dacă clientul este interesat de o proprietate anume
+        Se poate folosi și ID-ul intern în loc de ID-ul atribuit de către CRM REBS
+    lead_residential_complex - Un ID de ansamblu rezidențial, dacă clientul este interesat de un ansamblu rezidențial. Acest câmp este opțional
+    external_id - Un ID extern care identifică unic cererea. Este folosit pentru a detecta dacă a fost deja adăugată această cerere, cu scopul prevenirii intrărilor duplicate
+    message - Un mesaj introdus de către client. Va apărea pe cerere ca o activitate finalizată
+
+În caz de succes, se va returna cod HTTP 200 și un JSON de forma:
+
+{
+    "success": true,
+    "contact": 123,
+    "request": 1234
+}
+
+În caz de eroare, se va returna cod HTTP 4xx și un JSON de forma:
+
+{
+    "success": false,
+    "error": "Un mesaj de eroare aici"
+}
+
+Listă caracteristici proprietăți
+
+Mai jos este o listă cu toate caracteristicile (i.e. tag-uri) posibile pentru o proprietate, împreună cu tipurile de proprietate la care pot apărea.
+Grupuri de caracteristici per tip de proprietate
+Tip proprietate 	Grup caracteristici 	Grup caracteristici (en)
+Apartament 	Dotări 	Features
+Amenajare străzi 	Street amenities
+Utilități generale 	General utilities
+Izolații termice 	Thermal insulation
+Dotări imobil 	Property amenities
+Parcare 	Parking
+Sistem încălzire 	Heating system
+Priveliște 	Views
+Ușă intrare 	Front door
+Pereți 	Walls
+Mobilat 	Furnished
+Bucătărie 	Kitchen
+Ferestre 	Windows
+Contorizare 	Meters
+Uși interior 	Interior doors
+Podele 	Floors
+Alte spații 	Other spaces
+Rulouri / Obloane 	Rolling shutters
+Jaluzele 	Window blinds
+Casă / Vilă 	Dotări 	Features
+Amenajare străzi 	Street amenities
+Utilități generale 	General utilities
+Izolații termice 	Thermal insulation
+Dotări imobil 	Property amenities
+Parcare 	Parking
+Sistem încălzire 	Heating system
+Priveliște 	Views
+Ușă intrare 	Front door
+Pereți 	Walls
+Mobilat 	Furnished
+Bucătărie 	Kitchen
+Ferestre 	Windows
+Contorizare 	Meters
+Uși interior 	Interior doors
+Podele 	Floors
+Alte spații 	Other spaces
+Rulouri / Obloane 	Rolling shutters
+Jaluzele 	Window blinds
+Teren 	Alte caracteristici 	Other features
+Amenajare străzi 	Street amenities
+Utilități teren 	Land amenities
+Priveliște 	Views
+Parcare 	Parking
+Spațiu comercial 	Utilități teren 	Land amenities
+Elemente ECO 	ECO elements
+Alte caracteristici spațiu comercial 	Other features for commercial space
+Parcare 	Parking
+Priveliște 	Views
+Spațiu de birouri 	Servicii asigurate în clădire 	Services provided in the building
+Siguranță și securitate 	Safety and security
+Climatizare birou 	Air conditioning
+Parcare 	Parking
+Priveliște 	Views
+IT&C 	IT&C
+Sistem electric 	Electrical system
+Elemente ECO 	ECO elements
+Arhitectură 	Architecture
+Facilități clădire / proximități 	Building facilities / proximities
+Spațiu industrial 	Alte caracteristici spațiu industrial 	Other features for industrial space
+Parcare 	Parking
+Amenajare străzi 	Street amenities
+Utilități teren 	Land amenities
+Hotel / Pensiune 	Utilități teren 	Land amenities
+Elemente ECO 	ECO elements
+Alte caracteristici 	Other features
+Parcare 	Parking
+Priveliște 	Views
+Dotări imobil 	Property amenities
+Izolații termice 	Thermal insulation
+Contorizare 	Meters
+Uși interior 	Interior doors
+Ferestre 	Windows
+Sistem încălzire 	Heating system
+Rulouri / Obloane 	Rolling shutters
+Alte spații 	Other spaces
+Amenajare străzi 	Street amenities
+Proprietate specială 	Utilități generale 	General utilities
+Dotări imobil 	Property amenities
+Dotări 	Features
+Amenajare străzi 	Street amenities
+Parcare 	Parking
+Izolații termice 	Thermal insulation
+Priveliște 	Views
+Ușă intrare 	Front door
+Uși interior 	Interior doors
+Sistem încălzire 	Heating system
+Podele 	Floors
+Alte spații 	Other spaces
+Ferestre 	Windows
+Rulouri / Obloane 	Rolling shutters
+Contorizare 	Meters
+Jaluzele 	Window blinds
+Ansamblu rezidențial 	Izolații termice 	Thermal insulation
+Amenajare străzi 	Street amenities
+Alte spații 	Other spaces
+Clădire de birouri 	Servicii asigurate în clădire 	Services provided in the building
+Siguranță și securitate 	Safety and security
+Climatizare birou 	Air conditioning
+IT&C 	IT&C
+Sistem electric 	Electrical system
+Elemente ECO 	ECO elements
+Arhitectură 	Architecture
+Facilități clădire / proximități 	Building facilities / proximities
+Grup caracteristici 	Grup caracteristici (en) 	Caracteristici 	Caracteristici (en)
+Alte caracteristici 	Other features 	Acces auto 	Auto access
+Construcție demolabilă 	Construction demolishable
+La șosea 	On the road
+Oportunitate de investiții 	Investment opportunity
+Parcelabil 	Plot
+Studiu Geo 	Geo study
+Teren împrejmuit 	Enclosed land
+Alte caracteristici 	Other features 	Acces pentru persoane cu dizabilități 	Wheelchair access
+Acces secundar marfă 	Secondary goods access
+Centrală termică 	Central heating
+Sistem de alarmă 	Alarm system
+Sistem de ventilație 	Ventilation system
+Vestiar 	Changing room
+Alte spații 	Other spaces 	Boxă la subsol 	Underground storage
+Curte 	Yard
+Curte comună 	Shared yard
+Debara 	Limber box
+Grădină proprie 	Private garden
+Irigații 	Irrigation
+Loc de joacă copii 	Children playground
+Magazie 	Storage room
+Pivniță 	Cellar
+WC Serviciu 	Service closet
+IT&C 	IT&C 	Internet 	Internet
+Posibilitatea alegerii operator date / telefonie 	Choice of the data / phone provider
+Sistem modern de telecomunicații 	Modern telecom system
+Telefon 	Phone
+Telefon internațional 	International telephone
+Alte caracteristici spațiu comercial 	Other features for commercial space 	Acces pentru persoane cu dizabilități 	Wheelchair access
+Acces secundar marfă 	Secondary goods access
+Afișare logo pe clădire 	Logo on building
+Centrală termică 	Central heating
+Contorizare separată 	Separate metering
+Grupuri sanitare amenajate și utilate 	Bathrooms furnished and equipped
+Posibilitate terasă 	Terrace possible
+Sistem de alarmă 	Alarm system
+Sistem de ventilație 	Ventilation system
+Vestiar 	Changing room
+Alte caracteristici spațiu industrial 	Other features for industrial space 	Acces auto 	Auto access
+Acces TIR 	Truck access
+Construcție demolabilă 	Construction demolishable
+Curent trifazic (380V) 	Three-phase electric power
+La șosea 	On the road
+Luminatoare 	Skylights
+Oportunitate de investiții 	Investment opportunity
+Panouri solare 	Solar panels
+Pod rulant 	Overhead crane
+Posibilitate de compartimentare 	Partitioning possible
+Sistem de alarmă 	Alarm system
+Teren împrejmuit 	Enclosed land
+Uși de acces 	Access doors
+Vestiar 	Changing room
+Alte spații 	Other spaces 	Boxă la subsol 	Underground storage
+Curte 	Yard
+Curte comună 	Shared yard
+Debara 	Limber box
+Facilități sportive 	Sports facilities
+Grădină proprie 	Private garden
+Irigații 	Irrigation
+Lift 	Elevator
+Loc de joacă copii 	Children playground
+Magazie 	Storage room
+Pivniță 	Cellar
+Saună 	Sauna
+WC Serviciu 	Service closet
+Zonă pentru barbeque 	Barbeque area
+Alte spații 	Other spaces 	Boxă la subsol 	Underground storage
+Cameră de aburi 	Steam room
+Curte 	Yard
+Curte comună 	Shared yard
+Debara 	Limber box
+Grădină proprie 	Private garden
+Loc de joacă copii 	Children playground
+Magazie 	Storage room
+Pivniță 	Cellar
+Saună 	Sauna
+Spa 	Spa & wellness
+Spații agrement 	Recreational spaces
+WC Serviciu 	Service closet
+Zonă pentru barbeque 	Barbeque area
+Amenajare străzi 	Street amenities 	Iluminat stradal 	Street lighting
+Mijloace de transport în comun 	Public transport
+Străzi asfaltate 	Asphalted streets
+Străzi betonate 	Concrete streets
+Străzi de pământ 	Mud streets
+Străzi neamenajate 	Undeveloped streets
+Străzi pietruite 	Cobbled streets
+Arhitectură 	Architecture 	Cortină de sticlă 	Glass curtain
+Ferestre care se deschid 	Windows that open
+Ferestre înclinate 	Inclined windows
+Gresie 	Hone
+Grupuri sanitare amenajate și utilate 	Bathrooms furnished and equipped
+Lift cu destinație programată 	Programmable destination elevator
+Mochetă 	Carpet
+Parchet 	Parquet
+Podea înălțată 	Raised floor
+Post trafo 	Post trafo
+Tavan fals 	Fake ceilling
+Dotări imobil 	Property amenities 	Beach 	Beach
+Cameră de aburi 	Steam room
+Facilități sportive 	Sports facilities
+Fitness 	Fitness
+Hot tub 	Hot tub
+Interfon 	Intercom
+Lift 	Elevator
+Parcare biciclete 	Bicycle parking
+Pază 	Guard
+Pază permanentă 	Permanent guard
+Piscină comunală 	Common swimming pool
+Piscină exterioară 	Outdoor swimming pool
+Piscină interioară 	Indoor swimming pool
+Piscină privată 	Private swimming pool
+Recepție 	Reception
+Restaurant în clădire 	Restaurant in building
+Saună 	Sauna
+Șemineu 	Fireplace
+Senzor de fum 	Smoke sensor
+Spa 	Spa & wellness
+Supraveghere video 	Video surveillance
+Zonă pentru barbeque 	Barbeque area
+Dotări imobil 	Property amenities 	Acces pentru persoane cu dizabilități 	Wheelchair access
+Fitness 	Fitness
+Interfon 	Intercom
+Lift 	Elevator
+Parcare biciclete 	Bicycle parking
+Pază 	Guard
+Pază permanentă 	Permanent guard
+Piscină comunală 	Common swimming pool
+Piscină exterioară 	Outdoor swimming pool
+Piscină interioară 	Indoor swimming pool
+Piscină privată 	Private swimming pool
+Senzor de fum 	Smoke sensor
+Spălătorie 	Laundry room
+Supraveghere video 	Video surveillance
+Telecomandă poartă acces auto 	Remote control vehicle access gate
+Telecomandă poartă garaj 	Remote control garage access
+Uscătorie 	Drying chamber
+Videointerfon 	Video intercom
+Wireless 	Wireless
+Elemente ECO 	ECO elements 	Building management system 	Building management system
+Certificare Green Building 	Green Building Certification
+Echipamente moderne / silențioase 	Modern / silent equipment
+Fațadă ventilată 	Ventilated facade
+Incărcător auto electrice 	Electric car charger
+Panouri solare 	Solar panels
+Parcare biciclete 	Bicycle parking
+Sistem electric inteligent 	Intelligent electrical system
+Sistem inteligent ascensoare 	Intelligent lift system
+Facilități clădire / proximități 	Building facilities / proximities 	Cafenea la parter 	Coffee shop nearby
+Centru comercial în apropiere 	Shopping center nearby
+Restaurant în clădire 	Restaurant in building
+Stație de autobuz în apropiere 	Bus stop nearby
+Stație de metrou în apropiere 	Subway station nearby
+Stație de tramvai în apropiere 	Tram station nearby
+Ferestre 	Windows 	Ferestre aluminiu 	Aluminum windows
+Ferestre care se deschid 	Windows that open
+Ferestre lemn 	Wooden windows
+Ferestre PVC 	PVC windows
+Geamuri cu izolație fonică 	Noise insulating windows
+Geamuri cu protecție UV 	Glare protection
+Geamuri termopan 	Double glazed windows
+Geamuri tripan 	Triple glazed windows
+Izolații termice 	Thermal insulation 	Izolație exterioară 	Exterior thermal isolation
+Izolație interioară 	Interior thermal insulation
+Jaluzele 	Window blinds 	Jaluzele orizontale 	Horizontal window blinds
+Jaluzele verticale 	Vertical window blinds
+Mobilat 	Furnished 	Mobilat complet 	Fully furnished
+Mobilat lux 	Luxury furnished
+Mobilat parțial 	Partially furnished
+Nemobilat 	Unfurnished
+Parcare 	Parking 	Garaj 	Garage
+Garaj subteran 	Underground garage
+Parcare acoperită 	Covered parking
+Parcare deschisă 	Uncovered parking
+Parcare 	Parking 	Parcare acoperită 	Covered parking
+Parcare deschisă 	Uncovered parking
+Pereți 	Walls 	Faianță 	Tiles
+Glet 	Glet
+Lambriu 	Wainscot
+Pereți piatră naturală 	Natural stone walls
+Tapet 	Tapestry
+Var 	Lime
+Vopsea lavabilă 	Washable paint
+Podele 	Floors 	Dușumea 	Floorboards
+Gresie 	Hone
+Linoleum 	Linoleum
+Mochetă 	Carpet
+Parchet 	Parquet
+Parchet laminat 	Laminate
+Podele granit 	Granite floors
+Podele marmură 	Marble floors
+Podele piatră naturală 	Natural stone floors
+Șapă 	Screed
+Priveliște 	Views 	Vedere panoramică 	Panoramic view
+Vedere spre lac 	Lake view
+Vedere spre mare 	Sea view
+Vedere spre munte 	Mountain view
+Vedere spre oraș 	Town view
+Rulouri / Obloane 	Rolling shutters 	Rulouri / obloane aluminiu 	Aluminum rolling shutters
+Rulouri / obloane electrice 	Electric rolling shutters
+Rulouri / obloane lemn 	Wooden rolling shutters
+Rulouri / obloane manuale 	Manual rolling shutters
+Rulouri / obloane PVC 	PVC rolling shutters
+Servicii asigurate în clădire 	Services provided in the building 	Acces pentru persoane cu dizabilități 	Wheelchair access
+Administrare și management imobiliar 	Real estate management and administration
+Afișare logo pe clădire 	Logo on building
+Consumabile grupuri sociale 	Bathroom consumables
+Contorizare separată 	Separate metering
+Curățenie exterioară 	Exterior cleaning
+Curățenie parcare 	Parking cleaning
+Curățenie spații comune 	Common space cleaning
+Îndepărtarea zăpezii 	Snow removal
+Îngrijirea spațiilor verzi 	Green space maintenance
+Salubritate 	Sanitation
+Servicii de întreținere și reparații lifturi 	Elevetor maintenance and repairs
+Sistem de ventilație 	Ventilation system
+Vestiar 	Changing room
+Sistem electric 	Electrical system 	Control electric individual pe zona de birou 	Individual electrical control for each office
+Generator de urgență 	Emergency generator
+Necesită surse suplimentare de energie 	Requires additional energy sources
+Sursă principală de alimentare 	Main power supply
+Sursa UPS 	UPS Source
+Bucătărie 	Kitchen 	Bucătărie deschisă 	Open kitchen
+Bucătărie închisă 	Closed kitchen
+Bucătărie mobilată 	Furnished kitchen
+Bucătărie parțial mobilată 	Partially furnished kitchen
+Bucătărie parțial utilată 	Partially equipped kitchen
+Bucătărie utilată 	Equipped kitchen
+Chicinetă 	Kitchenette
+Climatizare birou 	Air conditioning 	Aport de aer proaspăt 	Fresh air
+Centrală termică 	Central heating
+Control individual AC pentru fiecare zonă de birou 	Individual AC controls for each office
+Sistem climatizare 2 țevi 	2-pipes climate control
+Sistem climatizare 4 țevi 	4-pipes climate control
+Unități Split 	Split Units
+Ventilație mecanică 	Mechanical ventilation
+Contorizare 	Meters 	Apometre 	Water meters
+Contor căldură 	Heating meter
+Contor electric 	Electricity meter
+Contor gaz 	Gas meter
+Detalii tehnice 	Technical details 	Acces securizat parcare 	Secure parking access
+Building management system 	Building management system
+Cameră server 	Server room
+Centrală termică 	Central heating
+Certificare Green Building 	Green Building Certification
+Compartimentare 	Partitioning
+Control acces securizat pe bază de cartele 	Secure card-based access control
+Control al accesului 	Access control
+Control al accesului pe zone 	Access zone control
+Detectoare de fum/incendiu 	Smoke detectors
+Fațadă ventilată 	Ventilated facade
+Finisaje de calitate 	Quality finishes
+Internet 	Internet
+Mochetă 	Carpet
+Parcare biciclete 	Bicycle parking
+Podea înălțată 	Raised floor
+Post trafo 	Post trafo
+Semaforizare parcare 	Parking traffic lights
+Server room cu rack, ventilație, control acces 	Server room with racks, ventilation and access control
+Sistem antiincendiu 	Anti-fire system
+Sistem de alarmă 	Alarm system
+Sistem de evacuare 	Evacuation system
+Sistem modern de telecomunicații 	Modern telecom system
+Tavan fals 	Fake ceilling
+Telefon 	Phone
+Transmisie date 	Data transmission
+Ventilație mecanică 	Mechanical ventilation
+Dotări 	Features 	Aer condiționat 	Air conditioning
+Aeroterme 	Heaters
+Aragaz 	Stove
+Bideu 	Bidet
+Cabină de duș 	Shower
+Cadă 	Bathtub
+Dressing 	Dressing room
+Duș exterior 	Outdoor shower facilities
+Frigider 	Fridge
+Hotă 	Kitchen hood
+Jacuzzi 	Jacuzzi
+Mașină de spălat rufe 	Washing machine
+Mașină de spălat vase 	Dishwasher
+Scară interioară 	Staircase
+Șemineu 	Fireplace
+Sistem de alarmă 	Alarm system
+TV 	TV
+Dotări 	Features 	Aer condiționat 	Air conditioning
+Aeroterme 	Heaters
+Duș exterior 	Outdoor shower facilities
+Șemineu 	Fireplace
+Sistem de alarmă 	Alarm system
+TV 	TV
+Dotări imobil 	Property amenities 	Acces pentru persoane cu dizabilități 	Wheelchair access
+Acoperiș 	Roof
+Cameră de aburi 	Steam room
+Fitness 	Fitness
+Interfon 	Intercom
+Parcare biciclete 	Bicycle parking
+Pază 	Guard
+Pază permanentă 	Permanent guard
+Piscină comunală 	Common swimming pool
+Piscină exterioară 	Outdoor swimming pool
+Piscină interioară 	Indoor swimming pool
+Piscină privată 	Private swimming pool
+Senzor de fum 	Smoke sensor
+Spa 	Spa & wellness
+Spălătorie 	Laundry room
+Spații agrement 	Recreational spaces
+Supraveghere video 	Video surveillance
+Telecomandă poartă acces auto 	Remote control vehicle access gate
+Telecomandă poartă garaj 	Remote control garage access
+Uscătorie 	Drying chamber
+Videointerfon 	Video intercom
+Wireless 	Wireless
+Siguranță și securitate 	Safety and security 	Acces securizat parcare 	Secure parking access
+Cameră server 	Server room
+CCTV 	CCTV
+Control acces securizat pe bază de cartele 	Secure card-based access control
+Control al accesului pe zone 	Access zone control
+Detectoare de fum/incendiu 	Smoke detectors
+Extinctoare sprinkler 	Sprinklers
+Pază permanentă 	Permanent guard
+Recepție 	Reception
+Semaforizare parcare 	Parking traffic lights
+Server room cu rack, ventilație, control acces 	Server room with racks, ventilation and access control
+Sistem de alarmă 	Alarm system
+Sistem de evacuare 	Evacuation system
+Sisteme de securitate integrate BMS 	Integrated BMS security systems
+Sistem încălzire 	Heating system 	Calorifere 	Radiators
+Centrală cu lemne 	Wood
+Centrală cu peleți 	Pellets
+Centrală imobil 	Central heating
+Centrală proprie 	Central heating
+Încălzire diesel 	Diesel heating
+Încălzire prin pardoseală 	Underfloor heating
+Pompă de căldură 	Heat pump
+Sobă / Teracotă 	Teracotta
+Termoficare 	Heating
+Ventiloconvectoare 	Fan coil units
+Ușă intrare 	Front door 	Ușă intrare lemn 	Wooden front door
+Ușă intrare metal 	Metal front door
+Ușă intrare pal 	Chipboard front door
+Ușă intrare PVC 	PVC front door
+Ușă intrare sticlă 	Front door
+Uși interior 	Interior doors 	Uși interior celulare 	Cellular interior doors
+Uși interior cu panel 	Paneled interior doors
+Uși interior lemn 	Wooden interior doors
+Uși interior MDF 	MDF interior doors
+Uși interior PVC 	PVC interior doors
+Uși interior sticlă 	Glass interior doors
+Utilități generale 	General utilities 	Apă 	Water
+Canalizare 	Sewage
+CATV 	Cable / Satellite TV
+Curent 	Electricity
+Curent trifazic (380V) 	Three-phase electric power
+Fosă septică 	Septic tank
+Gaz 	Gas
+Internet 	Internet
+Panouri solare 	Solar panels
+Telefon 	Phone
+Telefon internațional 	International telephone
+Utilități teren 	Land amenities 	Apă 	Water
+Canalizare 	Sewage
+Curent 	Electricity
+Gaz 	Gas
+Irigații 	Irrigation
+Utilități în zonă 	Utilities in the area
+Utilități teren 	Land amenities 	Apă 	Water
+Canalizare 	Sewage
+CATV 	Cable / Satellite TV
+Curent 	Electricity
+Curent trifazic (380V) 	Three-phase electric power
+Fosă septică 	Septic tank
+Gaz 	Gas
+Internet 	Internet
+Telefon 	Phone

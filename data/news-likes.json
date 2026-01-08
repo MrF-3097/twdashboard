@@ -161,5 +161,18 @@
         "agentName": "Francesco Fârțonea"
       }
     ]
+  },
+  "test-123": {
+    "itemId": "test-123",
+    "likedBy": [
+      "Test Agent"
+    ],
+    "totalLikes": 1,
+    "reactions": [
+      {
+        "emoji": "👍",
+        "agentName": "Test Agent"
+      }
+    ]
   }
 }

@@ -1,7 +1,8 @@
 import { db } from '@/db'
 import { leaderboardHistory, leaderboardStandings, transactions } from '@/db/schema'
-import { desc, sql, eq } from 'drizzle-orm'
+import { desc, sql, eq, inArray } from 'drizzle-orm'
 import { sendPushNotification } from '@/lib/push-notification-service'
+import { logger } from '@/lib/logger'
 
 /**
  * Interface for leaderboard entry
@@ -23,7 +24,19 @@ const normalizeName = (name: string) => name.trim().toLowerCase()
 const formatAmount = (amount: number) => amount.toLocaleString('ro-RO')
 
 /**
- * Build current leaderboard snapshot from database transactions
+ * Builds a current leaderboard snapshot from database transactions.
+ * 
+ * Aggregates all transactions by agent and calculates total commission per agent.
+ * Results are sorted by total commission in descending order.
+ * 
+ * @returns {Promise<LeaderboardEntry[]>} Array of leaderboard entries sorted by total commission (descending)
+ * @throws {Error} If database query fails
+ * 
+ * @example
+ * ```typescript
+ * const snapshot = await getLeaderboardSnapshot()
+ * // Returns: [{ agent: "John Doe", total: 5000 }, { agent: "Jane Smith", total: 3000 }]
+ * ```
  */
 export const getLeaderboardSnapshot = async (): Promise<LeaderboardEntry[]> => {
   try {
@@ -42,13 +55,24 @@ export const getLeaderboardSnapshot = async (): Promise<LeaderboardEntry[]> => {
       }))
       .sort((a, b) => b.total - a.total)
   } catch (error) {
-    console.error('[Leaderboard Monitor] Error building snapshot:', error)
+    logger.error('[Leaderboard Monitor] Error building snapshot', error)
     return []
   }
 }
 
 /**
- * Get the current first place agent from the leaderboard history
+ * Retrieves the current first place agent from the leaderboard history.
+ * 
+ * Fetches the most recent leaderboard history entry to determine who is currently in first place.
+ * 
+ * @returns {Promise<{agentName: string, total: number} | null>} First place agent data or null if no history exists
+ * @throws {Error} If database query fails
+ * 
+ * @example
+ * ```typescript
+ * const firstPlace = await getCurrentFirstPlace()
+ * // Returns: { agentName: "John Doe", total: 5000 } or null
+ * ```
  */
 export const getCurrentFirstPlace = async (): Promise<{
   agentName: string
@@ -68,14 +92,29 @@ export const getCurrentFirstPlace = async (): Promise<{
       total: latest[0].firstPlaceTotal,
     }
   } catch (error) {
-    console.error('[Leaderboard Monitor] Error getting current first place:', error)
+    logger.error('[Leaderboard Monitor] Error getting current first place', error)
     return null
   }
 }
 
 /**
- * Check if the leaderboard first place has changed and send notification
- * Returns true if there was a change, false otherwise
+ * Checks if the leaderboard first place has changed and sends notifications.
+ * 
+ * Compares the current leaderboard with previous standings stored in the database.
+ * If the leader has changed, sends push notifications to all agents and a targeted
+ * notification to the dethroned agent. Also sends rank change notifications for
+ * agents in the top 10 who moved up or down.
+ * 
+ * @param {LeaderboardEntry[]} currentLeaderboard - Current leaderboard snapshot
+ * @returns {Promise<boolean>} True if leader changed or rank changes detected, false otherwise
+ * @throws {Error} If database operations or notification sending fails
+ * 
+ * @example
+ * ```typescript
+ * const leaderboard = [{ agent: "John Doe", total: 5000 }, ...]
+ * const changed = await checkAndNotifyLeaderboardChange(leaderboard)
+ * // Returns: true if leader changed, false otherwise
+ * ```
  */
 export const checkAndNotifyLeaderboardChange = async (
   currentLeaderboard: LeaderboardEntry[]
@@ -119,7 +158,7 @@ export const checkAndNotifyLeaderboardChange = async (
         sendLeaderDethronedNotification(previousLeader.agentName, newFirstPlace.agent)
       )
 
-      console.log(
+      logger.info(
         `[Leaderboard Monitor] Leader changed from ${previousLeader.agentName} to ${newFirstPlace.agent}`
       )
     }
@@ -134,7 +173,7 @@ export const checkAndNotifyLeaderboardChange = async (
 
     return leaderChanged || rankChanges.length > 0
   } catch (error) {
-    console.error('[Leaderboard Monitor] Error checking leaderboard change:', error)
+    logger.error('[Leaderboard Monitor] Error checking leaderboard change', error)
     return false
   }
 }
@@ -164,11 +203,11 @@ const sendLeaderboardChangeNotification = async (
       },
     })
 
-    console.log(
+    logger.info(
       `[Leaderboard Monitor] Leader change notification sent. sent=${result.sent}, failed=${result.failed}`
     )
   } catch (error) {
-    console.error('[Leaderboard Monitor] Error sending notification:', error)
+    logger.error('[Leaderboard Monitor] Error sending notification', error)
   }
 }
 
@@ -193,7 +232,7 @@ const sendLeaderDethronedNotification = async (
       targetAgentNames: [dethronedAgentName],
     })
   } catch (error) {
-    console.error('[Leaderboard Monitor] Error sending dethroned notification:', error)
+    logger.error('[Leaderboard Monitor] Error sending dethroned notification', error)
   }
 }
 
@@ -234,8 +273,8 @@ const sendRankChangeNotifications = async (changes: RankChange[]): Promise<void>
           targetAgentNames: [change.agentName],
         })
       } catch (error) {
-        console.error(
-          `[Leaderboard Monitor] Error sending rank change notification for ${change.agentName}:`,
+        logger.error(
+          `[Leaderboard Monitor] Error sending rank change notification for ${change.agentName}`,
           error
         )
       }
@@ -247,7 +286,7 @@ const getPreviousStandings = async () => {
   try {
     return await db.select().from(leaderboardStandings)
   } catch (error) {
-    console.error('[Leaderboard Monitor] Error fetching previous standings:', error)
+    logger.error('[Leaderboard Monitor] Error fetching previous standings', error)
     return []
   }
 }
@@ -264,7 +303,7 @@ const refreshStandings = async (currentLeaderboard: LeaderboardEntry[]) => {
     const uniqueEntries = currentLeaderboard.filter((entry) => {
       const key = normalizeName(entry.agent)
       if (seenAgents.has(key)) {
-        console.warn(
+        logger.warn(
           `[Leaderboard Monitor] Duplicate agent "${entry.agent}" detected while refreshing standings. Keeping first occurrence.`
         )
         return false
@@ -274,18 +313,23 @@ const refreshStandings = async (currentLeaderboard: LeaderboardEntry[]) => {
     })
 
     if (!uniqueEntries.length) {
-      console.warn('[Leaderboard Monitor] No unique leaderboard entries found after deduplication.')
+      logger.warn('[Leaderboard Monitor] No unique leaderboard entries found after deduplication.')
       return
     }
 
-    // Use upsert pattern: insert or update for each agent
-    // First, get existing standings to know which ones to update vs insert
+    // Get existing standings in one query
     const existingStandings = await db.select().from(leaderboardStandings)
     const existingAgentNames = new Set(existingStandings.map(s => s.agentName))
+    const currentAgentNames = new Set(uniqueEntries.map(e => e.agent))
 
-    // Process each entry with upsert logic
-    for (const entry of uniqueEntries) {
-      const rank = uniqueEntries.indexOf(entry) + 1
+    // Prepare batch operations
+    const inserts: Array<{ agentName: string; rank: number; total: number; updatedAt: Date }> = []
+    const updates: Array<{ agentName: string; rank: number; total: number; updatedAt: Date }> = []
+    const agentsToRemove: string[] = []
+
+    // Categorize operations
+    uniqueEntries.forEach((entry, index) => {
+      const rank = index + 1
       const values = {
         agentName: entry.agent,
         rank,
@@ -294,45 +338,69 @@ const refreshStandings = async (currentLeaderboard: LeaderboardEntry[]) => {
       }
 
       if (existingAgentNames.has(entry.agent)) {
-        // Update existing
-        await db.update(leaderboardStandings)
-          .set({
-            rank,
-            total: entry.total,
-            updatedAt: new Date(),
-          })
-          .where(eq(leaderboardStandings.agentName, entry.agent))
+        updates.push(values)
       } else {
-        // Insert new
-        try {
-          await db.insert(leaderboardStandings).values(values)
-        } catch (insertError: any) {
-          // If insert fails due to unique constraint (race condition), try update instead
-          if (insertError?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-            await db.update(leaderboardStandings)
-              .set({
-                rank,
-                total: entry.total,
-                updatedAt: new Date(),
-              })
-              .where(eq(leaderboardStandings.agentName, entry.agent))
-          } else {
-            throw insertError
+        inserts.push(values)
+      }
+    })
+
+    // Find agents to remove
+    existingStandings.forEach(existing => {
+      if (!currentAgentNames.has(existing.agentName)) {
+        agentsToRemove.push(existing.agentName)
+      }
+    })
+
+    // Execute batch operations
+    // Batch inserts
+    if (inserts.length > 0) {
+      // SQLite doesn't support true batch inserts, but we can use a transaction
+      await db.transaction(async (tx) => {
+        for (const values of inserts) {
+          try {
+            await tx.insert(leaderboardStandings).values(values)
+          } catch (insertError: any) {
+            // If insert fails due to unique constraint (race condition), add to updates
+            if (insertError?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+              await tx.update(leaderboardStandings)
+                .set({
+                  rank: values.rank,
+                  total: values.total,
+                  updatedAt: values.updatedAt,
+                })
+                .where(eq(leaderboardStandings.agentName, values.agentName))
+            } else {
+              throw insertError
+            }
           }
         }
-      }
+      })
     }
 
-    // Remove agents that are no longer in the leaderboard
-    const currentAgentNames = new Set(uniqueEntries.map(e => e.agent))
-    for (const existing of existingStandings) {
-      if (!currentAgentNames.has(existing.agentName)) {
-        await db.delete(leaderboardStandings)
-          .where(eq(leaderboardStandings.agentName, existing.agentName))
-      }
+    // Batch updates (group by agent name to avoid duplicates)
+    if (updates.length > 0) {
+      await db.transaction(async (tx) => {
+        for (const values of updates) {
+          await tx.update(leaderboardStandings)
+            .set({
+              rank: values.rank,
+              total: values.total,
+              updatedAt: values.updatedAt,
+            })
+            .where(eq(leaderboardStandings.agentName, values.agentName))
+        }
+      })
     }
+
+    // Batch deletes
+    if (agentsToRemove.length > 0) {
+      await db.delete(leaderboardStandings)
+        .where(inArray(leaderboardStandings.agentName, agentsToRemove))
+    }
+
+    logger.info(`[Leaderboard Monitor] Refreshed standings: ${inserts.length} inserts, ${updates.length} updates, ${agentsToRemove.length} deletes`)
   } catch (error) {
-    console.error('[Leaderboard Monitor] Error refreshing standings:', error)
+    logger.error('[Leaderboard Monitor] Error refreshing standings', error)
   }
 }
 
@@ -347,7 +415,7 @@ const seedHistoryIfMissing = async (leader: LeaderboardEntry) => {
       changedAt: new Date(),
     })
   } catch (error) {
-    console.error('[Leaderboard Monitor] Error seeding leaderboard history:', error)
+    logger.error('[Leaderboard Monitor] Error seeding leaderboard history', error)
   }
 }
 

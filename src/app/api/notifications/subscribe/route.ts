@@ -86,20 +86,33 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * Schema for unsubscribe request validation
+ */
+const unsubscribeSchema = z.object({
+  endpoint: z.string().url('Endpoint invalid'),
+})
+
+/**
  * DELETE /api/notifications/subscribe
  * Unsubscribe an agent from push notifications
  */
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json()
-    const { endpoint } = body
+    const parsed = unsubscribeSchema.safeParse(body)
 
-    if (!endpoint) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Endpoint lipsă.' },
+        { 
+          success: false, 
+          error: 'Date invalide',
+          details: parsed.error.errors.map(e => e.message).join(', ')
+        },
         { status: 400 }
       )
     }
+
+    const { endpoint } = parsed.data
 
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint))
 

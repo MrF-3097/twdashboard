@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTransactions } from '@/hooks/use-commissions'
 import { useAuth } from '@/hooks/use-auth'
+import type { Agent } from '@/types'
 import Image from 'next/image'
 import { Bell, SmilePlus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -27,11 +28,16 @@ export const NewsFeed = () => {
   const { agentData } = useAuth()
   const { data: transactions } = useTransactions()
   const [newsItems, setNewsItems] = useState<NewsItem[]>([])
-  const [rebsAgents, setRebsAgents] = useState<any[]>([])
+  const [rebsAgents, setRebsAgents] = useState<Agent[]>([])
+  const [knownAgentIds, setKnownAgentIds] = useState<Set<string | number>>(new Set())
   const [showReactionPicker, setShowReactionPicker] = useState<string | null>(null)
   const [selectedReactions, setSelectedReactions] = useState<Record<string, string>>({}) // itemId -> emoji
   const longPressTimer = useRef<NodeJS.Timeout | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [newAgentWelcomeItems, setNewAgentWelcomeItems] = useState<NewsItem[]>([])
+  
+  // Sample welcome card for testing (remove in production)
+  const [showSampleWelcome, setShowSampleWelcome] = useState(true)
 
   // Generate stable random values for vertical lines
   const verticalLines = useMemo(() => {
@@ -50,6 +56,20 @@ export const NewsFeed = () => {
     })
   }, [])
 
+  // Load known agent IDs from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('knownAgentIds')
+      if (stored) {
+        const ids = JSON.parse(stored)
+        setKnownAgentIds(new Set(ids))
+        console.log(`✅ Loaded ${ids.length} known agent IDs from cache`)
+      }
+    } catch (err) {
+      console.error('Error loading known agent IDs:', err)
+    }
+  }, [])
+
   // Fetch REBS users (agents) for avatar data from new /api/users/ endpoint
   useEffect(() => {
     const fetchRebsAgents = async () => {
@@ -59,6 +79,41 @@ export const NewsFeed = () => {
         if (result.success && result.data) {
           // /api/agents already returns normalized array from /api/users/ with is_agent=true
           const agentsList = Array.isArray(result.data) ? result.data : []
+          
+          // Detect new agents
+          const newAgents = agentsList.filter(agent => {
+            const agentId = String(agent.id || agent.name)
+            return !knownAgentIds.has(agentId)
+          })
+          
+          // Create welcome items for new agents
+          if (newAgents.length > 0) {
+            const welcomeItems: NewsItem[] = newAgents.map(agent => ({
+              id: `welcome-${agent.id}-${Date.now()}`,
+              itemType: 'welcome' as const,
+              agentName: agent.name,
+              agentAvatar: agent.avatar || agent.profile_picture,
+              welcomeMessage: `Bine ai venit ${agent.name}!`,
+              timestamp: new Date(),
+            }))
+            setNewAgentWelcomeItems(welcomeItems)
+            console.log(`🆕 Found ${newAgents.length} new agent(s):`, newAgents.map(a => a.name))
+            
+            // Update known agent IDs
+            const updatedIds = new Set(knownAgentIds)
+            newAgents.forEach(agent => {
+              updatedIds.add(String(agent.id || agent.name))
+            })
+            setKnownAgentIds(updatedIds)
+            
+            // Save to localStorage
+            try {
+              localStorage.setItem('knownAgentIds', JSON.stringify(Array.from(updatedIds)))
+            } catch (err) {
+              console.error('Error saving known agent IDs:', err)
+            }
+          }
+          
           setRebsAgents(agentsList)
           console.log(`✅ Loaded ${agentsList.length} agents from REBS users API`)
         }
@@ -67,7 +122,7 @@ export const NewsFeed = () => {
       }
     }
     fetchRebsAgents()
-  }, [])
+  }, [knownAgentIds])
 
   // Fetch news items from database AND convert transactions
   useEffect(() => {
@@ -98,66 +153,81 @@ export const NewsFeed = () => {
         let transactionItems: NewsItem[] = []
         if (transactions?.rows) {
           transactionItems = transactions.rows
-            .filter(t => t.Agent && t['Valoare Tranzactie'])
-            .map((t, index) => {
-              const agentName = t.Agent
-              const rebsAgent = rebsAgents.find(ra => {
-                if (ra.first_name && ra.last_name) {
-                  const fullName = `${ra.first_name} ${ra.last_name}`
-                  return fullName.toLowerCase() === agentName.toLowerCase()
-                }
-                return ra.name?.toLowerCase() === agentName.toLowerCase()
-              })
+      .filter(t => t.Agent && t['Valoare Tranzactie'])
+      .map((t, index) => {
+        const agentName = t.Agent
+        const rebsAgent = rebsAgents.find(ra => {
+          if (ra.first_name && ra.last_name) {
+            const fullName = `${ra.first_name} ${ra.last_name}`
+            return fullName.toLowerCase() === agentName.toLowerCase()
+          }
+          return ra.name?.toLowerCase() === agentName.toLowerCase()
+        })
 
-              const valoare = typeof t['Valoare Tranzactie'] === 'number' ? t['Valoare Tranzactie'] : 0
-              const pct = typeof t['Comision %'] === 'number' 
-                ? (t['Comision %'] > 1 ? t['Comision %'] / 100 : t['Comision %']) 
-                : 0
-              const com = t.Comision && t.Comision > 0 
-                ? t.Comision 
-                : (valoare * pct)
+        const valoare = typeof t['Valoare Tranzactie'] === 'number' ? t['Valoare Tranzactie'] : 0
+        const pct = typeof t['Comision %'] === 'number' 
+          ? (t['Comision %'] > 1 ? t['Comision %'] / 100 : t['Comision %']) 
+          : 0
+        const com = t.Comision && t.Comision > 0 
+          ? t.Comision 
+          : (valoare * pct)
 
-              let transactionDate: Date
-              if (t.Timestamp) {
-                transactionDate = new Date(t.Timestamp)
-              } else if ((t as any)['Data Tranzactie']) {
-                transactionDate = new Date((t as any)['Data Tranzactie'])
-              } else if ((t as any).Date) {
-                transactionDate = new Date((t as any).Date)
-              } else {
-                transactionDate = new Date()
-              }
-
-              const closedTransactionType = (t as any)['closed_transaction_type'] || t['Tip Tranzactie'] || (t as any)['Transaction Type']
-              const isRental = 
-                closedTransactionType === 1 || 
-                closedTransactionType === '1' ||
-                closedTransactionType === 'Chirie' || 
-                closedTransactionType === 'Rental' || 
-                closedTransactionType === 'Rent' ||
-                closedTransactionType === 'Închiriere' ||
-                String(closedTransactionType).toLowerCase().includes('chirie') ||
-                String(closedTransactionType).toLowerCase().includes('rent')
-              
-              const transactionType: 'Vanzare' | 'Chirie' = isRental ? 'Chirie' : 'Vanzare'
-
-              return {
-                id: `tx-${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`,
-                itemType: 'transaction' as const,
-                agentName,
-                agentAvatar: rebsAgent?.avatar || rebsAgent?.profile_picture || rebsAgent?.photo,
-                transactionValue: valoare,
-                commission: Math.round(com),
-                transactionType,
-                propertyType: (t as any)['Tip Proprietate'] || (t as any)['Property Type'],
-                location: (t as any)['Locatie'] || (t as any)['Location'],
-                timestamp: transactionDate
-              }
-            })
+        let transactionDate: Date
+        if (t.Timestamp) {
+          transactionDate = new Date(t.Timestamp)
+        } else if ((t as any)['Data Tranzactie']) {
+          transactionDate = new Date((t as any)['Data Tranzactie'])
+        } else if ((t as any).Date) {
+          transactionDate = new Date((t as any).Date)
+        } else {
+          transactionDate = new Date()
         }
 
-        // Combine both sources and deduplicate by timestamp and agent
-        const allItems = [...dbItems, ...transactionItems]
+        const closedTransactionType = (t as any)['closed_transaction_type'] || t['Tip Tranzactie'] || (t as any)['Transaction Type']
+        const isRental = 
+          closedTransactionType === 1 || 
+          closedTransactionType === '1' ||
+                                closedTransactionType === 'Chirie' || 
+                                closedTransactionType === 'Rental' || 
+          closedTransactionType === 'Rent' ||
+          closedTransactionType === 'Închiriere' ||
+          String(closedTransactionType).toLowerCase().includes('chirie') ||
+          String(closedTransactionType).toLowerCase().includes('rent')
+        
+        const transactionType: 'Vanzare' | 'Chirie' = isRental ? 'Chirie' : 'Vanzare'
+
+        return {
+                id: `tx-${t.Timestamp || (t as any)['Data Tranzactie'] || Date.now()}-${index}`,
+                itemType: 'transaction' as const,
+          agentName,
+          agentAvatar: rebsAgent?.avatar || rebsAgent?.profile_picture,
+          transactionValue: valoare,
+          commission: Math.round(com),
+          transactionType,
+          propertyType: (t as any)['Tip Proprietate'] || (t as any)['Property Type'],
+          location: (t as any)['Locatie'] || (t as any)['Location'],
+          timestamp: transactionDate
+        }
+      })
+        }
+
+        // Add sample welcome card for testing (remove in production)
+        const sampleWelcomeItem: NewsItem | null = showSampleWelcome ? {
+          id: 'sample-welcome-test',
+          itemType: 'welcome',
+          agentName: 'Alexandru Popescu',
+          agentAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces',
+          welcomeMessage: 'Bine ai venit Alexandru Popescu!',
+          timestamp: new Date(),
+        } : null
+
+        // Combine all sources: DB items, transaction items, new agent welcome items, and sample
+        const allItems = [
+          ...dbItems, 
+          ...transactionItems, 
+          ...newAgentWelcomeItems,
+          ...(sampleWelcomeItem ? [sampleWelcomeItem] : [])
+        ]
         const uniqueItems = allItems
           .filter((item, index, self) => 
             index === self.findIndex((i) => 
@@ -167,11 +237,11 @@ export const NewsFeed = () => {
                (item.transactionValue === i.transactionValue && item.commission === i.commission))
             )
           )
-          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-          .slice(0, 50) // Limit to 50 most recent
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, 50) // Limit to 50 most recent
 
         setNewsItems(uniqueItems)
-        console.log(`✅ Loaded ${uniqueItems.length} news items (${dbItems.length} from DB, ${transactionItems.length} from transactions)`)
+        console.log(`✅ Loaded ${uniqueItems.length} news items (${dbItems.length} from DB, ${transactionItems.length} from transactions, ${newAgentWelcomeItems.length} new agent welcomes)`)
       } catch (err) {
         console.error('Error fetching news items:', err)
       } finally {
@@ -379,6 +449,14 @@ export const NewsFeed = () => {
                 <p className="text-[9px] md:text-[10px] text-white/70 font-medium leading-tight">Ultimele tranzacții</p>
               </div>
             </div>
+            {/* Test button to toggle sample welcome card */}
+            <button
+              onClick={() => setShowSampleWelcome(!showSampleWelcome)}
+              className="px-2 md:px-4 py-1.5 md:py-2.5 bg-white/10 backdrop-blur-md rounded-lg md:rounded-xl border border-white/20 hover:bg-white/20 transition-all text-xs text-white/80"
+              title="Toggle sample welcome card"
+            >
+              {showSampleWelcome ? 'Hide' : 'Show'} Sample
+            </button>
           </div>
         </div>
 
@@ -465,9 +543,24 @@ export const NewsFeed = () => {
                   {item.itemType === 'welcome' ? (
                     // Welcome message card
                     <div className="rounded-2xl border border-white/15 bg-gradient-to-br from-sky-900/40 to-blue-900/40 p-6 text-center">
-                      <div className="text-4xl mb-3">🎉</div>
+                      {item.agentAvatar ? (
+                        <div className="mb-4 flex justify-center">
+                          <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-white/40 shadow-xl">
+                            <Image
+                              src={item.agentAvatar}
+                              alt={item.agentName}
+                              width={80}
+                              height={80}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-4xl mb-3">🎉</div>
+                      )}
                       <div className="text-lg md:text-xl font-bold text-white mb-2">
-                        {item.welcomeMessage || `Bun venit la Tower Imob, ${item.agentName}!`}
+                        {item.welcomeMessage || `Bine ai venit ${item.agentName}!`}
                       </div>
                       <div className="text-sm text-white/70 mt-2">
                         Îți dorim mult succes în noua ta carieră!
@@ -475,27 +568,27 @@ export const NewsFeed = () => {
                     </div>
                   ) : (
                     // Transaction card
-                    <div className="rounded-2xl border border-white/15 bg-slate-900/40 p-4 text-center">
-                      <div className={`text-[12px] uppercase tracking-[0.5em] font-semibold ${
-                        item.transactionType === 'Chirie' ? 'text-emerald-300' : 'text-white/60'
-                      }`}>
-                        {(item.transactionType || 'Vanzare').toUpperCase()}
-                      </div>
-                      <div className="mt-3 text-3xl md:text-4xl font-black text-white">
+                  <div className="rounded-2xl border border-white/15 bg-slate-900/40 p-4 text-center">
+                    <div className={`text-[12px] uppercase tracking-[0.5em] font-semibold ${
+                      item.transactionType === 'Chirie' ? 'text-emerald-300' : 'text-white/60'
+                    }`}>
+                      {(item.transactionType || 'Vanzare').toUpperCase()}
+                    </div>
+                    <div className="mt-3 text-3xl md:text-4xl font-black text-white">
                         €{(item.transactionValue || 0).toLocaleString('ro-RO')}
-                        {item.transactionType === 'Chirie' && (
-                          <span className="text-base text-white/60 ml-1">/lună</span>
-                        )}
-                      </div>
-                      <div className="mt-1 text-sm font-semibold text-sky-200">
-                        Comision €{(item.commission || 0).toLocaleString('ro-RO')}
-                      </div>
-                      {item.location && (
-                        <div className="mt-1 text-xs text-white/50">
-                          {item.location}
-                        </div>
+                      {item.transactionType === 'Chirie' && (
+                        <span className="text-base text-white/60 ml-1">/lună</span>
                       )}
                     </div>
+                    <div className="mt-1 text-sm font-semibold text-sky-200">
+                        Comision €{(item.commission || 0).toLocaleString('ro-RO')}
+                    </div>
+                    {item.location && (
+                      <div className="mt-1 text-xs text-white/50">
+                        {item.location}
+                      </div>
+                    )}
+                  </div>
                   )}
 
                   <div className="flex flex-col items-center gap-2 text-center">

@@ -1,0 +1,20 @@
+"""Properties endpoints"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

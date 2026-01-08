@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import { X, Bed, Euro, User, Calendar, FileText, Phone, Mail, Building2 } from 'lucide-react'
+import { X, Bed, Euro, User, Calendar, FileText, Phone, Mail, Building2, MessageCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { PropertyCard } from '@/components/modules/properties/property-card'
 import { useProperties } from '@/hooks/use-properties'
 import type { Request } from '@/hooks/use-requests'
@@ -213,6 +214,51 @@ export const RequestDetailModal = ({ request, isOpen, onClose }: RequestDetailMo
     return 'Fără agent'
   }
 
+  const handleWhatsAppShare = () => {
+    if (!request) return
+    
+    const title = request.title || `Cerere #${request.display_id || request.id}`
+    const transactionType = getTransactionTypeLabel(request.transaction_type)
+    const propertyType = getPropertyTypeLabel(request.property_type)
+    const rooms = formatRooms(request.rooms_filter_gte, request.rooms_filter_lte)
+    const price = formatPrice(request.price_filter_gte, request.price_filter_lte)
+    const agent = getAgentName()
+    
+    // Build the message
+    let message = `*${title}*\n\n`
+    message += `Tip tranzacție: ${transactionType}\n`
+    if (propertyType !== 'Nespecificat') {
+      message += `Tip proprietate: ${propertyType}\n`
+    }
+    if (rooms !== 'Număr camere flexibil') {
+      message += `Camere: ${rooms}\n`
+    }
+    message += `Preț: ${price}\n`
+    
+    // Add location if available (from cities or other fields)
+    if (request.cities && request.cities.length > 0) {
+      message += `Locație: ${request.cities.join(', ')}\n`
+    }
+    
+    // Add agent if available
+    if (agent !== 'Fără agent') {
+      message += `Agent: ${agent}\n`
+    }
+    
+    // Add details/comments if available
+    if (request.details) {
+      message += `\nDetalii:\n${request.details}\n`
+    }
+    if (request.comments_general) {
+      message += `\nComentarii:\n${request.comments_general}\n`
+    }
+    
+    message += `\nInteresat de această cerere?`
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
+    window.open(whatsappUrl, '_blank')
+  }
+
   if (!request) return null
 
   return (
@@ -225,7 +271,7 @@ export const RequestDetailModal = ({ request, isOpen, onClose }: RequestDetailMo
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1003]"
           />
 
           {/* Modal */}
@@ -233,7 +279,7 @@ export const RequestDetailModal = ({ request, isOpen, onClose }: RequestDetailMo
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90vw] md:max-w-6xl md:h-[90vh] z-50 bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden"
+            className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90vw] md:max-w-6xl md:h-[90vh] md:max-h-[90vh] z-[1004] bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-800/50">
@@ -245,16 +291,27 @@ export const RequestDetailModal = ({ request, isOpen, onClose }: RequestDetailMo
                   <p className="text-sm text-slate-400">ID: {request.display_id}</p>
                 )}
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg hover:bg-slate-700 transition-colors text-slate-400 hover:text-white"
-              >
-                <X className="h-6 w-6" />
-              </button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleWhatsAppShare}
+                  variant="outline"
+                  size="sm"
+                  className="bg-green-600/10 hover:bg-green-600/20 border-green-600/30 text-green-400 hover:text-green-300"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  <span>Trimite pe WhatsApp</span>
+                </Button>
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg hover:bg-slate-700 transition-colors text-slate-400 hover:text-white"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
             </div>
 
             {/* Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               <div className="p-6 space-y-6">
                 {/* Request Details */}
                 <Card className="bg-slate-800/50 border-slate-700 p-6">

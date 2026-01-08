@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Agent, AgentStats, LeaderboardRankChange } from '@/types'
 import { useLeaderboard } from './use-commissions'
 import type { LeaderboardRow } from '@/types/commissions'
+import { logger } from '@/lib/logger'
 
 interface UseAgentLeaderboardReturn {
   agents: Agent[]
@@ -21,8 +22,9 @@ export const useAgentLeaderboard = (
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [rankChanges, setRankChanges] = useState<LeaderboardRankChange[]>([])
-  const [rebsAgents, setRebsAgents] = useState<any[]>([])
+  const [rebsAgents, setRebsAgents] = useState<Agent[]>([])
   const previousAgentsRef = useRef<Agent[]>([])
+  const rankChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Fetch commission spreadsheet data
   const { data: commissionData, error: commissionError, isLoading: commissionLoading, refresh } = useLeaderboard()
@@ -38,7 +40,7 @@ export const useAgentLeaderboard = (
           setRebsAgents(agentsList)
         }
       } catch (err) {
-        console.error('Error fetching REBS agents:', err)
+        logger.error('Error fetching REBS agents', err)
       }
     }
     fetchRebsAgents()
@@ -158,9 +160,16 @@ export const useAgentLeaderboard = (
       if (previousAgentsRef.current.length > 0) {
         const changes = detectRankChanges(previousAgentsRef.current, processedAgents)
         if (changes.length > 0) {
+          // Clear any existing timeout
+          if (rankChangeTimeoutRef.current) {
+            clearTimeout(rankChangeTimeoutRef.current)
+          }
           setRankChanges(changes)
-          // Clear rank changes after 5 seconds
-          setTimeout(() => setRankChanges([]), 5000)
+          // Clear rank changes after 5 seconds (with cleanup)
+          rankChangeTimeoutRef.current = setTimeout(() => {
+            setRankChanges([])
+            rankChangeTimeoutRef.current = null
+          }, 5000)
         }
       }
 
@@ -178,7 +187,7 @@ export const useAgentLeaderboard = (
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ leaderboard: leaderboardData }),
         }).catch(monitorError => {
-          console.error('[Leaderboard] Error checking for changes:', monitorError)
+          logger.error('[Leaderboard] Error checking for changes', monitorError)
         })
       }
 
@@ -189,7 +198,7 @@ export const useAgentLeaderboard = (
       setIsLoading(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred')
-      console.error('Error processing agents:', err)
+      logger.error('Error processing agents', err)
       setIsLoading(false)
     }
   }, [commissionData, commissionError, commissionLoading, processAgentData, detectRankChanges])
@@ -226,8 +235,15 @@ export const useAgentLeaderboard = (
     // Detect rank changes
     const changes = detectRankChanges(agents, shuffled)
     if (changes.length > 0) {
+      // Clear any existing timeout
+      if (rankChangeTimeoutRef.current) {
+        clearTimeout(rankChangeTimeoutRef.current)
+      }
       setRankChanges(changes)
-      setTimeout(() => setRankChanges([]), 5000)
+      rankChangeTimeoutRef.current = setTimeout(() => {
+        setRankChanges([])
+        rankChangeTimeoutRef.current = null
+      }, 5000)
     }
 
     setAgents(shuffled)
@@ -238,6 +254,16 @@ export const useAgentLeaderboard = (
   useEffect(() => {
     fetchAgents()
   }, [fetchAgents])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (rankChangeTimeoutRef.current) {
+        clearTimeout(rankChangeTimeoutRef.current)
+        rankChangeTimeoutRef.current = null
+      }
+    }
+  }, [])
 
   return {
     agents,

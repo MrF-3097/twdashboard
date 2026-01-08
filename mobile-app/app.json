@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "Tower Imob Dashboard",
+    "slug": "agent-dashboard-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0F172A",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ro.towerimob.dashboard",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "The app accesses your photos to upload property images."
+      }
+    },
+    "android": {
+      "package": "ro.towerimob.dashboard",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "scheme": "towerimob",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#8870D0"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to upload property images."
+        }
+      ],
+      "expo-font",
+      [
+        "expo-dev-client",
+        {
+          "scheme": "towerimob"
+        }
+      ]
+    ],
+    "extra": {
+      "apiUrl": "https://dashboard.towerimob.ro/api",
+      "devApiUrl": "http://192.168.1.246:3000/api",
+      "rebsApiToken": "22a329334f5a2cfae340a427eff3d7d07847d5a7"
+    }
+  }
+}

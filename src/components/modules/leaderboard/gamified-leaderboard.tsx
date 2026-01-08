@@ -22,7 +22,7 @@ export const GamifiedLeaderboard: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [showConfetti, setShowConfetti] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const previousTopAgentIdRef = useRef<number | null>(null)
+  const previousTopAgentIdRef = useRef<string | number | null>(null)
   const [showControls, setShowControls] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [debugLogs, setDebugLogs] = useState<Array<{ time: number; message: string }>>([])

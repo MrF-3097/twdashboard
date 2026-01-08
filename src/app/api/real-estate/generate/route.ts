@@ -4,9 +4,16 @@ import { AdGenerationRequest, AdGenerationResponse } from '@/types'
 import fs from 'fs'
 import path from 'path'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
+const getOpenAIClient = () => {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY environment variable is not set')
+  }
+  return new OpenAI({ apiKey })
+}
 
 // Token pricing: GPT-4o-mini costs $0.15 per 1M input tokens and $0.60 per 1M output tokens
 // For simplicity, we'll use average cost: ~$0.30 per 1M tokens (mixed input/output)
@@ -24,7 +31,7 @@ function readTokenUsage() {
       return []
     }
     const data = fs.readFileSync(filePath, 'utf-8')
-    return JSON.parse(data)
+    return JSON.parse(data || '[]')
   } catch (error) {
     console.error('Error reading token usage:', error)
     return []
@@ -165,6 +172,7 @@ Generate the ad now using a DISTINCTLY ${tone} voice.
 `
 
       // Call OpenAI API with tone-specific system prompt
+      const openai = getOpenAIClient()
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [

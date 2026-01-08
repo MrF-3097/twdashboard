@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { db } from '@/db'
 import { agentTargets } from '@/db/schema'
 import { eq } from 'drizzle-orm'
+
+/**
+ * Schema for update target request validation
+ */
+const updateTargetSchema = z.object({
+  agentName: z.string().min(1, 'Numele agentului este obligatoriu'),
+  targetAmount: z.number().positive('Suma țintă trebuie să fie pozitivă'),
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,14 +18,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('🔵 [API] Received body:', body)
     
-    const { agentName, targetAmount } = body
+    const parsed = updateTargetSchema.safeParse(body)
     
-    if (!agentName || !targetAmount || targetAmount <= 0) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid parameters' },
+        { 
+          success: false, 
+          error: 'Date invalide',
+          details: parsed.error.errors.map(e => e.message).join(', ')
+        },
         { status: 400 }
       )
     }
+    
+    const { agentName, targetAmount } = parsed.data
     
     // Check if agent target exists
     const existing = await db.select().from(agentTargets).where(eq(agentTargets.agentName, agentName)).limit(1)
@@ -54,6 +69,22 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

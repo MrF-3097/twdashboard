@@ -85,24 +85,28 @@ async function fetchAllSalesProperties(agentId: number) {
   return allProperties
 }
 
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+
 /**
  * GET /api/agents/[agentId]/sales-count
  * Returns the count of properties with availability=4 AND closed_transaction_type=2 for a specific agent
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { agentId: string } }
+  { params }: { params: Promise<{ agentId: string }> | { agentId: string } }
 ) {
-  const agentId = parseInt(params.agentId, 10)
-
-  if (isNaN(agentId)) {
-    return NextResponse.json(
-      { success: false, error: 'Invalid agent ID' },
-      { status: 400 }
-    )
-  }
-
   try {
+    // Handle both Next.js 13+ (Promise) and older (direct object) params
+    const resolvedParams = params instanceof Promise ? await params : params
+    const agentId = parseInt(resolvedParams.agentId, 10)
+
+    if (isNaN(agentId) || agentId <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid agent ID', salesCount: 0 },
+        { status: 200 } // Return 200 for graceful error handling
+      )
+    }
     console.log(`🔍 Fetching sales count for agent ${agentId}...`)
     
     // First, try to get from database (if quest tracking has synced)
@@ -159,14 +163,16 @@ export async function GET(
   } catch (error) {
     console.error(`Error fetching sales count for agent ${agentId}:`, error)
     
+    // Always return 200 with success: false to prevent HTTP 500
+    // This allows the mobile app to handle the error gracefully
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch sales count',
-      agentId,
+      agentId: agentId || 0,
       salesCount: 0,
       timestamp: new Date().toISOString(),
       source: 'error_fallback'
-    })
+    }, { status: 200 }) // Return 200 instead of 500 for graceful error handling
   }
 }
 

@@ -188,7 +188,7 @@ const LeadHistoryModal = ({ isOpen, onClose }: LeadHistoryModalProps) => {
   }, [leads])
 
   const availablePropertyTypes = useMemo(() => {
-    const types = Array.from(new Set(leads.map(lead => lead.tipProprietate).filter(Boolean)))
+    const types = Array.from(new Set(leads.map(lead => lead.tipProprietate).filter((type): type is string => Boolean(type))))
     return types.sort()
   }, [leads])
 

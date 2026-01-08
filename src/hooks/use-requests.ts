@@ -94,9 +94,13 @@ export const useRequests = () => {
     typeof window !== 'undefined' ? '/api/requests' : null,
     fetcher,
     {
-      revalidateOnFocus: true,
+      revalidateOnFocus: false, // Don't refetch on focus to use cache
       revalidateOnReconnect: true,
-      refreshInterval: 60000, // Refresh every minute
+      refreshInterval: 120000, // Refresh every 2 minutes (API caches for 60s)
+      dedupingInterval: 60000, // Dedupe requests within 60 seconds
+      keepPreviousData: true, // Keep showing old data while fetching new
+      errorRetryCount: 2,
+      errorRetryInterval: 5000,
     }
   )
 

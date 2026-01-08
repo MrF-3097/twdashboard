@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import fs from 'fs'
 import path from 'path'
 
@@ -102,20 +103,36 @@ export async function GET() {
   }
 }
 
+/**
+ * Schema for news reaction request validation
+ */
+const newsReactionSchema = z.object({
+  itemId: z.string().min(1, 'ID-ul item-ului este obligatoriu'),
+  agentName: z.string().min(1, 'Numele agentului este obligatoriu'),
+  emoji: z.string().min(1, 'Emoji-ul este obligatoriu'),
+  action: z.enum(['add', 'remove'], {
+    errorMap: () => ({ message: 'Acțiunea trebuie să fie "add" sau "remove"' }),
+  }),
+})
+
 // POST - Update reaction for a news item
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { itemId, agentName, emoji, action } = body 
-    // action: 'add' or 'remove'
-    // emoji: emoji string (e.g., '👍', '❤️', '😂', etc.)
+    const parsed = newsReactionSchema.safeParse(body)
 
-    if (!itemId || !agentName || !emoji || !action) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { 
+          success: false, 
+          error: 'Date invalide',
+          details: parsed.error.errors.map(e => e.message).join(', ')
+        },
         { status: 400 }
       )
     }
+
+    const { itemId, agentName, emoji, action } = parsed.data
 
     const likes = readLikes()
     

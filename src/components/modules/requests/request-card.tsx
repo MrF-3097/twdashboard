@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Bed, Euro, User, Calendar, FileText } from 'lucide-react'
+import { Bed, Euro, User, Calendar, FileText, MessageCircle } from 'lucide-react'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { RequestDetailModal } from './request-detail-modal'
 import type { Request } from '@/hooks/use-requests'
 
@@ -95,13 +96,58 @@ export const RequestCard = ({ request }: RequestCardProps) => {
     return 'Fără agent'
   }
 
+  const handleWhatsAppShare = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click when clicking WhatsApp button
+    
+    const title = request.title || `Cerere #${request.display_id || request.id}`
+    const transactionType = getTransactionTypeLabel(request.transaction_type)
+    const propertyType = getPropertyTypeLabel(request.property_type)
+    const rooms = formatRooms(request.rooms_filter_gte, request.rooms_filter_lte)
+    const price = formatPrice(request.price_filter_gte, request.price_filter_lte)
+    const agent = getAgentName()
+    
+    // Build the message
+    let message = `*${title}*\n\n`
+    message += `Tip tranzacție: ${transactionType}\n`
+    if (propertyType !== 'Nespecificat') {
+      message += `Tip proprietate: ${propertyType}\n`
+    }
+    if (rooms !== 'Număr camere flexibil') {
+      message += `Camere: ${rooms}\n`
+    }
+    message += `Preț: ${price}\n`
+    
+    // Add location if available (from cities or other fields)
+    if (request.cities && request.cities.length > 0) {
+      message += `Locație: ${request.cities.join(', ')}\n`
+    }
+    
+    // Add agent if available
+    if (agent !== 'Fără agent') {
+      message += `Agent: ${agent}\n`
+    }
+    
+    // Add details/comments if available
+    if (request.details) {
+      message += `\nDetalii:\n${request.details}\n`
+    }
+    if (request.comments_general) {
+      message += `\nComentarii:\n${request.comments_general}\n`
+    }
+    
+    message += `\nInteresat de această cerere?`
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`
+    window.open(whatsappUrl, '_blank')
+  }
+
   return (
     <>
       <Card 
-        className="bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 transition-all overflow-hidden group cursor-pointer"
+        className="bg-slate-800/50 border-slate-700/50 hover:border-slate-600/50 transition-colors overflow-hidden group cursor-pointer"
         onClick={() => setIsModalOpen(true)}
       >
-        <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -173,6 +219,19 @@ export const RequestCard = ({ request }: RequestCardProps) => {
             <p className="text-xs text-slate-400 line-clamp-2">{request.details}</p>
           </div>
         )}
+
+        {/* WhatsApp Share Button */}
+        <div className="pt-2 border-t border-slate-700/50">
+          <Button
+            onClick={handleWhatsAppShare}
+            variant="outline"
+            size="sm"
+            className="w-full bg-green-600/10 hover:bg-green-600/20 border-green-600/30 text-green-400 hover:text-green-300"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            <span>Trimite pe WhatsApp</span>
+          </Button>
+        </div>
       </div>
     </Card>
 

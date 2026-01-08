@@ -1,0 +1,89 @@
+[tool.poetry]
+name = "towerimob-api"
+version = "0.1.0"
+description = "FastAPI Backend for Tower Imob Agent Dashboard"
+authors = ["Tower Imob <admin@towerimob.ro>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.109.0"
+uvicorn = {extras = ["standard"], version = "^0.27.0"}
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+
+# HTTP Client
+httpx = "^0.26.0"
+
+# Database
+sqlalchemy = "^2.0.25"
+aiosqlite = "^0.19.0"
+
+# Authentication & Security
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-multipart = "^0.0.6"
+
+# Caching (Redis pentru production, memory pentru dev)
+redis = {extras = ["hiredis"], version = "^5.0.0"}
+
+# Image Processing
+pillow = "^10.2.0"
+
+# Document Processing
+python-docx = "^1.1.0"
+pypdf = "^4.0.0"
+
+# AI/ML
+openai = "^1.10.0"
+
+# Web Push
+pywebpush = "^1.14.0"
+
+# Utilities
+python-dateutil = "^2.8.2"
+pytz = "^2024.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.4"
+pytest-asyncio = "^0.23.3"
+httpx = "^0.26.0"
+black = "^24.1.0"
+ruff = "^0.1.11"
+mypy = "^1.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

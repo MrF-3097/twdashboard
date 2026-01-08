@@ -4,6 +4,7 @@ import path from 'path'
 import { promises as fs } from 'fs'
 import OpenAI from 'openai'
 import { ensureRebsEnv, rebsFetch } from '@/lib/rebs-client'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -12,6 +13,19 @@ const openai =
   process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 0
     ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     : null
+
+// Log OpenAI initialization status
+if (openai) {
+  logger.info('[Property API] OpenAI client initialized successfully', {
+    hasApiKey: !!process.env.OPENAI_API_KEY,
+    apiKeyLength: process.env.OPENAI_API_KEY?.length || 0
+  })
+} else {
+  logger.warn('[Property API] OpenAI client NOT initialized - API key missing or empty', {
+    hasApiKey: !!process.env.OPENAI_API_KEY,
+    apiKeyLength: process.env.OPENAI_API_KEY?.length || 0
+  })
+}
 
 const contactSchema = z.object({
   firstName: z.string().min(1, 'Prenumele este obligatoriu'),
@@ -274,6 +288,15 @@ const formatCurrency = (value?: number, currency: 'EUR' | 'RON' = 'EUR') => {
 }
 
 const buildPropertyTitle = (parsed: z.infer<typeof fabPropertySchema>) => {
+  logger.debug('[Property API] Building property title', {
+    propertyType: parsed.property.propertyType,
+    transactionMode: parsed.property.transactionMode,
+    rooms: parsed.property.characteristics.rooms,
+    salePrice: parsed.property.pricing.salePrice,
+    rentPrice: parsed.property.pricing.rentPrice,
+    currency: parsed.property.pricing.currency
+  })
+
   const mode = parsed.property.transactionMode
   const forSale = mode === 'sale' || mode === 'both'
   const forRent = mode === 'rent' || mode === 'both'
@@ -290,7 +313,7 @@ const buildPropertyTitle = (parsed: z.infer<typeof fabPropertySchema>) => {
     (forRent && rentPrice && formatCurrency(rentPrice, parsed.property.pricing.currency)) ||
     ''
 
-  return [
+  const titleParts = [
     parsed.property.propertyType,
     modeLabel,
     roomsLabel && `${roomsLabel}`,
@@ -300,6 +323,18 @@ const buildPropertyTitle = (parsed: z.infer<typeof fabPropertySchema>) => {
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim()
+
+  logger.info('[Property API] Generated property title', {
+    title: titleParts,
+    parts: {
+      propertyType: parsed.property.propertyType,
+      modeLabel,
+      roomsLabel,
+      priceLabel
+    }
+  })
+
+  return titleParts
 }
 
 const buildDescriptionSummary = (parsed: z.infer<typeof fabPropertySchema>) => {
@@ -357,12 +392,30 @@ const fallbackDescription = (summary: string) =>
   `Tower Imob prezintă o proprietate configurată astfel:\n${summary}\nPentru detalii suplimentare și vizionări, contactează echipa noastră.`
 
 const generateDescription = async (parsed: z.infer<typeof fabPropertySchema>) => {
+  logger.info('[Property API] Starting description generation')
+  
   const summary = buildDescriptionSummary(parsed)
+  logger.debug('[Property API] Description summary built', {
+    summaryLength: summary.length,
+    summaryPreview: summary.substring(0, 200)
+  })
+
   if (!openai) {
-    return fallbackDescription(summary)
+    logger.warn('[Property API] OpenAI client not available, using fallback description')
+    const fallback = fallbackDescription(summary)
+    logger.info('[Property API] Using fallback description', {
+      descriptionLength: fallback.length
+    })
+    return fallback
   }
 
   try {
+    logger.info('[Property API] Calling OpenAI API for description generation', {
+      model: 'gpt-4o-mini',
+      summaryLength: summary.length
+    })
+
+    const startTime = Date.now()
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -380,10 +433,42 @@ const generateDescription = async (parsed: z.infer<typeof fabPropertySchema>) =>
       temperature: 0.6,
     })
 
+    const duration = Date.now() - startTime
+    logger.info('[Property API] OpenAI API call completed', {
+      duration: `${duration}ms`,
+      usage: completion.usage,
+      choicesCount: completion.choices?.length || 0
+    })
+
     const text = completion.choices[0]?.message?.content?.trim()
-    return text && text.length > 0 ? text : fallbackDescription(summary)
+    
+    if (!text || text.length === 0) {
+      logger.warn('[Property API] OpenAI returned empty description, using fallback', {
+        completion: JSON.stringify(completion, null, 2)
+      })
+      return fallbackDescription(summary)
+    }
+
+    logger.info('[Property API] Successfully generated AI description', {
+      descriptionLength: text.length,
+      descriptionPreview: text.substring(0, 150)
+    })
+
+    return text
   } catch (error) {
-    console.error('[OpenAI] Failed to generate description:', error)
+    logger.error('[Property API] OpenAI API call failed', error)
+    
+    // Log detailed error information
+    if (error instanceof Error) {
+      logger.error('[Property API] OpenAI error details', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      })
+    } else if (typeof error === 'object' && error !== null) {
+      logger.error('[Property API] OpenAI error object', error)
+    }
+
     return fallbackDescription(summary)
   }
 }
@@ -754,13 +839,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    logger.info('[Property API] Generating title and description for property')
+    
     const propertyTitle = buildPropertyTitle(parsed)
+    logger.info('[Property API] Property title generated', { title: propertyTitle })
+    
     const aiDescription = await generateDescription(parsed)
+    logger.info('[Property API] AI description generated', {
+      descriptionLength: aiDescription.length,
+      hasMediaNotes: !!parsed.property.media.notes
+    })
+    
     const finalDescription = [aiDescription, parsed.property.media.notes?.trim()]
       .filter(Boolean)
       .join('\n\n')
       .trim()
+    
+    logger.info('[Property API] Final description prepared', {
+      finalDescriptionLength: finalDescription.length,
+      includesMediaNotes: finalDescription.includes(parsed.property.media.notes || '')
+    })
+    
     const propertyPayload = mapPropertyPayload(parsed, contactIds, finalDescription || undefined, propertyTitle)
+    
+    logger.info('[Property API] Property payload prepared', {
+      hasTitle: !!propertyPayload.title,
+      title: propertyPayload.title,
+      hasDescription: !!propertyPayload.description,
+      descriptionLength: propertyPayload.description?.length || 0,
+      descriptionPreview: propertyPayload.description?.substring(0, 100)
+    })
     const propertyResponse = await rebsFetch('/properties/', {
       method: 'POST',
       body: JSON.stringify(propertyPayload)

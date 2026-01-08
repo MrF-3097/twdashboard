@@ -3,6 +3,8 @@ import { Inter, Montserrat } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/toaster'
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register'
+import { AppErrorBoundary } from '@/components/layout/app-error-boundary'
+import { WebVitals } from '@/components/monitoring/web-vitals'
 import dynamic from 'next/dynamic'
 
 // Dynamically import debug components to avoid SSR issues
@@ -56,14 +58,17 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Tower Imob" />
       </head>
               <body className={`${inter.className} ${montserrat.variable} dark`}>
-                <ServiceWorkerRegister />
-                {children}
-                <Toaster />
-                {process.env.NODE_ENV === 'development' && (
-                  <>
-                    <OnScreenDebugPanel />
-                  </>
-                )}
+                <AppErrorBoundary>
+                  <ServiceWorkerRegister />
+                  <WebVitals />
+                  {children}
+                  <Toaster />
+                  {process.env.NODE_ENV === 'development' && (
+                    <>
+                      <OnScreenDebugPanel />
+                    </>
+                  )}
+                </AppErrorBoundary>
               </body>
     </html>
   )

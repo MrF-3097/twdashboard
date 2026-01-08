@@ -155,7 +155,7 @@ export const RequestsPortfolio = () => {
               >
                 <SelectValue placeholder="Toate" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-slate-800 border-slate-700 z-[1002]">
                 <SelectItem value="all" className="text-white hover:bg-slate-700">
                   Toate
                 </SelectItem>
@@ -181,7 +181,7 @@ export const RequestsPortfolio = () => {
               >
                 <SelectValue placeholder="Toate tipurile" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-slate-800 border-slate-700 z-[1002]">
                 <SelectItem value="all" className="text-white hover:bg-slate-700">
                   Toate tipurile
                 </SelectItem>
@@ -210,7 +210,7 @@ export const RequestsPortfolio = () => {
               >
                 <SelectValue placeholder="Toate" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectContent className="bg-slate-800 border-slate-700 z-[1002]">
                 <SelectItem value="all" className="text-white hover:bg-slate-700">
                   Toate
                 </SelectItem>

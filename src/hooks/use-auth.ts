@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { setUserContext, clearUserContext } from '@/lib/monitoring'
 
 interface AgentData {
   id: number
@@ -53,6 +54,13 @@ export const useAuth = () => {
           // Check if session is still valid (not expired)
           const now = Date.now()
           if (now - timestamp < SESSION_TIMEOUT) {
+            // Set user context for monitoring
+            setUserContext(agentData.id?.toString() || 'unknown', {
+              email: agentData.email,
+              name: agentData.name,
+              role: 'agent',
+            })
+            
             setAuthState({
               isLoggedIn: true,
               agentData,
@@ -85,6 +93,14 @@ export const useAuth = () => {
       if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(authData))
       }
+      
+      // Set user context for monitoring
+      setUserContext(agentData.id?.toString() || 'unknown', {
+        email: agentData.email,
+        name: agentData.name,
+        role: 'agent',
+      })
+      
       setAuthState({
         isLoggedIn: true,
         agentData,
@@ -109,6 +125,9 @@ export const useAuth = () => {
     } catch (error) {
       console.error('Error clearing auth data from localStorage:', error)
     }
+    
+    // Clear user context for monitoring
+    clearUserContext()
     
     setAuthState({
       isLoggedIn: false,
@@ -148,9 +167,32 @@ export const useAuth = () => {
           cache: 'no-store',
           signal: controller.signal,
         })
+
+        // Check if response is JSON before parsing
+        const contentType = response.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          console.warn('Auth status endpoint returned non-JSON response')
+          return
+        }
+
+        // Check if response is OK before parsing
+        if (!response.ok) {
+          // Try to get error message if possible
+          try {
+            const errorText = await response.text()
+            if (errorText) {
+              const errorData = JSON.parse(errorText)
+              console.warn('Auth status check failed:', errorData.error || 'Unknown error')
+            }
+          } catch {
+            // Ignore parsing errors for error responses
+          }
+          return
+        }
+
         const result = await response.json()
 
-        if (!response.ok || !result.success) {
+        if (!result.success) {
           return
         }
 
@@ -169,7 +211,10 @@ export const useAuth = () => {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return
         }
+        // Only log if it's not a JSON parse error (which we handle above)
+        if (!(error instanceof SyntaxError && error.message.includes('JSON'))) {
         console.error('Error verifying session status:', error)
+        }
       }
     }
 

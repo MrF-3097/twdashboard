@@ -214,10 +214,11 @@ export const MobileBottomNav = ({
       <div className="md:hidden fixed bottom-24 right-4 z-[1001]">
         {/* Tools Menu - Always rendered, tied to FAB */}
         <div 
-          className="absolute bottom-full right-0 mb-3 z-50"
+          className="absolute bottom-full right-0 mb-3 z-[1002]"
           style={{
             opacity: showToolsDropdown ? 1 : 0,
-            pointerEvents: showToolsDropdown ? 'auto' : 'none'
+            pointerEvents: showToolsDropdown ? 'auto' : 'none',
+            transform: 'translateZ(0)', // Force hardware acceleration and prevent layout shifts
           }}
         >
           <div className="flex flex-col gap-4 items-end">
@@ -238,14 +239,22 @@ export const MobileBottomNav = ({
                 <button
                   key={tool.id}
                   onClick={() => handleToolSelect(tool.id)}
-                  className="flex flex-row items-center gap-4 transition-all active:scale-95"
+                  className="flex flex-row items-center gap-4 active:scale-95"
                   style={{
                     opacity: showToolsDropdown ? 1 : 0,
                     transform: showToolsDropdown 
-                      ? 'translateY(0) scale(1)' 
-                      : `translateY(${travelDistance + 12}px) scale(0.7)`,
+                      ? 'translateY(0) scale(1) translateZ(0)' 
+                      : `translateY(${travelDistance + 12}px) scale(0.7) translateZ(0)`,
                     transition: `opacity 0.25s ease-out ${delay}s, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s`,
-                    willChange: 'transform, opacity'
+                    willChange: 'transform, opacity',
+                    backfaceVisibility: 'hidden', // Prevent flickering
+                    perspective: '1000px', // Force hardware acceleration
+                  }}
+                  onMouseEnter={(e) => {
+                    // Prevent any hover-related transforms
+                    e.currentTarget.style.transform = showToolsDropdown 
+                      ? 'translateY(0) scale(1) translateZ(0)' 
+                      : `translateY(${travelDistance + 12}px) scale(0.7) translateZ(0)`
                   }}
                 >
                   {/* Text label on the left */}

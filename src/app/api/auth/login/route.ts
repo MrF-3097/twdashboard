@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getDashboardAgentByEmail, hashPassword } from '@/lib/dashboard-agents-store'
 import { rebsFetch } from '@/lib/rebs-client'
+import { withRateLimit } from '@/lib/rate-limit'
+import { sanitizeString } from '@/lib/sanitize'
+
+/**
+ * Schema for login request validation
+ */
+const loginSchema = z.object({
+  email: z.string().email('Email invalid'),
+  password: z.string().min(1, 'Parola este obligatorie'),
+})
+
+/**
+ * OPTIONS handler for CORS preflight requests
+ */
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  });
+}
 
 /**
  * POST /api/auth/login
@@ -10,16 +35,59 @@ import { rebsFetch } from '@/lib/rebs-client'
  * which keeps per-agent password hashes & activation status.
  */
 export async function POST(request: NextRequest) {
+  // CORS headers for all responses
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  // Rate limiting: 5 requests per minute for login attempts
+  const rateLimit = withRateLimit(request, { maxRequests: 5, windowMs: 60 * 1000 })
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { 
+        error: 'Prea multe încercări de autentificare. Te rugăm să încerci din nou mai târziu.',
+        retryAfter: Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+      },
+      { 
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Retry-After': String(Math.ceil((rateLimit.resetTime - Date.now()) / 1000)),
+          'X-RateLimit-Limit': '5',
+          'X-RateLimit-Remaining': String(rateLimit.remaining),
+          'X-RateLimit-Reset': String(Math.ceil(rateLimit.resetTime / 1000)),
+        }
+      }
+    )
+  }
+
   try {
     const body = await request.json()
-    const { email, password } = body
+    
+    // Sanitize input before validation
+    const sanitizedBody = {
+      email: sanitizeString(body.email || ''),
+      password: body.password, // Don't sanitize password (it's hashed anyway)
+    }
+    
+    const parsed = loginSchema.safeParse(sanitizedBody)
 
-    if (!email || !password) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Email și parola sunt obligatorii' },
-        { status: 400 }
+        { 
+          error: 'Date invalide',
+          details: parsed.error.errors.map(e => e.message).join(', ')
+        },
+        { 
+          status: 400,
+          headers: corsHeaders,
+        }
       )
     }
+
+    const { email, password } = parsed.data
 
     const agentRecord = await getDashboardAgentByEmail(email)
 
@@ -27,21 +95,30 @@ export async function POST(request: NextRequest) {
       console.log(`No agent found with email: ${email}`)
       return NextResponse.json(
         { error: 'Nu există cont cu acest email' },
-        { status: 401 }
+        { 
+          status: 401,
+          headers: corsHeaders,
+        }
       )
     }
 
     if (!agentRecord.isActive) {
       return NextResponse.json(
         { error: 'Cont dezactivat. Contactează administratorul.' },
-        { status: 403 },
+        { 
+          status: 403,
+          headers: corsHeaders,
+        },
       )
     }
 
     if (agentRecord.passwordHash !== hashPassword(password)) {
       return NextResponse.json(
         { error: 'Parola este incorectă' },
-        { status: 401 },
+        { 
+          status: 401,
+          headers: corsHeaders,
+        },
       )
     }
 
@@ -135,15 +212,20 @@ export async function POST(request: NextRequest) {
         updatedAt: agent.updatedAt,
         propertiesCount: propertiesCount,
         avatar: rebsUserAvatar, // Avatar from /api/users/ endpoint (per YAML schema)
-        position: rebsUserPosition || agent.position, // Position from REBS or fallback
+        position: rebsUserPosition || undefined, // Position from REBS
       }
+    }, {
+      headers: corsHeaders,
     })
 
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(
       { error: 'Eroare la autentificare' },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: corsHeaders,
+      }
     )
   }
 }
