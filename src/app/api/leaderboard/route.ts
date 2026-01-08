@@ -52,11 +52,21 @@ interface LeaderboardResponse {
   }
 }
 
+// Cache for REBS agents to avoid rate limiting
+let rebsAgentsCache: { data: any[]; timestamp: number } | null = null
+const REBS_CACHE_DURATION = 60 * 60 * 1000 // 1 hour cache
+
 /**
  * Fetches REBS agents data for enriching leaderboard
- * Uses the new /api/users/ endpoint with is_agent=true filter
+ * Uses caching to avoid rate limiting (1 hour cache)
  */
 async function fetchRebsAgents(): Promise<any[]> {
+  // Check if we have cached data that's still valid
+  if (rebsAgentsCache && Date.now() - rebsAgentsCache.timestamp < REBS_CACHE_DURATION) {
+    console.log('📋 [API] Using cached REBS agents data')
+    return rebsAgentsCache.data
+  }
+
   try {
     const queryParams = new URLSearchParams({
       is_agent: 'true',
@@ -84,6 +94,9 @@ async function fetchRebsAgents(): Promise<any[]> {
           : []
 
     if (agents.length > 0) {
+      // Cache the successful response
+      rebsAgentsCache = { data: agents, timestamp: Date.now() }
+      console.log(`✅ [API] Cached ${agents.length} REBS agents for 1 hour`)
       return agents
     }
 
@@ -91,6 +104,13 @@ async function fetchRebsAgents(): Promise<any[]> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.warn('⚠️ [API] Falling back to mock REBS agents:', errorMessage)
+    
+    // If we have stale cache, use it instead of mock data
+    if (rebsAgentsCache) {
+      console.log('📋 [API] Using stale REBS agents cache')
+      return rebsAgentsCache.data
+    }
+    
     return rebsMockAgents
   }
 }
